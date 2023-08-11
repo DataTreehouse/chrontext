@@ -1,0 +1,12 @@
+Fix left join expression pushdowns
+Fix condition that both datapoints and data values are declared within the same BGP.
+Engine should complain otherwise.
+Synchronized queries now require partitioning support even though it might not be present - fix this.
+Also do not project partitioning cols further if they were introduced here
+Exists introductions of TSQ in aggregations and in ordering expressions are not kept.. fix in preparing
+
+New todos:
+- Fix create subquery is set by create subquery || is_subquery for arity>1 expression rewrite.
+- Fix creation of all appropriate data types in combiner
+- Fix insert static data in static queries and in tsqs..
+- Fix support for subquery in other expression types, e.g. extend..

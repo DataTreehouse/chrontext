@@ -1,0 +1,26 @@
+[package]
+name = "py_chrontext"
+version = "0.2.4"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+pyo3 = {version = "0.16.5", features = ["extension-module", "auto-initialize"]}
+chrontext = {path="../chrontext"}
+arrow_python_utils = {path="../arrow_python_utils"}
+thiserror="1.0.31"
+polars-core = {version="0.31.1"}
+oxrdf = "0.1.0"
+spargebra = "0.2.0"
+simple-error = "0.2.3"
+tokio = "1.29.0"
+env_logger = "0.9.0"
+log="0.4.19"
+
+[lib]
+name = "chrontext"
+crate-type = ["cdylib"]
+
+[package.metadata.maturin]
+python-source = "python"

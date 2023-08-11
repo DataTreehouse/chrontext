@@ -1,0 +1,38 @@
+[package]
+name = "chrontext"
+version = "0.2.4"
+edition = "2021"
+
+[dependencies]
+polars = {version="0.31.1", features=["lazy", "concat_str", "random", "unique_counts", "groupby_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full"] }
+tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
+log = "0.4.17"
+spargebra = "0.2.0"
+sparesults = "0.1.0"
+oxrdf = "0.1.0"
+reqwest= {version="0.11.10", features=["stream"]}
+env_logger = "0.9.0"
+mimalloc = { version = "*", default-features = false }
+tonic = "0.8.3"
+prost = "0.10.4"
+thiserror = "1.0.31"
+tokio-stream = "0.1.14"
+arrow2 = {version="0.17.3", features=["io_flight"]}
+arrow-format = {version="0.8.1", features=["flight-data", "flight-service"]}
+polars-core = "0.31.1"
+sea-query = { git = "https://github.com/magbak/sea-query", branch = "dirty_bugfix_parentheses", features=["with-chrono"]}
+async-trait = "0.1.68"
+base64 = "0.13.0"
+opcua-client = "0.9.1"
+async-recursion = "1.0.4"
+
+[dev-dependencies]
+bollard = "0.12.0"
+rstest = "0.13.0"
+polars = {version="0.31.1", features=["lazy", "random", "unique_counts", "groupby_list"]}
+tokio = {version="1.18.2", features=["rt-multi-thread"]}
+serial_test = "0.8.0"
+futures-util = "0.3.21"
+reqwest= {version="0.11.10", features=["stream", "json"]}
+serde="1.0.139"
+opcua-server="0.9.1"

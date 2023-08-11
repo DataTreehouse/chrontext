@@ -1,0 +1,33 @@
+use crate::query_context::{Context, PathEntry};
+use spargebra::algebra::OrderExpression;
+use crate::combiner::CombinerError;
+use crate::combiner::solution_mapping::SolutionMappings;
+use super::Combiner;
+
+impl Combiner {
+    pub async fn lazy_order_expression(
+        &mut self,
+        oexpr: &OrderExpression,
+        solution_mappings: SolutionMappings,
+        context: &Context,
+    ) -> Result<(SolutionMappings, bool, Context), CombinerError> {
+        match oexpr {
+            OrderExpression::Asc(expr) => {
+                let inner_context = context.extension_with(PathEntry::OrderingOperation);
+                Ok((
+                    self.lazy_expression(expr, solution_mappings, None, None, &inner_context).await?,
+                    true,
+                    inner_context,
+                ))
+            }
+            OrderExpression::Desc(expr) => {
+                let inner_context = context.extension_with(PathEntry::OrderingOperation);
+                Ok((
+                    self.lazy_expression(expr, solution_mappings, None, None, &inner_context).await?,
+                    false,
+                    inner_context,
+                ))
+            }
+        }
+    }
+}

@@ -1,0 +1,7 @@
+[project]
+name = "chrontext"
+dependencies = ["rdflib==6.2.0", "polars==0.18.0", "pyarrow>=7.0.0", "pandas"]
+
+[build-system]
+requires = ["maturin>=0.13,<0.14"]
+build-backend = "maturin"

@@ -1,0 +1,6 @@
+[workspace]
+
+members=[
+    "chrontext",
+    "arrow_python_utils"
+]
