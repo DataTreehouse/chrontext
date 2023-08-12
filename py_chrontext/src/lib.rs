@@ -1,5 +1,10 @@
 pub mod errors;
 
+use jemallocator::Jemalloc;
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
@@ -8,11 +13,8 @@ use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable as R
 use chrontext::engine::Engine as RustEngine;
 use chrontext::pushdown_setting::{PushdownSetting, all_pushdowns};
 use log::debug;
-use oxrdf::vocab::{rdf, xsd};
-use oxrdf::{IriParseError, Literal, NamedNode, Variable};
+use oxrdf::{IriParseError, NamedNode};
 use pyo3::prelude::*;
-use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
-use std::collections::HashMap;
 use tokio::runtime::{Builder, Runtime};
 
 #[pyclass(unsendable)]
@@ -209,7 +211,7 @@ impl TimeSeriesTable {
 }
 
 #[pymodule]
-fn chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<Engine>()?;
     m.add_class::<TimeSeriesTable>()?;
     m.add_class::<ArrowFlightSQLDatabase>()?;

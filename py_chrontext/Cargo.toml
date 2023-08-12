@@ -6,7 +6,7 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-pyo3 = {version = "0.16.5", features = ["extension-module", "auto-initialize"]}
+pyo3 = {version = "0.19.2", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 arrow_python_utils = {path="../arrow_python_utils"}
 thiserror="1.0.31"
@@ -17,6 +17,7 @@ simple-error = "0.2.3"
 tokio = "1.29.0"
 env_logger = "0.9.0"
 log="0.4.19"
+jemallocator="0.5.4"
 
 [lib]
 name = "chrontext"
