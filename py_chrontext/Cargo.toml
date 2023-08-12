@@ -17,7 +17,7 @@ simple-error = "0.2.3"
 tokio = "1.29.0"
 env_logger = "0.9.0"
 log="0.4.19"
-jemallocator="0.5.4"
+jemallocator = {version = "0.5.4", features = ["disable_initial_exec_tls"]}
 
 [lib]
 name = "chrontext"
