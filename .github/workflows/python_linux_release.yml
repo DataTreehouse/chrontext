@@ -12,7 +12,8 @@ env:
 jobs:
   create_release: #From: https://jon.sprig.gs/blog/post/2442
     name: Create release
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ubuntu_runners
     steps:
       - name: Create Release
         id: create_release
