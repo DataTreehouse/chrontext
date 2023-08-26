@@ -1,10 +1,10 @@
 use super::TimeSeriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::query_context::{Context, PathEntry};
 use log::debug;
 use spargebra::algebra::{GraphPattern, OrderExpression};
-use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_order_by(

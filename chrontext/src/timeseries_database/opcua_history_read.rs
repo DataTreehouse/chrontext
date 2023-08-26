@@ -106,12 +106,8 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
         let mut grouping_col_lookup = HashMap::new();
         let mut grouping_col_name = None;
         if let TimeSeriesQuery::Grouped(grouped) = tsq {
-            let (colname, processed_details_some) = create_read_processed_details(
-                tsq,
-                start_time,
-                end_time,
-                &grouped.context,
-            );
+            let (colname, processed_details_some) =
+                create_read_processed_details(tsq, start_time, end_time, &grouped.context);
             processed_details = Some(processed_details_some);
             timestamp_grouping_colname = colname;
             for c in grouped.tsq.get_ids() {
@@ -275,7 +271,10 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
                 dfs.push(DataFrame::new(value_vec).unwrap().lazy())
             }
         }
-        let df = concat(dfs, UnionArgs::default()).unwrap().collect().unwrap();
+        let df = concat(dfs, UnionArgs::default())
+            .unwrap()
+            .collect()
+            .unwrap();
         Ok(df)
     }
 

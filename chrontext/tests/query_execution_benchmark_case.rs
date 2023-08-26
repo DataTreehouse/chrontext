@@ -72,7 +72,11 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatab
 
 #[fixture]
 fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
-    Engine::new(all_pushdowns(), Box::new(inmem_time_series_database), QUERY_ENDPOINT.to_string())
+    Engine::new(
+        all_pushdowns(),
+        Box::new(inmem_time_series_database),
+        QUERY_ENDPOINT.to_string(),
+    )
 }
 
 #[rstest]
@@ -242,7 +246,8 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
                 "minute_10",
             ],
             false,
-        false,)
+            false,
+        )
         .unwrap();
 
     let mut file_path = testdata_path.clone();

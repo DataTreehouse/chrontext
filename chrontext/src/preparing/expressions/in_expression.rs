@@ -1,8 +1,8 @@
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
-use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_in_expression(
@@ -21,7 +21,9 @@ impl TimeSeriesQueryPrepper {
         );
         let prepared: Vec<EXPrepReturn> = expressions
             .iter()
-            .map(|x| self.prepare_expression(x, try_groupby_complex_query, solution_mappings, context))
+            .map(|x| {
+                self.prepare_expression(x, try_groupby_complex_query, solution_mappings, context)
+            })
             .collect();
         if left_prepare.fail_groupby_complex_query
             || prepared.iter().any(|x| x.fail_groupby_complex_query)

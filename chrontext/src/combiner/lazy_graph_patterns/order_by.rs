@@ -3,12 +3,12 @@ use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
+use log::debug;
 use polars::prelude::{col, Expr};
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::HashMap;
-use async_recursion::async_recursion;
-use log::debug;
 
 impl Combiner {
     #[async_recursion]
@@ -42,7 +42,8 @@ impl Combiner {
                     expression.get(i).unwrap(),
                     output_solution_mappings,
                     order_expression_contexts.get(i).unwrap(),
-                ).await?;
+                )
+                .await?;
             output_solution_mappings = ordering_solution_mappings;
             inner_contexts.push(inner_context);
             asc_ordering.push(reverse);
@@ -60,7 +61,7 @@ impl Combiner {
                 .collect::<Vec<Expr>>(),
             asc_ordering.iter().map(|asc| !asc).collect::<Vec<bool>>(),
             true,
-            false
+            false,
         );
         mappings = mappings.drop_columns(
             inner_contexts

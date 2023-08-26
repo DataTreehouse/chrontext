@@ -25,7 +25,7 @@ pub enum CombinerError {
     TimeSeriesQueryError(Box<dyn Error>),
     StaticQueryExecutionError(QueryExecutionError),
     InconsistentDatatype(String, String, String),
-    TimeSeriesValidationError(TimeSeriesValidationError)
+    TimeSeriesValidationError(TimeSeriesValidationError),
 }
 
 impl Display for CombinerError {
@@ -96,10 +96,10 @@ impl Combiner {
             let solution_mappings;
             let time_series_queries;
             if let Some(static_query) = static_query_map.remove(&context) {
-                let mut new_solution_mappings = self.execute_static_query(&static_query, None).await?;
-                let new_time_series_queries = self
-                .prepper
-                .prepare(&query, &mut new_solution_mappings);
+                let mut new_solution_mappings =
+                    self.execute_static_query(&static_query, None).await?;
+                let new_time_series_queries =
+                    self.prepper.prepare(&query, &mut new_solution_mappings);
                 solution_mappings = Some(new_solution_mappings);
                 time_series_queries = Some(new_time_series_queries);
             } else {
@@ -108,7 +108,13 @@ impl Combiner {
             }
 
             Ok(self
-                .lazy_graph_pattern(pattern, solution_mappings, static_query_map, time_series_queries, &context)
+                .lazy_graph_pattern(
+                    pattern,
+                    solution_mappings,
+                    static_query_map,
+                    time_series_queries,
+                    &context,
+                )
                 .await?)
         } else {
             panic!("Only select queries supported")

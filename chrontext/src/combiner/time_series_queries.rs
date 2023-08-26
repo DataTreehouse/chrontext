@@ -6,9 +6,9 @@ use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
+use polars::enable_string_cache;
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::{DataType, JoinArgs, JoinType};
-use polars::enable_string_cache;
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
 
@@ -36,7 +36,8 @@ impl Combiner {
             drop_cols = vec![colname.to_string()];
             to_cat_col = None;
         } else {
-            let idvars: Vec<String> = tsq.get_identifier_variables()
+            let idvars: Vec<String> = tsq
+                .get_identifier_variables()
                 .iter()
                 .map(|x| x.as_str().to_string())
                 .collect();
@@ -85,12 +86,13 @@ impl Combiner {
         }
 
         let on_reverse_false = vec![false].repeat(on_cols.len());
-        ts_lf = ts_lf
-            .sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
-        solution_mappings.mappings =
-            solution_mappings
-                .mappings
-                .sort_by_exprs(on_cols.as_slice(), on_reverse_false, true, false);
+        ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
+        solution_mappings.mappings = solution_mappings.mappings.sort_by_exprs(
+            on_cols.as_slice(),
+            on_reverse_false,
+            true,
+            false,
+        );
 
         solution_mappings.mappings = solution_mappings
             .mappings

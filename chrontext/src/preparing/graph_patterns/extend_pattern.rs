@@ -1,4 +1,5 @@
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::find_query_variables::find_all_used_variables_in_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
@@ -6,7 +7,6 @@ use crate::timeseries_query::TimeSeriesQuery;
 use oxrdf::Variable;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashSet;
-use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub(crate) fn prepare_extend(
@@ -31,8 +31,8 @@ impl TimeSeriesQueryPrepper {
             let mut found_i = None;
             let mut found_context = None;
 
-            for (c,tsqs) in &inner_prepare.time_series_queries {
-                for (i,tsq) in tsqs.iter().enumerate() {
+            for (c, tsqs) in &inner_prepare.time_series_queries {
+                for (i, tsq) in tsqs.iter().enumerate() {
                     let mut found_all = true;
                     let mut found_some = false;
                     for expression_var in &expression_vars {
@@ -51,17 +51,32 @@ impl TimeSeriesQueryPrepper {
                     }
                 }
             }
-            if let (Some(i), Some(c)) = (found_i,found_context) {
-                let inner_tsq = inner_prepare.time_series_queries.get_mut(&c).unwrap().remove(i);
-                if inner_prepare.time_series_queries.get(&c).unwrap().is_empty() {
+            if let (Some(i), Some(c)) = (found_i, found_context) {
+                let inner_tsq = inner_prepare
+                    .time_series_queries
+                    .get_mut(&c)
+                    .unwrap()
+                    .remove(i);
+                if inner_prepare
+                    .time_series_queries
+                    .get(&c)
+                    .unwrap()
+                    .is_empty()
+                {
                     inner_prepare.time_series_queries.remove(&c);
                 }
                 let new_tsq =
                     TimeSeriesQuery::ExpressionAs(Box::new(inner_tsq), var.clone(), expr.clone());
                 if !inner_prepare.time_series_queries.contains_key(context) {
-                    inner_prepare.time_series_queries.insert(context.clone(), vec![]);
+                    inner_prepare
+                        .time_series_queries
+                        .insert(context.clone(), vec![]);
                 }
-                inner_prepare.time_series_queries.get_mut(context).unwrap().push(new_tsq);
+                inner_prepare
+                    .time_series_queries
+                    .get_mut(context)
+                    .unwrap()
+                    .push(new_tsq);
                 inner_prepare
             } else {
                 GPPrepReturn::fail_groupby_complex_query()

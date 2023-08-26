@@ -58,11 +58,7 @@ impl Combiner {
             )
             .await?;
 
-        left_solution_mappings.mappings = left_solution_mappings
-            .mappings
-            .collect()
-            .unwrap()
-            .lazy();
+        left_solution_mappings.mappings = left_solution_mappings.mappings.collect().unwrap().lazy();
 
         let mut right_solution_mappings = self
             .lazy_graph_pattern(
@@ -121,8 +117,12 @@ impl Combiner {
                 }
             }
             let all_false = [false].repeat(join_on_cols.len());
-            right_mappings =
-                right_mappings.sort_by_exprs(join_on_cols.as_slice(), all_false.as_slice(), false, false);
+            right_mappings = right_mappings.sort_by_exprs(
+                join_on_cols.as_slice(),
+                all_false.as_slice(),
+                false,
+                false,
+            );
             left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
                 join_on_cols.as_slice(),
                 all_false.as_slice(),

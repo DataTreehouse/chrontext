@@ -12,22 +12,18 @@ impl StaticQueryRewriter {
         context: &Context,
     ) -> GPReturn {
         let left_context = context.extension_with(PathEntry::UnionLeftSide);
-        let mut left_rewrite =
-            self.rewrite_graph_pattern(left, &left_context);
+        let mut left_rewrite = self.rewrite_graph_pattern(left, &left_context);
         let right_context = context.extension_with(PathEntry::UnionRightSide);
-        let mut right_rewrite =
-            self.rewrite_graph_pattern(right, &right_context);
+        let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
 
-        if left_rewrite.rewritten
-            || right_rewrite.rewritten
-        {
+        if left_rewrite.rewritten || right_rewrite.rewritten {
             if !left_rewrite.is_subquery {
                 self.create_add_subquery(left_rewrite, &left_context);
             }
             if !right_rewrite.is_subquery {
                 self.create_add_subquery(right_rewrite, &right_context);
             }
-            return GPReturn::subquery()
+            return GPReturn::subquery();
         }
 
         let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();

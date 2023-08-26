@@ -1,9 +1,9 @@
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use log::debug;
 use spargebra::algebra::{Expression, GraphPattern};
-use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_left_join(

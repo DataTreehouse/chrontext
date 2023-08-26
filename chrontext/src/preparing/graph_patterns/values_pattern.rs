@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
+use std::collections::HashMap;
 
 use crate::preparing::graph_patterns::GPPrepReturn;
 use oxrdf::Variable;

@@ -9,7 +9,7 @@ use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::Context;
 use crate::rewriting::expressions::ExReturn;
 use crate::timeseries_query::BasicTimeSeriesQuery;
-use spargebra::algebra::{Expression};
+use spargebra::algebra::Expression;
 use spargebra::term::Variable;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
@@ -39,7 +39,11 @@ impl StaticQueryRewriter {
     pub fn rewrite_query(
         mut self,
         query: Query,
-    ) -> (HashMap<Context, Query>, Vec<BasicTimeSeriesQuery>, HashMap<Context, Expression>) {
+    ) -> (
+        HashMap<Context, Query>,
+        Vec<BasicTimeSeriesQuery>,
+        HashMap<Context, Expression>,
+    ) {
         if let Query::Select {
             dataset,
             pattern,
@@ -48,13 +52,20 @@ impl StaticQueryRewriter {
         {
             let pattern_rewrite = self.rewrite_graph_pattern(&pattern, &Context::new());
             if let Some(p) = pattern_rewrite.graph_pattern {
-                self.static_subqueries.insert(Context::new(), Query::Select {
-                    dataset,
-                    pattern: p,
-                    base_iri
-                });
+                self.static_subqueries.insert(
+                    Context::new(),
+                    Query::Select {
+                        dataset,
+                        pattern: p,
+                        base_iri,
+                    },
+                );
             }
-            (self.static_subqueries, self.basic_time_series_queries, self.rewritten_filters)
+            (
+                self.static_subqueries,
+                self.basic_time_series_queries,
+                self.rewritten_filters,
+            )
         } else {
             panic!("Only support for select query")
         }

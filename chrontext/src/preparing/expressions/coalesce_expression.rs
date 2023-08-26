@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
-use crate::combiner::solution_mapping::SolutionMappings;
+use std::collections::HashMap;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_coalesce_expression(

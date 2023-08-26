@@ -1,7 +1,7 @@
 // Uses code from https://github.com/magbak/maplib/blob/main/triplestore/src/sparql/solution_mapping.rs
 
 use oxrdf::vocab::xsd;
-use oxrdf::{NamedNode};
+use oxrdf::NamedNode;
 use polars::prelude::LazyFrame;
 use std::collections::{HashMap, HashSet};
 

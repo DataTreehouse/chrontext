@@ -49,8 +49,7 @@ impl StaticQueryRewriter {
                             .variables_in_scope
                             .insert(v.as_ref().unwrap().clone());
                     }
-                    let inner_graph_pattern =
-                        graph_pattern_rewrite.graph_pattern.take().unwrap();
+                    let inner_graph_pattern = graph_pattern_rewrite.graph_pattern.take().unwrap();
 
                     graph_pattern_rewrite.with_graph_pattern(GraphPattern::Group {
                         inner: Box::new(inner_graph_pattern),
@@ -63,10 +62,7 @@ impl StaticQueryRewriter {
                     return graph_pattern_rewrite;
                 }
             } else {
-                self.create_add_subquery(
-                    graph_pattern_rewrite.clone(),
-                    &inner_context,
-                );
+                self.create_add_subquery(graph_pattern_rewrite.clone(), &inner_context);
                 return GPReturn::subquery();
             }
         }

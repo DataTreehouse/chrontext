@@ -5,13 +5,13 @@ use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
 use log::debug;
 use polars::prelude::{col, Expr, IntoLazy, LiteralValue};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
 use std::ops::Not;
-use async_recursion::async_recursion;
 
 impl Combiner {
     #[async_recursion]
@@ -51,7 +51,8 @@ impl Combiner {
             )
             .await?;
 
-        let mut left_df = left_solution_mappings.mappings
+        let mut left_df = left_solution_mappings
+            .mappings
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&minus_column))
             .with_column(col(&minus_column).cumsum(false).keep_name())
             .collect()

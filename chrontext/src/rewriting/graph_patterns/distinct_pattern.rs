@@ -4,15 +4,9 @@ use crate::rewriting::graph_patterns::GPReturn;
 use spargebra::algebra::GraphPattern;
 
 impl StaticQueryRewriter {
-    pub fn rewrite_distinct(
-        &mut self,
-        inner: &GraphPattern,
-        context: &Context,
-    ) -> GPReturn {
-        let mut gpr_inner = self.rewrite_graph_pattern(
-            inner,
-            &context.extension_with(PathEntry::DistinctInner),
-        );
+    pub fn rewrite_distinct(&mut self, inner: &GraphPattern, context: &Context) -> GPReturn {
+        let mut gpr_inner =
+            self.rewrite_graph_pattern(inner, &context.extension_with(PathEntry::DistinctInner));
         if !gpr_inner.is_subquery {
             let inner_graph_pattern = gpr_inner.graph_pattern.take().unwrap();
             gpr_inner.with_graph_pattern(GraphPattern::Distinct {

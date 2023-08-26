@@ -12,10 +12,8 @@ impl StaticQueryRewriter {
 
         context: &Context,
     ) -> GPReturn {
-        let mut inner_rewrite = self.rewrite_graph_pattern(
-            inner,
-            &context.extension_with(PathEntry::SliceInner),
-        );
+        let mut inner_rewrite =
+            self.rewrite_graph_pattern(inner, &context.extension_with(PathEntry::SliceInner));
         if !inner_rewrite.is_subquery {
             let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
             inner_rewrite.with_graph_pattern(GraphPattern::Slice {

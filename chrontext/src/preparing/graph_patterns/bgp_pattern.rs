@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::synchronization::create_identity_synchronized_queries;
 use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeSeriesQuery;
+use std::collections::HashMap;
 
 impl TimeSeriesQueryPrepper {
     pub(crate) fn prepare_bgp(

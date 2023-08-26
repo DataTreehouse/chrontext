@@ -17,13 +17,13 @@ mod sliced_pattern;
 mod union_pattern;
 mod values_pattern;
 
-use std::collections::HashMap;
-use log::debug;
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::query_context::Context;
 use crate::timeseries_query::TimeSeriesQuery;
+use log::debug;
 use spargebra::algebra::GraphPattern;
-use crate::combiner::solution_mapping::SolutionMappings;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct GPPrepReturn {
@@ -47,7 +47,7 @@ impl GPPrepReturn {
     }
 
     pub fn with_time_series_queries_from(&mut self, other: GPPrepReturn) {
-        for (c,v) in other.time_series_queries {
+        for (c, v) in other.time_series_queries {
             if let Some(myv) = self.time_series_queries.get_mut(&c) {
                 myv.extend(v);
             } else {
@@ -65,34 +65,54 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        debug!("Preparing TSQ for graph pattern at context {}", context.as_str());
+        debug!(
+            "Preparing TSQ for graph pattern at context {}",
+            context.as_str()
+        );
         match graph_pattern {
             GraphPattern::Bgp { patterns: _ } => {
-                self.prepare_bgp(try_groupby_complex_query , context)
+                self.prepare_bgp(try_groupby_complex_query, context)
             }
             GraphPattern::Path {
                 subject,
                 path,
                 object,
             } => self.prepare_path(subject, path, object),
-            GraphPattern::Join { left, right } => {
-                self.prepare_join(left, right, try_groupby_complex_query , solution_mappings, context)
-            }
+            GraphPattern::Join { left, right } => self.prepare_join(
+                left,
+                right,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             GraphPattern::LeftJoin {
                 left,
                 right,
                 expression,
-            } => {
-                self.prepare_left_join(left, right, expression, try_groupby_complex_query , solution_mappings, context)
-            }
-            GraphPattern::Filter { expr, inner } => {
-                self.prepare_filter(expr, inner, try_groupby_complex_query , solution_mappings, context)
-            }
-            GraphPattern::Union { left, right } => {
-                self.prepare_union(left, right, try_groupby_complex_query , solution_mappings, context)
-            }
+            } => self.prepare_left_join(
+                left,
+                right,
+                expression,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            GraphPattern::Filter { expr, inner } => self.prepare_filter(
+                expr,
+                inner,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            GraphPattern::Union { left, right } => self.prepare_union(
+                left,
+                right,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             GraphPattern::Graph { inner, .. } => {
-                self.prepare_graph(inner, try_groupby_complex_query , solution_mappings, context)
+                self.prepare_graph(inner, try_groupby_complex_query, solution_mappings, context)
             }
             GraphPattern::Extend {
                 inner,
@@ -106,27 +126,39 @@ impl TimeSeriesQueryPrepper {
                 solution_mappings,
                 context,
             ),
-            GraphPattern::Minus { left, right } => {
-                self.prepare_minus(left, right, try_groupby_complex_query , solution_mappings, context)
-            }
+            GraphPattern::Minus { left, right } => self.prepare_minus(
+                left,
+                right,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             GraphPattern::Values {
                 variables,
                 bindings,
             } => self.prepare_values(variables, bindings),
-            GraphPattern::OrderBy { inner, expression } => {
-                self.prepare_order_by(inner, expression, try_groupby_complex_query , solution_mappings, context)
-            }
-            GraphPattern::Project { inner, variables } => {
-                self.prepare_project(inner, variables, try_groupby_complex_query , solution_mappings, context)
-            }
+            GraphPattern::OrderBy { inner, expression } => self.prepare_order_by(
+                inner,
+                expression,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            GraphPattern::Project { inner, variables } => self.prepare_project(
+                inner,
+                variables,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             GraphPattern::Distinct { inner } => {
-                self.prepare_distinct(inner, try_groupby_complex_query , solution_mappings, context)
+                self.prepare_distinct(inner, try_groupby_complex_query, solution_mappings, context)
             }
             GraphPattern::Reduced { inner } => {
-                self.prepare_reduced(inner, try_groupby_complex_query , solution_mappings, context)
+                self.prepare_reduced(inner, try_groupby_complex_query, solution_mappings, context)
             }
             GraphPattern::Slice { inner, .. } => {
-                self.prepare_slice(inner, try_groupby_complex_query , solution_mappings, context)
+                self.prepare_slice(inner, try_groupby_complex_query, solution_mappings, context)
             }
             GraphPattern::Group {
                 inner,

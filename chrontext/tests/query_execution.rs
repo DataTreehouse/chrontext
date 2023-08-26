@@ -74,7 +74,11 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatab
 
 #[fixture]
 fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
-    Engine::new(all_pushdowns(), Box::new(inmem_time_series_database), QUERY_ENDPOINT.to_string())
+    Engine::new(
+        all_pushdowns(),
+        Box::new(inmem_time_series_database),
+        QUERY_ENDPOINT.to_string(),
+    )
 }
 
 #[rstest]
@@ -775,7 +779,8 @@ async fn test_optional_clause_query(
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
-        .sort(&["w", "v", "greater"], vec![false], false).unwrap();
+        .sort(&["w", "v", "greater"], vec![false], false)
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_optional_clause_query.csv");
 
@@ -786,7 +791,8 @@ async fn test_optional_clause_query(
         .with_try_parse_dates(true)
         .finish()
         .expect("DF read error")
-        .sort(&["w", "v", "greater"], vec![false], false).unwrap();
+        .sort(&["w", "v", "greater"], vec![false], false)
+        .unwrap();
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let mut writer = CsvWriter::new(file);
@@ -998,7 +1004,8 @@ async fn test_distinct_query(
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
-        .sort(&["w", "v_with_min"], vec![false], false).unwrap();
+        .sort(&["w", "v_with_min"], vec![false], false)
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_distinct_query.csv");
 
@@ -1009,7 +1016,8 @@ async fn test_distinct_query(
         .with_try_parse_dates(true)
         .finish()
         .expect("DF read error")
-        .sort(&["w", "v_with_min"], vec![false], false).unwrap();
+        .sort(&["w", "v_with_min"], vec![false], false)
+        .unwrap();
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);

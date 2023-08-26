@@ -7,11 +7,11 @@ use bollard::container::{
 use bollard::image::BuildImageOptions;
 use bollard::models::{HostConfig, PortBinding};
 use bollard::Docker;
-use futures_util::stream::StreamExt;
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable;
+use futures_util::stream::StreamExt;
 use log::debug;
 use oxrdf::vocab::xsd;
 use polars::prelude::{CsvReader, SerReader};
