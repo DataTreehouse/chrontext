@@ -41,6 +41,8 @@ pub struct BasicTimeSeriesQuery {
     pub value_variable: Option<VariableInContext>,
     pub datatype_variable: Option<Variable>,
     pub datatype: Option<NamedNode>,
+    pub resource_variable: Option<Variable>,
+    pub resource: Option<String>,
     pub timestamp_variable: Option<VariableInContext>,
     pub ids: Option<Vec<String>>,
 }
@@ -318,6 +320,8 @@ impl BasicTimeSeriesQuery {
             value_variable: None,
             datatype_variable: None,
             datatype: None,
+            resource_variable: None,
+            resource: None,
             timestamp_variable: None,
             ids: None,
         }

@@ -3,6 +3,7 @@ pub const HAS_TIMESERIES: &str = "https://github.com/magbak/chrontext#hasTimeser
 pub const HAS_DATA_POINT: &str = "https://github.com/magbak/chrontext#hasDataPoint";
 pub const HAS_VALUE: &str = "https://github.com/magbak/chrontext#hasValue";
 pub const HAS_DATATYPE: &str = "https://github.com/magbak/chrontext#hasDatatype";
+pub const HAS_RESOURCE: &str = "https://github.com/magbak/chrontext#hasResource";
 pub const HAS_EXTERNAL_ID: &str = "https://github.com/magbak/chrontext#hasExternalId";
 pub const DATETIME_AS_NANOS: &str = "https://github.com/magbak/chrontext#DateTimeAsNanos";
 pub const NANOS_AS_DATETIME: &str = "https://github.com/magbak/chrontext#NanosAsDateTime";
