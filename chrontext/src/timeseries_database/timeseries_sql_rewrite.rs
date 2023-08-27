@@ -470,7 +470,11 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                     return Ok(table);
                 }
             }
-            let alternatives = self.tables.iter().map(|x| x.resource_name.clone()).collect();
+            let alternatives = self
+                .tables
+                .iter()
+                .map(|x| x.resource_name.clone())
+                .collect();
             Err(TimeSeriesQueryToSQLError::TimeseriesResourceNotFound(
                 resource.clone(),
                 alternatives,

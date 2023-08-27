@@ -28,6 +28,7 @@ pub struct GPReturn {
     pub(crate) rewritten: bool,
     pub(crate) variables_in_scope: HashSet<Variable>,
     pub(crate) datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
+    pub(crate) resources_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) is_subquery: bool,
 }
@@ -38,6 +39,7 @@ impl GPReturn {
         rewritten: bool,
         variables_in_scope: HashSet<Variable>,
         datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
+        resources_in_scope: HashMap<Variable, Vec<Variable>>,
         external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
         is_subquery: bool,
     ) -> GPReturn {
@@ -46,6 +48,7 @@ impl GPReturn {
             rewritten,
             variables_in_scope,
             datatypes_in_scope,
+            resources_in_scope,
             external_ids_in_scope,
             is_subquery,
         }
@@ -57,6 +60,7 @@ impl GPReturn {
             rewritten: true,
             variables_in_scope: Default::default(),
             datatypes_in_scope: Default::default(),
+            resources_in_scope: Default::default(),
             external_ids_in_scope: Default::default(),
             is_subquery: true,
         }
@@ -82,6 +86,15 @@ impl GPReturn {
                 }
             } else {
                 self.datatypes_in_scope.insert(k, v);
+            }
+        }
+        for (k, v) in gpr.resources_in_scope.drain() {
+            if let Some(vs) = self.resources_in_scope.get_mut(&k) {
+                for vee in v {
+                    vs.push(vee);
+                }
+            } else {
+                self.resources_in_scope.insert(k, v);
             }
         }
         for (k, v) in gpr.external_ids_in_scope.drain() {

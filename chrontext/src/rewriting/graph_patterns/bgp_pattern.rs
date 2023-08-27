@@ -44,12 +44,12 @@ impl StaticQueryRewriter {
                                 "ts_datatype_{}",
                                 self.variable_counter
                             ));
-                            self.variable_counter += 1;
 
                             let resource_var = Variable::new_unchecked(format!(
                                 "ts_resource_{}",
                                 self.variable_counter
                             ));
+                            self.variable_counter += 1;
 
                             let btsq = self.create_basic_time_series_query(
                                 &object_var,
@@ -141,6 +141,7 @@ impl StaticQueryRewriter {
                 Default::default(),
                 Default::default(),
                 Default::default(),
+                Default::default(),
                 false,
             )
         } else {
@@ -161,6 +162,7 @@ impl StaticQueryRewriter {
                 rewritten,
                 variables_in_scope,
                 datatypes_in_scope,
+                resources_in_scope,
                 external_ids_in_scope,
                 false,
             );

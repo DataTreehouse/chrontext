@@ -14,4 +14,6 @@ INSERT DATA {
     case:myTimeseries2 chrontext:hasDatatype xsd:unsignedInt .
     case:myTimeseries1 chrontext:hasExternalId "ns=1;s=ts1" .
     case:myTimeseries2 chrontext:hasExternalId "ns=1;s=ts2" .
+    case:myTimeseries1 chrontext:hasResource "placeholder" .
+    case:myTimeseries2 chrontext:hasResource "placeholder" .
 }

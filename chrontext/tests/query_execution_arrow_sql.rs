@@ -38,7 +38,7 @@ fn use_logger() {
     match res {
         Ok(_) => {}
         Err(_) => {
-            debug!("Tried to initialize logger which is already initialize")
+            debug!("Tried to initialize logger which is already initialized")
         }
     }
 }
@@ -190,6 +190,7 @@ async fn with_sparql_testdata(#[future] sparql_endpoint: (), mut shared_testdata
 #[fixture]
 fn timeseries_table() -> TimeSeriesTable {
     TimeSeriesTable {
+        resource_name: "my_resource".into(),
         schema: Some("my_nas".to_string()),
         time_series_table: "ts.parquet".to_string(),
         value_column: "v".to_string(),

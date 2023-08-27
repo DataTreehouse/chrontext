@@ -173,6 +173,39 @@ pub(crate) fn complete_basic_time_series_queries(
                 }
             }
         }
+
+        let get_basic_query_value_var_name = | x:&BasicTimeSeriesQuery| {
+            if let Some(vv) = &x.value_variable {
+                vv.variable.as_str().to_string()
+            } else {
+                "(unknown value variable)".to_string()
+            }
+        };
+
+        if let Some(resource_var) = &basic_query.resource_variable {
+            for sqs in static_query_solutions {
+                if let Some(Term::Literal(lit)) = sqs.get(resource_var) {
+                    if basic_query.resource.is_none() {
+                        if lit.datatype() != xsd::STRING {
+                            return Err(CombinerError::ResourceIsNotString(
+                                get_basic_query_value_var_name(basic_query),
+                                lit.datatype().to_string(),
+                            ));
+                        }
+                        basic_query.resource = Some(lit.value().into());
+                    } else if let Some(res) = &basic_query.resource {
+                        if res != lit.value() {
+                            return Err(CombinerError::InconsistentResourceName(
+                                get_basic_query_value_var_name(basic_query),
+                                res.clone(),
+                                lit.value().to_string()
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
         let mut ids_vec: Vec<String> = ids.into_iter().collect();
         ids_vec.sort();
         basic_query.ids = Some(ids_vec);

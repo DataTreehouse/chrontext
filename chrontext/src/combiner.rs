@@ -26,6 +26,8 @@ pub enum CombinerError {
     StaticQueryExecutionError(QueryExecutionError),
     InconsistentDatatype(String, String, String),
     TimeSeriesValidationError(TimeSeriesValidationError),
+    ResourceIsNotString(String, String),
+    InconsistentResourceName(String, String, String),
 }
 
 impl Display for CombinerError {
@@ -46,6 +48,18 @@ impl Display for CombinerError {
             }
             CombinerError::TimeSeriesValidationError(v) => {
                 write!(f, "Time series validation error {}", v)
+            }
+            CombinerError::ResourceIsNotString(value_var, actual_datatype) => {
+                write!(
+                    f,
+                    "Resource variable for value variable {value_var} is not of type string, actual: {actual_datatype}"
+                )
+            }
+            CombinerError::InconsistentResourceName(value_var, r1, r2) => {
+                write!(
+                    f,
+                    "Resource variable for value variable {value_var} has conflicting values {r1} != {r2}"
+                )
             }
         }
     }
