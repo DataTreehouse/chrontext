@@ -185,6 +185,7 @@ impl OPCUAHistoryRead {
 #[pyclass]
 #[derive(Clone)]
 pub struct TimeSeriesTable {
+    pub resource_name: String,
     pub schema: Option<String>,
     pub time_series_table: String,
     pub value_column: String,
@@ -200,6 +201,7 @@ pub struct TimeSeriesTable {
 impl TimeSeriesTable {
     #[new]
     pub fn new(
+        resource_name: String,
         time_series_table: String,
         value_column: String,
         timestamp_column: String,
@@ -211,6 +213,7 @@ impl TimeSeriesTable {
         day_column: Option<String>,
     ) -> TimeSeriesTable {
         TimeSeriesTable {
+            resource_name,
             schema,
             time_series_table,
             value_column,
@@ -227,6 +230,7 @@ impl TimeSeriesTable {
 impl TimeSeriesTable {
     fn to_rust_table(&self) -> Result<RustTimeSeriesTable, IriParseError> {
         Ok(RustTimeSeriesTable {
+            resource_name: self.resource_name.clone(),
             schema: self.schema.clone(),
             time_series_table: self.time_series_table.clone(),
             value_column: self.value_column.clone(),
