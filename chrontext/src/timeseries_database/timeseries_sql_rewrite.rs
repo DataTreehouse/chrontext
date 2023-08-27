@@ -7,7 +7,9 @@ use crate::timeseries_query::{BasicTimeSeriesQuery, Synchronizer, TimeSeriesQuer
 use oxrdf::{NamedNode, Variable};
 use polars_core::datatypes::AnyValue;
 use polars_core::frame::DataFrame;
-use sea_query::{Alias, BinOper, ColumnRef, JoinType, Order, Query, SelectStatement, SimpleExpr, TableRef};
+use sea_query::{
+    Alias, BinOper, ColumnRef, JoinType, Order, Query, SelectStatement, SimpleExpr, TableRef,
+};
 use sea_query::{Expr as SeaExpr, Iden, Value};
 use spargebra::algebra::{AggregateExpression, Expression};
 use std::collections::{HashMap, HashSet};
@@ -25,7 +27,8 @@ pub enum TimeSeriesQueryToSQLError {
     UnknownDatatype(String),
     FoundNonValueInInExpression,
     DatatypeNotSupported(String),
-    MissingTimeseriesQueryDatatype,
+    MissingTimeseriesResource,
+    TimeseriesResourceNotFound(String, Vec<String>),
 }
 
 impl Display for TimeSeriesQueryToSQLError {
@@ -43,8 +46,16 @@ impl Display for TimeSeriesQueryToSQLError {
             TimeSeriesQueryToSQLError::DatatypeNotSupported(dt) => {
                 write!(f, "Datatype not supported: {}", dt)
             }
-            TimeSeriesQueryToSQLError::MissingTimeseriesQueryDatatype => {
-                write!(f, "Timeseries value datatype missing")
+            TimeSeriesQueryToSQLError::MissingTimeseriesResource => {
+                write!(f, "Timeseries value resource name missing")
+            }
+            TimeSeriesQueryToSQLError::TimeseriesResourceNotFound(resource, alternatives) => {
+                write!(
+                    f,
+                    "Timeseries resource {} not found among alternatives {}",
+                    resource,
+                    alternatives.join(",")
+                )
             }
         }
     }
@@ -86,6 +97,8 @@ impl Iden for Name {
 
 #[derive(Clone)]
 pub struct TimeSeriesTable {
+    // Used to identify the table of the time series value
+    pub resource_name: String,
     pub schema: Option<String>,
     pub time_series_table: String,
     pub value_column: String,
@@ -110,7 +123,11 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         }
     }
 
-    pub fn create_query(&self, tsq:&TimeSeriesQuery, project_date_partition:bool) -> Result<(SelectStatement, HashSet<String>), TimeSeriesQueryToSQLError>  {
+    pub fn create_query(
+        &self,
+        tsq: &TimeSeriesQuery,
+        project_date_partition: bool,
+    ) -> Result<(SelectStatement, HashSet<String>), TimeSeriesQueryToSQLError> {
         let (mut select_statement, map) = self.create_query_nested(tsq, project_date_partition)?;
         let sort_col;
         if let Some(grcol) = tsq.get_groupby_column() {
@@ -120,7 +137,10 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             assert_eq!(idvars.len(), 1);
             sort_col = idvars.get(0).unwrap().as_str().to_string();
         }
-        select_statement.order_by(ColumnRef::Column(Rc::new(Name::Column(sort_col))), Order::Asc);
+        select_statement.order_by(
+            ColumnRef::Column(Rc::new(Name::Column(sort_col))),
+            Order::Asc,
+        );
 
         Ok((select_statement, map))
     }
@@ -145,8 +165,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                     ),
                 )?;
 
-                let (select, mut columns) =
-                    self.create_query_nested(tsq, need_partition_columns || project_date_partition)?;
+                let (select, mut columns) = self
+                    .create_query_nested(tsq, need_partition_columns || project_date_partition)?;
 
                 let wraps_inner = if let TimeSeriesQuery::Basic(_) = **tsq {
                     true
@@ -444,17 +464,23 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         &'a self,
         btsq: &BasicTimeSeriesQuery,
     ) -> Result<&'a TimeSeriesTable, TimeSeriesQueryToSQLError> {
-        if let Some(b_datatype) = &btsq.datatype {
+        if let Some(resource) = &btsq.resource {
             for table in self.tables {
-                if table.value_datatype.as_str() == b_datatype.as_str() {
+                if &table.resource_name == resource {
                     return Ok(table);
                 }
             }
-            Err(TimeSeriesQueryToSQLError::DatatypeNotSupported(
-                b_datatype.as_str().to_string(),
+            let alternatives = self
+                .tables
+                .iter()
+                .map(|x| x.resource_name.clone())
+                .collect();
+            Err(TimeSeriesQueryToSQLError::TimeseriesResourceNotFound(
+                resource.clone(),
+                alternatives,
             ))
         } else {
-            Err(TimeSeriesQueryToSQLError::MissingTimeseriesQueryDatatype)
+            Err(TimeSeriesQueryToSQLError::MissingTimeseriesResource)
         }
     }
 
@@ -706,6 +732,8 @@ mod tests {
             )),
             datatype_variable: Some(Variable::new_unchecked("dt")),
             datatype: Some(xsd::DOUBLE.into_owned()),
+            resource_variable: Some(Variable::new_unchecked("res")),
+            resource: Some("my_resource".to_string()),
             timestamp_variable: Some(VariableInContext::new(
                 Variable::new_unchecked("t"),
                 Context::new(),
@@ -724,6 +752,7 @@ mod tests {
         );
 
         let table = TimeSeriesTable {
+            resource_name: "my_resource".into(),
             schema: Some("s3.ct-benchmark".into()),
             time_series_table: "timeseries_double".into(),
             value_column: "value".into(),
@@ -779,6 +808,10 @@ mod tests {
                                                         Variable::new_unchecked("ts_datatype_1"),
                                                     ),
                                                     datatype: Some(xsd::DOUBLE.into_owned()),
+                                                    resource_variable: Some(
+                                                        Variable::new_unchecked("ts_resource_1"),
+                                                    ),
+                                                    resource: Some("my_resource".into()),
                                                     timestamp_variable: Some(
                                                         VariableInContext::new(
                                                             Variable::new_unchecked("t"),
@@ -819,6 +852,10 @@ mod tests {
                                                         Variable::new_unchecked("ts_datatype_2"),
                                                     ),
                                                     datatype: Some(xsd::DOUBLE.into_owned()),
+                                                    resource_variable: Some(
+                                                        Variable::new_unchecked("ts_resource_2"),
+                                                    ),
+                                                    resource: Some("my_resource".into()),
                                                     timestamp_variable: Some(
                                                         VariableInContext::new(
                                                             Variable::new_unchecked("t"),
@@ -934,6 +971,7 @@ mod tests {
         });
 
         let table = TimeSeriesTable {
+            resource_name: "my_resource".to_string(),
             schema: Some("s3.ct-benchmark".into()),
             time_series_table: "timeseries_double".into(),
             value_column: "value".into(),

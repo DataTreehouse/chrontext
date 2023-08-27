@@ -3,7 +3,7 @@ mod exists_helper;
 use super::Combiner;
 use crate::combiner::lazy_expressions::exists_helper::rewrite_exists_graph_pattern;
 use crate::combiner::solution_mapping::SolutionMappings;
-use crate::combiner::static_subqueries::{split_static_queries_opt};
+use crate::combiner::static_subqueries::split_static_queries_opt;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::constants::{
@@ -14,17 +14,19 @@ use crate::sparql_result_to_polars::{
     sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
 use crate::timeseries_query::TimeSeriesQuery;
+use async_recursion::async_recursion;
 use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
 use polars::functions::concat_str;
 use polars::lazy::dsl::is_not_null;
-use polars::prelude::{col, lit, Expr, LiteralValue, Operator, Series, TimeUnit, UniqueKeepStrategy, IntoLazy};
+use polars::prelude::{
+    col, lit, Expr, IntoLazy, LiteralValue, Operator, Series, TimeUnit, UniqueKeepStrategy,
+};
 use polars_core::prelude::IntoSeries;
 use spargebra::algebra::{Expression, Function};
 use spargebra::Query;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::ops::{Div, Mul};
-use async_recursion::async_recursion;
 
 impl Combiner {
     #[async_recursion]
@@ -144,29 +146,33 @@ impl Combiner {
             }
             Expression::Equal(left, right) => {
                 let left_context = context.extension_with(PathEntry::EqualLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::EqualRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -185,29 +191,33 @@ impl Combiner {
             }
             Expression::Greater(left, right) => {
                 let left_context = context.extension_with(PathEntry::GreaterLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::GreaterRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -223,29 +233,33 @@ impl Combiner {
             }
             Expression::GreaterOrEqual(left, right) => {
                 let left_context = context.extension_with(PathEntry::GreaterOrEqualLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::GreaterOrEqualRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
 
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
@@ -262,29 +276,33 @@ impl Combiner {
             }
             Expression::Less(left, right) => {
                 let left_context = context.extension_with(PathEntry::LessLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::LessRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -300,29 +318,33 @@ impl Combiner {
             }
             Expression::LessOrEqual(left, right) => {
                 let left_context = context.extension_with(PathEntry::LessOrEqualLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::LessOrEqualRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
 
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
@@ -339,34 +361,38 @@ impl Combiner {
             }
             Expression::In(left, right) => {
                 let left_context = context.extension_with(PathEntry::InLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
                 let right_contexts: Vec<Context> = (0..right.len())
                     .map(|i| context.extension_with(PathEntry::InRight(i as u16)))
                     .collect();
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 for i in 0..right.len() {
                     let expr = right.get(i).unwrap();
                     let expr_context = right_contexts.get(i).unwrap();
                     let expr_prepared_time_series_queries =
-                    split_time_series_queries(&mut prepared_time_series_queries, &expr_context);
+                        split_time_series_queries(&mut prepared_time_series_queries, &expr_context);
                     let expr_static_query_map =
-                    split_static_queries_opt(&mut static_query_map, &expr_context);
-                    output_solution_mappings = self.lazy_expression(
-                        expr,
-                        output_solution_mappings,
-                        expr_static_query_map,
-                        expr_prepared_time_series_queries,
-                        expr_context,
-                    ).await?;
+                        split_static_queries_opt(&mut static_query_map, &expr_context);
+                    output_solution_mappings = self
+                        .lazy_expression(
+                            expr,
+                            output_solution_mappings,
+                            expr_static_query_map,
+                            expr_prepared_time_series_queries,
+                            expr_context,
+                        )
+                        .await?;
                 }
                 let mut expr = Expr::Literal(LiteralValue::Boolean(false));
 
@@ -395,29 +421,33 @@ impl Combiner {
             }
             Expression::Add(left, right) => {
                 let left_context = context.extension_with(PathEntry::AddLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::AddRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -433,29 +463,33 @@ impl Combiner {
             }
             Expression::Subtract(left, right) => {
                 let left_context = context.extension_with(PathEntry::SubtractLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::SubtractRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -471,29 +505,33 @@ impl Combiner {
             }
             Expression::Multiply(left, right) => {
                 let left_context = context.extension_with(PathEntry::MultiplyLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::MultiplyRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
 
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
@@ -510,29 +548,33 @@ impl Combiner {
             }
             Expression::Divide(left, right) => {
                 let left_context = context.extension_with(PathEntry::DivideLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::DivideRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &right_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &right_context,
+                    )
+                    .await?;
 
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
@@ -549,14 +591,16 @@ impl Combiner {
             }
             Expression::UnaryPlus(inner) => {
                 let plus_context = context.extension_with(PathEntry::UnaryPlus);
-                
-                let mut output_solution_mappings = self.lazy_expression(
-                    inner,
-                    solution_mappings,
-                    static_query_map,
-                    prepared_time_series_queries,
-                    &plus_context,
-                ).await?;
+
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        inner,
+                        solution_mappings,
+                        static_query_map,
+                        prepared_time_series_queries,
+                        &plus_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -572,13 +616,15 @@ impl Combiner {
             }
             Expression::UnaryMinus(inner) => {
                 let minus_context = context.extension_with(PathEntry::UnaryMinus);
-                let mut output_solution_mappings = self.lazy_expression(
-                    inner,
-                    solution_mappings,
-                    static_query_map,
-                    prepared_time_series_queries,
-                    &minus_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        inner,
+                        solution_mappings,
+                        static_query_map,
+                        prepared_time_series_queries,
+                        &minus_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
@@ -594,13 +640,15 @@ impl Combiner {
             }
             Expression::Not(inner) => {
                 let not_context = context.extension_with(PathEntry::Not);
-                let mut output_solution_mappings = self.lazy_expression(
-                    inner,
-                    solution_mappings,
-                    static_query_map,
-                    prepared_time_series_queries,
-                    &not_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        inner,
+                        solution_mappings,
+                        static_query_map,
+                        prepared_time_series_queries,
+                        &not_context,
+                    )
+                    .await?;
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(col(&not_context.as_str()).not().alias(context.as_str()))
@@ -610,19 +658,31 @@ impl Combiner {
             Expression::Exists(inner) => {
                 let exists_context = context.extension_with(PathEntry::Exists);
                 let mut output_solution_mappings = solution_mappings;
-                output_solution_mappings.mappings = output_solution_mappings.mappings.with_column(
-                    Expr::Literal(LiteralValue::Int64(1)).alias(&exists_context.as_str()),
-                ).with_column(col(&exists_context.as_str()).cumsum(false).keep_name());
+                output_solution_mappings.mappings = output_solution_mappings
+                    .mappings
+                    .with_column(
+                        Expr::Literal(LiteralValue::Int64(1)).alias(&exists_context.as_str()),
+                    )
+                    .with_column(col(&exists_context.as_str()).cumsum(false).keep_name());
 
                 let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());
-                let SolutionMappings{ mappings: exists_lf, .. } = self.lazy_graph_pattern(
-                    &new_inner,
-                    Some(output_solution_mappings.clone()),
-                    static_query_map.unwrap(),
-                    prepared_time_series_queries,
-                    &exists_context,
-                ).await?;
-                let SolutionMappings {mappings, columns, datatypes} = output_solution_mappings;
+                let SolutionMappings {
+                    mappings: exists_lf,
+                    ..
+                } = self
+                    .lazy_graph_pattern(
+                        &new_inner,
+                        Some(output_solution_mappings.clone()),
+                        static_query_map.unwrap(),
+                        prepared_time_series_queries,
+                        &exists_context,
+                    )
+                    .await?;
+                let SolutionMappings {
+                    mappings,
+                    columns,
+                    datatypes,
+                } = output_solution_mappings;
                 let mut df = mappings.collect().unwrap();
                 let exists_df = exists_lf
                     .select([col(&exists_context.as_str())])
@@ -641,46 +701,54 @@ impl Combiner {
                 SolutionMappings::new(df.lazy(), columns, datatypes)
             }
             Expression::Bound(v) => {
-                solution_mappings.mappings = solution_mappings.mappings.with_column(col(v.as_str()).is_null().alias(context.as_str()));
+                solution_mappings.mappings = solution_mappings
+                    .mappings
+                    .with_column(col(v.as_str()).is_null().alias(context.as_str()));
                 solution_mappings
             }
             Expression::If(left, middle, right) => {
                 let left_context = context.extension_with(PathEntry::IfLeft);
-                 let left_prepared_time_series_queries =
+                let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
                 let left_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &left_context);
-                let mut output_solution_mappings = self.lazy_expression(
-                    left,
-                    solution_mappings,
-                    left_static_query_map,
-                    left_prepared_time_series_queries,
-                    &left_context,
-                ).await?;
+                let mut output_solution_mappings = self
+                    .lazy_expression(
+                        left,
+                        solution_mappings,
+                        left_static_query_map,
+                        left_prepared_time_series_queries,
+                        &left_context,
+                    )
+                    .await?;
                 let middle_context = context.extension_with(PathEntry::IfMiddle);
                 let middle_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &middle_context);
                 let middle_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &middle_context);
-                output_solution_mappings = self.lazy_expression(
-                    middle,
-                    output_solution_mappings,
-                    middle_static_query_map,
-                    middle_prepared_time_series_queries,
-                    &middle_context,
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        middle,
+                        output_solution_mappings,
+                        middle_static_query_map,
+                        middle_prepared_time_series_queries,
+                        &middle_context,
+                    )
+                    .await?;
                 let right_context = context.extension_with(PathEntry::IfRight);
                 let right_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &right_context);
                 let right_static_query_map =
                     split_static_queries_opt(&mut static_query_map, &right_context);
-                output_solution_mappings = self.lazy_expression(
-                    right,
-                    output_solution_mappings,
-                    right_static_query_map,
-                    right_prepared_time_series_queries,
-                    &context.extension_with(PathEntry::IfRight),
-                ).await?;
+                output_solution_mappings = self
+                    .lazy_expression(
+                        right,
+                        output_solution_mappings,
+                        right_static_query_map,
+                        right_prepared_time_series_queries,
+                        &context.extension_with(PathEntry::IfRight),
+                    )
+                    .await?;
 
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
@@ -706,17 +774,21 @@ impl Combiner {
                 let mut output_solution_mappings = solution_mappings;
                 for i in 0..inner.len() {
                     let inner_context = inner_contexts.get(i).unwrap();
-                    let inner_prepared_time_series_queries =
-                    split_time_series_queries(&mut prepared_time_series_queries, &inner_context);
+                    let inner_prepared_time_series_queries = split_time_series_queries(
+                        &mut prepared_time_series_queries,
+                        &inner_context,
+                    );
                     let inner_static_query_map =
-                    split_static_queries_opt(&mut static_query_map, &inner_context);
-                    output_solution_mappings = self.lazy_expression(
-                        inner.get(i).unwrap(),
-                        output_solution_mappings,
-                        inner_static_query_map,
-                        inner_prepared_time_series_queries,
-                        inner_context,
-                    ).await?;
+                        split_static_queries_opt(&mut static_query_map, &inner_context);
+                    output_solution_mappings = self
+                        .lazy_expression(
+                            inner.get(i).unwrap(),
+                            output_solution_mappings,
+                            inner_static_query_map,
+                            inner_prepared_time_series_queries,
+                            inner_context,
+                        )
+                        .await?;
                 }
 
                 let coalesced_context = inner_contexts.get(0).unwrap();
@@ -747,9 +819,9 @@ impl Combiner {
                 for i in 0..args.len() {
                     let arg_context = args_contexts.get(i).unwrap();
                     let arg_prepared_time_series_queries =
-                    split_time_series_queries(&mut prepared_time_series_queries, &arg_context);
+                        split_time_series_queries(&mut prepared_time_series_queries, &arg_context);
                     let arg_static_query_map =
-                    split_static_queries_opt(&mut static_query_map, &arg_context);
+                        split_static_queries_opt(&mut static_query_map, &arg_context);
                     output_solution_mappings = self
                         .lazy_expression(
                             args.get(i).unwrap(),
@@ -757,11 +829,11 @@ impl Combiner {
                             arg_static_query_map,
                             arg_prepared_time_series_queries,
                             arg_context,
-                        ).await?;
-                    output_solution_mappings.mappings = output_solution_mappings.mappings
-                        .collect()
-                        .unwrap()
-                        .lazy(); //TODO: workaround for stack overflow - post bug?
+                        )
+                        .await?;
+                    output_solution_mappings.mappings =
+                        output_solution_mappings.mappings.collect().unwrap().lazy();
+                    //TODO: workaround for stack overflow - post bug?
                 }
                 match func {
                     Function::Year => {
@@ -856,7 +928,11 @@ impl Combiner {
                     }
                     Function::Concat => {
                         assert!(args.len() > 1);
-                        let SolutionMappings { mappings, columns, datatypes } = output_solution_mappings;
+                        let SolutionMappings {
+                            mappings,
+                            columns,
+                            datatypes,
+                        } = output_solution_mappings;
                         let mut inner_df = mappings.collect().unwrap();
                         let series = args_contexts
                             .iter()
@@ -866,7 +942,8 @@ impl Combiner {
                             concat_str(series.as_slice(), "").unwrap().into_series();
                         concat_series.rename(context.as_str());
                         inner_df.with_column(concat_series).unwrap();
-                        output_solution_mappings = SolutionMappings::new(inner_df.lazy(), columns, datatypes)
+                        output_solution_mappings =
+                            SolutionMappings::new(inner_df.lazy(), columns, datatypes)
                     }
                     Function::Round => {
                         assert_eq!(args.len(), 1);

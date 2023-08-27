@@ -1,9 +1,39 @@
 pub mod errors;
 
+//The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
+//And has a MIT license:
+//Copyright (c) 2020 Ritchie Vink
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+#[cfg(target_os = "linux")]
 use jemallocator::Jemalloc;
 
+#[cfg(not(target_os = "linux"))]
+use mimalloc::MiMalloc;
+
+#[cfg(target_os = "linux")]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+
+#[cfg(not(target_os = "linux"))]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
@@ -155,6 +185,7 @@ impl OPCUAHistoryRead {
 #[pyclass]
 #[derive(Clone)]
 pub struct TimeSeriesTable {
+    pub resource_name: String,
     pub schema: Option<String>,
     pub time_series_table: String,
     pub value_column: String,
@@ -170,6 +201,7 @@ pub struct TimeSeriesTable {
 impl TimeSeriesTable {
     #[new]
     pub fn new(
+        resource_name: String,
         time_series_table: String,
         value_column: String,
         timestamp_column: String,
@@ -181,6 +213,7 @@ impl TimeSeriesTable {
         day_column: Option<String>,
     ) -> TimeSeriesTable {
         TimeSeriesTable {
+            resource_name,
             schema,
             time_series_table,
             value_column,
@@ -197,6 +230,7 @@ impl TimeSeriesTable {
 impl TimeSeriesTable {
     fn to_rust_table(&self) -> Result<RustTimeSeriesTable, IriParseError> {
         Ok(RustTimeSeriesTable {
+            resource_name: self.resource_name.clone(),
             schema: self.schema.clone(),
             time_series_table: self.time_series_table.clone(),
             value_column: self.value_column.clone(),

@@ -13,8 +13,7 @@ impl StaticQueryRewriter {
     ) -> GPReturn {
         let inner_context = context.extension_with(PathEntry::FilterInner);
         let expression_context = context.extension_with(PathEntry::FilterExpression);
-        let mut inner_rewrite =
-            self.rewrite_graph_pattern(inner, &inner_context);
+        let mut inner_rewrite = self.rewrite_graph_pattern(inner, &inner_context);
         let mut expression_rewrite = self.rewrite_expression(
             expression,
             &ChangeType::Relaxed,

@@ -2,9 +2,9 @@ name: Python query tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/*, bugfix/* ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, feature/*, bugfix/* ]
 
 env:
   CARGO_TERM_COLOR: always

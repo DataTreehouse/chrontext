@@ -9,14 +9,14 @@ mod not_expression;
 mod or_expression;
 mod unary_ordinary_expression;
 
-use std::collections::HashMap;
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::preparing::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
 use crate::query_context::Context;
 use crate::timeseries_query::TimeSeriesQuery;
 use spargebra::algebra::Expression;
-use crate::combiner::solution_mapping::SolutionMappings;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct EXPrepReturn {
@@ -40,7 +40,7 @@ impl EXPrepReturn {
     }
 
     pub fn with_time_series_queries_from(&mut self, other: EXPrepReturn) {
-        for (c,v) in other.time_series_queries {
+        for (c, v) in other.time_series_queries {
             if let Some(myv) = self.time_series_queries.get_mut(&c) {
                 myv.extend(v);
             } else {
@@ -48,7 +48,6 @@ impl EXPrepReturn {
             }
         }
     }
-
 }
 
 impl TimeSeriesQueryPrepper {
@@ -68,93 +67,157 @@ impl TimeSeriesQueryPrepper {
                 let exr = EXPrepReturn::new(HashMap::new());
                 exr
             }
-            Expression::Variable(..) => {
-                EXPrepReturn::new(HashMap::new())
-            },
-            Expression::Or(left, right) => {
-                self.prepare_or_expression(left, right, try_groupby_complex_query, solution_mappings, context)
-            }
+            Expression::Variable(..) => EXPrepReturn::new(HashMap::new()),
+            Expression::Or(left, right) => self.prepare_or_expression(
+                left,
+                right,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
 
-            Expression::And(left, right) => {
-                self.prepare_and_expression(left, right, try_groupby_complex_query, solution_mappings, context)
-            }
+            Expression::And(left, right) => self.prepare_and_expression(
+                left,
+                right,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Equal(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Equal,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::SameTerm(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::SameTerm,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Greater(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Greater,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::GreaterOrEqual(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::GreaterOrEqual,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Less(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Less,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::LessOrEqual(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::LessOrEqual,
-                try_groupby_complex_query, solution_mappings, context),
-            Expression::In(left, expressions) => {
-                self.prepare_in_expression(left, expressions, try_groupby_complex_query, solution_mappings, context)
-            }
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            Expression::In(left, expressions) => self.prepare_in_expression(
+                left,
+                expressions,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Add(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Add,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Subtract(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Subtract,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Multiply(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Multiply,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Divide(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
                 &BinaryOrdinaryOperator::Divide,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::UnaryPlus(wrapped) => self.prepare_unary_ordinary_expression(
                 wrapped,
                 &UnaryOrdinaryOperator::UnaryPlus,
-                try_groupby_complex_query, solution_mappings, context),
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::UnaryMinus(wrapped) => self.prepare_unary_ordinary_expression(
                 wrapped,
                 &UnaryOrdinaryOperator::UnaryMinus,
-                try_groupby_complex_query, solution_mappings, context),
-            Expression::Not(wrapped) => {
-                self.prepare_not_expression(wrapped, try_groupby_complex_query, solution_mappings, context)
-            }
-            Expression::Exists(wrapped) => {
-                self.prepare_exists_expression(wrapped, try_groupby_complex_query, solution_mappings, context)
-            }
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            Expression::Not(wrapped) => self.prepare_not_expression(
+                wrapped,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            Expression::Exists(wrapped) => self.prepare_exists_expression(
+                wrapped,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             Expression::Bound(..) => EXPrepReturn::new(HashMap::new()),
-            Expression::If(left, mid, right) => {
-                self.prepare_if_expression(left, mid, right, try_groupby_complex_query, solution_mappings, context)
-            }
-            Expression::Coalesce(wrapped) => {
-                self.prepare_coalesce_expression(wrapped, try_groupby_complex_query, solution_mappings, context)
-            }
-            Expression::FunctionCall(fun, args) => {
-                self.prepare_function_call_expression(fun, args, try_groupby_complex_query, solution_mappings, context)
-            }
+            Expression::If(left, mid, right) => self.prepare_if_expression(
+                left,
+                mid,
+                right,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            Expression::Coalesce(wrapped) => self.prepare_coalesce_expression(
+                wrapped,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
+            Expression::FunctionCall(fun, args) => self.prepare_function_call_expression(
+                fun,
+                args,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
         }
     }
 }

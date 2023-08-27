@@ -21,11 +21,19 @@ impl StaticQueryRewriter {
             variables_in_scope.insert(o.clone());
         }
 
-        let gpr = GPReturn::new(GraphPattern::Path {
-            subject: subject.clone(),
-            path: path.clone(),
-            object: object.clone(),
-        }, false, variables_in_scope, Default::default(), Default::default(), false);
+        let gpr = GPReturn::new(
+            GraphPattern::Path {
+                subject: subject.clone(),
+                path: path.clone(),
+                object: object.clone(),
+            },
+            false,
+            variables_in_scope,
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            false,
+        );
         return gpr;
     }
 }

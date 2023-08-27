@@ -30,6 +30,7 @@ def test_simple_query(dremio_testdata, oxigraph_testdata):
     engine = Engine(OXIGRAPH_QUERY_ENDPOINT)
     tables = [
         TimeSeriesTable(
+            resource_name="my_resource",
             schema="my_nas",
             time_series_table="ts.parquet",
             value_column="v",

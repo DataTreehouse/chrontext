@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, NamedNode, Term};
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
@@ -6,6 +5,7 @@ use polars::prelude::{DataFrame, LiteralValue, Series, TimeUnit};
 use sparesults::QuerySolution;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub(crate) fn create_static_query_dataframe(
@@ -41,11 +41,17 @@ pub(crate) fn create_static_query_dataframe(
         for s in &static_query_solutions {
             if let Some(term) = s.get(c) {
                 match term {
-                    Term::NamedNode(_) => {datatypes.insert(c_str.to_string(), xsd::ANY_URI.into_owned());}
-                    Term::Literal(l) => {datatypes.insert(c_str.to_string(), l.datatype().into_owned());}
-                    _ => {panic!("Not supported")} //Blank node
+                    Term::NamedNode(_) => {
+                        datatypes.insert(c_str.to_string(), xsd::ANY_URI.into_owned());
+                    }
+                    Term::Literal(l) => {
+                        datatypes.insert(c_str.to_string(), l.datatype().into_owned());
+                    }
+                    _ => {
+                        panic!("Not supported")
+                    } //Blank node
                 }
-                continue 'outer
+                continue 'outer;
             }
         }
     }
@@ -53,13 +59,12 @@ pub(crate) fn create_static_query_dataframe(
     for c in &column_variables {
         let mut literal_values = vec![];
         for s in &static_query_solutions {
-            literal_values.push(
-            if let Some(term) = s.get(c) {
-                    sparql_term_to_polars_literal_value(term)
-                } else {
-                    LiteralValue::Null
-                });
-            }
+            literal_values.push(if let Some(term) = s.get(c) {
+                sparql_term_to_polars_literal_value(term)
+            } else {
+                LiteralValue::Null
+            });
+        }
 
         let series = polars_literal_values_to_series(literal_values, c.as_str());
         series_vec.push(series);
@@ -118,7 +123,11 @@ pub(crate) fn sparql_literal_to_polars_literal_value(lit: &Literal) -> LiteralVa
         } else {
             let dt_without_tz = value.parse::<DateTime<Utc>>();
             if let Ok(dt) = dt_without_tz {
-                LiteralValue::DateTime(dt.naive_utc().timestamp_nanos(), TimeUnit::Nanoseconds, None)
+                LiteralValue::DateTime(
+                    dt.naive_utc().timestamp_nanos(),
+                    TimeUnit::Nanoseconds,
+                    None,
+                )
             } else {
                 panic!("Could not parse datetime: {}", value);
             }
@@ -134,9 +143,8 @@ pub(crate) fn sparql_literal_to_polars_literal_value(lit: &Literal) -> LiteralVa
 
 fn polars_literal_values_to_series(literal_values: Vec<LiteralValue>, name: &str) -> Series {
     let mut anys = vec![];
-        for l in &literal_values {
-            anys.push(l.to_anyvalue().unwrap());
-        }
+    for l in &literal_values {
+        anys.push(l.to_anyvalue().unwrap());
+    }
     return Series::from_any_values(name, anys.as_slice(), false).unwrap();
-
 }

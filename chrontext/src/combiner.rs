@@ -25,7 +25,9 @@ pub enum CombinerError {
     TimeSeriesQueryError(Box<dyn Error>),
     StaticQueryExecutionError(QueryExecutionError),
     InconsistentDatatype(String, String, String),
-    TimeSeriesValidationError(TimeSeriesValidationError)
+    TimeSeriesValidationError(TimeSeriesValidationError),
+    ResourceIsNotString(String, String),
+    InconsistentResourceName(String, String, String),
 }
 
 impl Display for CombinerError {
@@ -46,6 +48,18 @@ impl Display for CombinerError {
             }
             CombinerError::TimeSeriesValidationError(v) => {
                 write!(f, "Time series validation error {}", v)
+            }
+            CombinerError::ResourceIsNotString(value_var, actual_datatype) => {
+                write!(
+                    f,
+                    "Resource variable for value variable {value_var} is not of type string, actual: {actual_datatype}"
+                )
+            }
+            CombinerError::InconsistentResourceName(value_var, r1, r2) => {
+                write!(
+                    f,
+                    "Resource variable for value variable {value_var} has conflicting values {r1} != {r2}"
+                )
             }
         }
     }
@@ -96,10 +110,10 @@ impl Combiner {
             let solution_mappings;
             let time_series_queries;
             if let Some(static_query) = static_query_map.remove(&context) {
-                let mut new_solution_mappings = self.execute_static_query(&static_query, None).await?;
-                let new_time_series_queries = self
-                .prepper
-                .prepare(&query, &mut new_solution_mappings);
+                let mut new_solution_mappings =
+                    self.execute_static_query(&static_query, None).await?;
+                let new_time_series_queries =
+                    self.prepper.prepare(&query, &mut new_solution_mappings);
                 solution_mappings = Some(new_solution_mappings);
                 time_series_queries = Some(new_time_series_queries);
             } else {
@@ -108,7 +122,13 @@ impl Combiner {
             }
 
             Ok(self
-                .lazy_graph_pattern(pattern, solution_mappings, static_query_map, time_series_queries, &context)
+                .lazy_graph_pattern(
+                    pattern,
+                    solution_mappings,
+                    static_query_map,
+                    time_series_queries,
+                    &context,
+                )
                 .await?)
         } else {
             panic!("Only select queries supported")

@@ -12,10 +12,7 @@ impl StaticQueryRewriter {
         context: &Context,
     ) -> ExReturn {
         let exists_context = context.extension_with(PathEntry::Exists);
-        let mut wrapped_rewrite = self.rewrite_graph_pattern(
-            wrapped,
-            &exists_context,
-        );
+        let mut wrapped_rewrite = self.rewrite_graph_pattern(wrapped, &exists_context);
 
         if !wrapped_rewrite.is_subquery {
             if !wrapped_rewrite.rewritten && !create_subquery {

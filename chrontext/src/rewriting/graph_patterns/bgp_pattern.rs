@@ -1,5 +1,7 @@
 use super::StaticQueryRewriter;
-use crate::constants::{HAS_DATATYPE, HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_TIMESTAMP, HAS_VALUE};
+use crate::constants::{
+    HAS_DATATYPE, HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_RESOURCE, HAS_TIMESTAMP, HAS_VALUE,
+};
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::{Context, PathEntry, VariableInContext};
 use crate::rewriting::graph_patterns::GPReturn;
@@ -19,6 +21,7 @@ impl StaticQueryRewriter {
         let mut new_triples = vec![];
         let mut dynamic_triples = vec![];
         let mut datatypes_in_scope = HashMap::new();
+        let mut resources_in_scope = HashMap::new();
         let mut external_ids_in_scope = HashMap::new();
         let mut new_basic_tsqs = vec![];
         for t in patterns {
@@ -37,16 +40,22 @@ impl StaticQueryRewriter {
                             )
                             .unwrap();
 
-                            let datatype_var = Variable::new(
-                                "ts_datatype_".to_string()
-                                    + self.variable_counter.to_string().as_str(),
-                            )
-                            .unwrap();
+                            let datatype_var = Variable::new_unchecked(format!(
+                                "ts_datatype_{}",
+                                self.variable_counter
+                            ));
+
+                            let resource_var = Variable::new_unchecked(format!(
+                                "ts_resource_{}",
+                                self.variable_counter
+                            ));
                             self.variable_counter += 1;
+
                             let btsq = self.create_basic_time_series_query(
                                 &object_var,
                                 &external_id_var,
                                 &datatype_var,
+                                &resource_var,
                                 &context,
                             );
                             new_basic_tsqs.push(btsq);
@@ -64,12 +73,22 @@ impl StaticQueryRewriter {
                                 ),
                                 object: TermPattern::Variable(datatype_var.clone()),
                             };
+                            let new_resource_triple = TriplePattern {
+                                subject: t.object.clone(),
+                                predicate: NamedNodePattern::NamedNode(NamedNode::new_unchecked(
+                                    HAS_RESOURCE,
+                                )),
+                                object: TermPattern::Variable(resource_var.clone()),
+                            };
                             new_triples.push(new_external_id_triple);
                             new_triples.push(new_datatype_triple);
+                            new_triples.push(new_resource_triple);
                             external_ids_in_scope
                                 .insert(object_var.clone(), vec![external_id_var.clone()]);
                             datatypes_in_scope
                                 .insert(object_var.clone(), vec![datatype_var.clone()]);
+                            resources_in_scope
+                                .insert(object_var.clone(), vec![resource_var.clone()]);
                         }
                     }
                 }
@@ -122,7 +141,8 @@ impl StaticQueryRewriter {
                 Default::default(),
                 Default::default(),
                 Default::default(),
-                false
+                Default::default(),
+                false,
             )
         } else {
             let mut variables_in_scope = HashSet::new();
@@ -142,6 +162,7 @@ impl StaticQueryRewriter {
                 rewritten,
                 variables_in_scope,
                 datatypes_in_scope,
+                resources_in_scope,
                 external_ids_in_scope,
                 false,
             );
@@ -154,11 +175,13 @@ impl StaticQueryRewriter {
         time_series_variable: &Variable,
         time_series_id_variable: &Variable,
         datatype_variable: &Variable,
+        resource_variable: &Variable,
         context: &Context,
     ) -> BasicTimeSeriesQuery {
         let mut ts_query = BasicTimeSeriesQuery::new_empty();
         ts_query.identifier_variable = Some(time_series_id_variable.clone());
         ts_query.datatype_variable = Some(datatype_variable.clone());
+        ts_query.resource_variable = Some(resource_variable.clone());
         ts_query.timeseries_variable = Some(VariableInContext::new(
             time_series_variable.clone(),
             context.clone(),

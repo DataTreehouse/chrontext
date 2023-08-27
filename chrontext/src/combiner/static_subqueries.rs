@@ -11,7 +11,7 @@ use oxrdf::{Literal, NamedNode, NamedNodeRef, Variable};
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::datatypes::AnyValue;
 use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
-use polars_core::series::{ SeriesIter};
+use polars_core::series::SeriesIter;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::GroundTerm;
 use spargebra::Query;
@@ -65,7 +65,12 @@ impl Combiner {
             } else {
                 JoinType::Inner
             };
-            lf = lf.join(input_lf, on_cols.as_slice(), on_cols.as_slice(), JoinArgs::new(join_type));
+            lf = lf.join(
+                input_lf,
+                on_cols.as_slice(),
+                on_cols.as_slice(),
+                JoinArgs::new(join_type),
+            );
 
             columns.extend(input_columns);
             datatypes.extend(input_datatypes);
@@ -134,16 +139,26 @@ fn constrain_query(
 
     let mut bindings = vec![];
     let height = variable_columns.height();
-    let datatypes: Vec<NamedNode> = constrain_variables.iter().map(|x| solution_mappings
-            .datatypes
-            .get(x.as_str())
-            .expect("Datatype did not exist").clone()).collect();
-    let datatypes_nnref:Vec<NamedNodeRef> = datatypes.iter().map(|x|x.as_ref()).collect();
+    let datatypes: Vec<NamedNode> = constrain_variables
+        .iter()
+        .map(|x| {
+            solution_mappings
+                .datatypes
+                .get(x.as_str())
+                .expect("Datatype did not exist")
+                .clone()
+        })
+        .collect();
+    let datatypes_nnref: Vec<NamedNodeRef> = datatypes.iter().map(|x| x.as_ref()).collect();
     let mut series_iters: Vec<SeriesIter> = variable_columns.iter().map(|x| x.iter()).collect();
     for _i in 0..height {
         let mut binding = vec![];
         for (j, iter) in series_iters.iter_mut().enumerate() {
-            binding.push(any_to_ground_term(iter.next().unwrap(), datatypes.get(j).unwrap(), datatypes_nnref.get(j).unwrap()));
+            binding.push(any_to_ground_term(
+                iter.next().unwrap(),
+                datatypes.get(j).unwrap(),
+                datatypes_nnref.get(j).unwrap(),
+            ));
         }
         bindings.push(binding)
     }
@@ -208,7 +223,11 @@ fn get_variable_set(query: &Query) -> Vec<&Variable> {
     }
 }
 
-fn any_to_ground_term(any: AnyValue, datatype: &NamedNode, datatype_nnref:&NamedNodeRef) -> Option<GroundTerm> {
+fn any_to_ground_term(
+    any: AnyValue,
+    datatype: &NamedNode,
+    datatype_nnref: &NamedNodeRef,
+) -> Option<GroundTerm> {
     #[allow(unreachable_patterns)]
     match any {
         AnyValue::Null => None,

@@ -1,8 +1,8 @@
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
-use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_exists_expression(

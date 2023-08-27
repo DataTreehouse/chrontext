@@ -10,12 +10,12 @@ use crate::timeseries_query::{
 use async_recursion::async_recursion;
 use async_trait::async_trait;
 use polars::frame::DataFrame;
+use polars::prelude::DataFrameJoinOps;
 use polars::prelude::{col, concat, lit, IntoLazy, UnionArgs};
 use polars_core::prelude::{JoinArgs, JoinType};
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
-use polars::prelude::DataFrameJoinOps;
 
 pub struct InMemoryTimeseriesDatabase {
     pub frames: HashMap<String, DataFrame>,
@@ -50,7 +50,6 @@ impl InMemoryTimeseriesDatabase {
                         [btsq.identifier_variable.as_ref().unwrap().as_str()],
                         [btsq.identifier_variable.as_ref().unwrap().as_str()],
                         JoinArgs::new(JoinType::Inner),
-
                     )
                     .unwrap();
                 basic_df = basic_df
@@ -232,8 +231,12 @@ impl InMemoryTimeseriesDatabase {
             }
             let mut first_df = dfs.remove(0);
             for df in dfs.into_iter() {
-                first_df =
-                    first_df.join(&df, on.as_slice(), on.as_slice(), JoinArgs::new(JoinType::Inner))?;
+                first_df = first_df.join(
+                    &df,
+                    on.as_slice(),
+                    on.as_slice(),
+                    JoinArgs::new(JoinType::Inner),
+                )?;
             }
             Ok(first_df)
         } else {

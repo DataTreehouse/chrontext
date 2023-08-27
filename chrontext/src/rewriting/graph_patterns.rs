@@ -28,8 +28,9 @@ pub struct GPReturn {
     pub(crate) rewritten: bool,
     pub(crate) variables_in_scope: HashSet<Variable>,
     pub(crate) datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
+    pub(crate) resources_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
-    pub(crate) is_subquery: bool
+    pub(crate) is_subquery: bool,
 }
 
 impl GPReturn {
@@ -38,6 +39,7 @@ impl GPReturn {
         rewritten: bool,
         variables_in_scope: HashSet<Variable>,
         datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
+        resources_in_scope: HashMap<Variable, Vec<Variable>>,
         external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
         is_subquery: bool,
     ) -> GPReturn {
@@ -46,19 +48,21 @@ impl GPReturn {
             rewritten,
             variables_in_scope,
             datatypes_in_scope,
+            resources_in_scope,
             external_ids_in_scope,
-            is_subquery
+            is_subquery,
         }
     }
 
     fn subquery() -> GPReturn {
         GPReturn {
             graph_pattern: None,
-            rewritten:true,
+            rewritten: true,
             variables_in_scope: Default::default(),
             datatypes_in_scope: Default::default(),
+            resources_in_scope: Default::default(),
             external_ids_in_scope: Default::default(),
-            is_subquery:true
+            is_subquery: true,
         }
     }
 
@@ -67,7 +71,7 @@ impl GPReturn {
         self
     }
 
-    fn with_rewritten(&mut self, rewritten:bool) -> &mut GPReturn {
+    fn with_rewritten(&mut self, rewritten: bool) -> &mut GPReturn {
         self.rewritten = rewritten;
         self
     }
@@ -82,6 +86,15 @@ impl GPReturn {
                 }
             } else {
                 self.datatypes_in_scope.insert(k, v);
+            }
+        }
+        for (k, v) in gpr.resources_in_scope.drain() {
+            if let Some(vs) = self.resources_in_scope.get_mut(&k) {
+                for vee in v {
+                    vs.push(vee);
+                }
+            } else {
+                self.resources_in_scope.insert(k, v);
             }
         }
         for (k, v) in gpr.external_ids_in_scope.drain() {
@@ -110,71 +123,43 @@ impl StaticQueryRewriter {
                 path,
                 object,
             } => self.rewrite_path(subject, path, object),
-            GraphPattern::Join { left, right } => {
-                self.rewrite_join(left, right,  context)
-            }
+            GraphPattern::Join { left, right } => self.rewrite_join(left, right, context),
             GraphPattern::LeftJoin {
                 left,
                 right,
                 expression,
-            } => {
-                self.rewrite_left_join(left, right, expression,  context)
-            }
-            GraphPattern::Filter { expr, inner } => {
-                self.rewrite_filter(expr, inner,  context)
-            }
-            GraphPattern::Union { left, right } => {
-                self.rewrite_union(left, right,  context)
-            }
-            GraphPattern::Graph { name, inner } => {
-                self.rewrite_graph(name, inner,  context)
-            }
+            } => self.rewrite_left_join(left, right, expression, context),
+            GraphPattern::Filter { expr, inner } => self.rewrite_filter(expr, inner, context),
+            GraphPattern::Union { left, right } => self.rewrite_union(left, right, context),
+            GraphPattern::Graph { name, inner } => self.rewrite_graph(name, inner, context),
             GraphPattern::Extend {
                 inner,
                 variable,
                 expression,
-            } => self.rewrite_extend(
-                inner,
-                variable,
-                expression,
-                
-                context,
-            ),
-            GraphPattern::Minus { left, right } => {
-                self.rewrite_minus(left, right,  context)
-            }
+            } => self.rewrite_extend(inner, variable, expression, context),
+            GraphPattern::Minus { left, right } => self.rewrite_minus(left, right, context),
             GraphPattern::Values {
                 variables,
                 bindings,
             } => self.rewrite_values(variables, bindings),
             GraphPattern::OrderBy { inner, expression } => {
-                self.rewrite_order_by(inner, expression,  context)
+                self.rewrite_order_by(inner, expression, context)
             }
             GraphPattern::Project { inner, variables } => {
-                self.rewrite_project(inner, variables,  context)
+                self.rewrite_project(inner, variables, context)
             }
-            GraphPattern::Distinct { inner } => {
-                self.rewrite_distinct(inner,  context)
-            }
-            GraphPattern::Reduced { inner } => {
-                self.rewrite_reduced(inner,  context)
-            }
+            GraphPattern::Distinct { inner } => self.rewrite_distinct(inner, context),
+            GraphPattern::Reduced { inner } => self.rewrite_reduced(inner, context),
             GraphPattern::Slice {
                 inner,
                 start,
                 length,
-            } => self.rewrite_slice(inner, start, length,  context),
+            } => self.rewrite_slice(inner, start, length, context),
             GraphPattern::Group {
                 inner,
                 variables,
                 aggregates,
-            } => self.rewrite_group(
-                inner,
-                variables,
-                aggregates,
-                
-                context,
-            ),
+            } => self.rewrite_group(inner, variables, aggregates, context),
             GraphPattern::Service {
                 name,
                 inner,

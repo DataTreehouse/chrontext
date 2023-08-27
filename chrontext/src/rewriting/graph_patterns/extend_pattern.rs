@@ -13,10 +13,8 @@ impl StaticQueryRewriter {
         expr: &Expression,
         context: &Context,
     ) -> GPReturn {
-        let mut inner_rewrite = self.rewrite_graph_pattern(
-            inner,
-            &context.extension_with(PathEntry::ExtendInner),
-        );
+        let mut inner_rewrite =
+            self.rewrite_graph_pattern(inner, &context.extension_with(PathEntry::ExtendInner));
         if inner_rewrite.is_subquery {
             return inner_rewrite;
         }
@@ -41,7 +39,9 @@ impl StaticQueryRewriter {
                 variable: var.clone(),
                 expression: expr_rewrite.expression.take().unwrap(),
             });
-            inner_rewrite.with_rewritten(inner_rewrite.rewritten || expr_rewrite.change_type != Some(ChangeType::NoChange));
+            inner_rewrite.with_rewritten(
+                inner_rewrite.rewritten || expr_rewrite.change_type != Some(ChangeType::NoChange),
+            );
             return inner_rewrite;
         } else {
             inner_rewrite.with_rewritten(true);

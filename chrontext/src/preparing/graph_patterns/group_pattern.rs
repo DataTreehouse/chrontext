@@ -3,18 +3,18 @@ use log::debug;
 use std::collections::{HashMap, HashSet};
 
 use super::TimeSeriesQueryPrepper;
+use crate::combiner::solution_mapping::SolutionMappings;
 use crate::constants::GROUPING_COL;
 use crate::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeSeriesQuery, TimeSeriesQuery};
 use oxrdf::Variable;
-use polars::prelude::{IntoLazy};
+use polars::prelude::DataFrameJoinOps;
+use polars::prelude::IntoLazy;
 use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
 use polars_core::series::Series;
-use polars::prelude::DataFrameJoinOps;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
-use crate::combiner::solution_mapping::SolutionMappings;
 
 impl TimeSeriesQueryPrepper {
     pub fn prepare_group(
@@ -26,7 +26,10 @@ impl TimeSeriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        debug!("Prepare group by graph pattern at context {}", context.as_str());
+        debug!(
+            "Prepare group by graph pattern at context {}",
+            context.as_str()
+        );
         if try_groupby_complex_query {
             return GPPrepReturn::fail_groupby_complex_query();
         }
@@ -37,18 +40,20 @@ impl TimeSeriesQueryPrepper {
             && self.pushdown_settings.contains(&PushdownSetting::GroupBy)
         {
             if try_graph_pattern_prepare.time_series_queries.len() == 1 {
-                let (_c, mut tsqs) = try_graph_pattern_prepare.time_series_queries.drain().next().unwrap();
+                let (_c, mut tsqs) = try_graph_pattern_prepare
+                    .time_series_queries
+                    .drain()
+                    .next()
+                    .unwrap();
                 if tsqs.len() == 1 {
                     let mut tsq = tsqs.remove(0);
-                    let in_scope = check_aggregations_are_in_scope(&tsq, inner_context, aggregations);
+                    let in_scope =
+                        check_aggregations_are_in_scope(&tsq, inner_context, aggregations);
 
                     if in_scope {
                         let grouping_col = self.add_grouping_col(solution_mappings, by);
-                        tsq = add_basic_groupby_mapping_values(
-                            tsq,
-                            solution_mappings,
-                            &grouping_col,
-                        );
+                        tsq =
+                            add_basic_groupby_mapping_values(tsq, solution_mappings, &grouping_col);
                         let tsfuncs = tsq.get_timeseries_functions(context);
                         let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
                         for v in by {
@@ -71,28 +76,27 @@ impl TimeSeriesQueryPrepper {
             }
         }
         debug!("Group by pushdown failed at context {:?}", context);
-        self.prepare_graph_pattern(
-            graph_pattern,
-            false,
-            solution_mappings,
-            &inner_context,
-        )
+        self.prepare_graph_pattern(graph_pattern, false, solution_mappings, &inner_context)
     }
 
-    fn add_grouping_col(&mut self, solution_mappings:&mut SolutionMappings, by: &Vec<Variable>) -> String {
+    fn add_grouping_col(
+        &mut self,
+        solution_mappings: &mut SolutionMappings,
+        by: &Vec<Variable>,
+    ) -> String {
         let grouping_col = format!("{}_{}", GROUPING_COL, self.grouping_counter);
         self.grouping_counter += 1;
         let by_names: Vec<String> = by
             .iter()
-            .filter(|x| {
-                solution_mappings
-                    .columns
-                    .contains(x.as_str())
-            })
+            .filter(|x| solution_mappings.columns.contains(x.as_str()))
             .map(|x| x.as_str().to_string())
             .collect();
         solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap().lazy();
-        let mut df = solution_mappings.mappings.clone().collect().unwrap()
+        let mut df = solution_mappings
+            .mappings
+            .clone()
+            .collect()
+            .unwrap()
             .select(by_names.as_slice())
             .unwrap()
             .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First, None)
@@ -100,14 +104,19 @@ impl TimeSeriesQueryPrepper {
         let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(&grouping_col);
         df.with_column(series).unwrap();
-        solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap()
+        solution_mappings.mappings = solution_mappings
+            .mappings
+            .clone()
+            .collect()
+            .unwrap()
             .join(
                 &df,
                 by_names.as_slice(),
                 by_names.as_slice(),
                 JoinArgs::new(JoinType::Inner),
             )
-            .unwrap().lazy();
+            .unwrap()
+            .lazy();
         grouping_col
     }
 }
@@ -145,8 +154,15 @@ fn add_basic_groupby_mapping_values(
                 grouping_col,
                 b.identifier_variable.as_ref().unwrap().as_str(),
             ];
-            solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap().lazy();
-            let mapping_values = solution_mappings.mappings.clone().collect().unwrap().select(by_vec).unwrap();
+            solution_mappings.mappings =
+                solution_mappings.mappings.clone().collect().unwrap().lazy();
+            let mapping_values = solution_mappings
+                .mappings
+                .clone()
+                .collect()
+                .unwrap()
+                .select(by_vec)
+                .unwrap();
             TimeSeriesQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
         }
         TimeSeriesQuery::Filtered(tsq, f) => TimeSeriesQuery::Filtered(

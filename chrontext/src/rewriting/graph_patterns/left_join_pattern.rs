@@ -35,10 +35,10 @@ impl StaticQueryRewriter {
             ));
         }
 
-
         if left_rewrite.rewritten
             || right_rewrite.rewritten
-            || (expression_rewrite.is_some() && expression_rewrite.as_ref().unwrap().expression.is_none())
+            || (expression_rewrite.is_some()
+                && expression_rewrite.as_ref().unwrap().expression.is_none())
         {
             if !left_rewrite.is_subquery {
                 self.create_add_subquery(left_rewrite, &left_context);
@@ -46,7 +46,7 @@ impl StaticQueryRewriter {
             if !right_rewrite.is_subquery {
                 self.create_add_subquery(right_rewrite, &right_context);
             }
-            return GPReturn::subquery()
+            return GPReturn::subquery();
         }
 
         let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();

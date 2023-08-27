@@ -6,9 +6,9 @@ use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
+use polars::enable_string_cache;
 use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::{DataType, JoinArgs, JoinType};
-use polars::enable_string_cache;
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
 
@@ -36,7 +36,8 @@ impl Combiner {
             drop_cols = vec![colname.to_string()];
             to_cat_col = None;
         } else {
-            let idvars: Vec<String> = tsq.get_identifier_variables()
+            let idvars: Vec<String> = tsq
+                .get_identifier_variables()
                 .iter()
                 .map(|x| x.as_str().to_string())
                 .collect();
@@ -85,12 +86,13 @@ impl Combiner {
         }
 
         let on_reverse_false = vec![false].repeat(on_cols.len());
-        ts_lf = ts_lf
-            .sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
-        solution_mappings.mappings =
-            solution_mappings
-                .mappings
-                .sort_by_exprs(on_cols.as_slice(), on_reverse_false, true, false);
+        ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
+        solution_mappings.mappings = solution_mappings.mappings.sort_by_exprs(
+            on_cols.as_slice(),
+            on_reverse_false,
+            true,
+            false,
+        );
 
         solution_mappings.mappings = solution_mappings
             .mappings
@@ -171,6 +173,39 @@ pub(crate) fn complete_basic_time_series_queries(
                 }
             }
         }
+
+        let get_basic_query_value_var_name = | x:&BasicTimeSeriesQuery| {
+            if let Some(vv) = &x.value_variable {
+                vv.variable.as_str().to_string()
+            } else {
+                "(unknown value variable)".to_string()
+            }
+        };
+
+        if let Some(resource_var) = &basic_query.resource_variable {
+            for sqs in static_query_solutions {
+                if let Some(Term::Literal(lit)) = sqs.get(resource_var) {
+                    if basic_query.resource.is_none() {
+                        if lit.datatype() != xsd::STRING {
+                            return Err(CombinerError::ResourceIsNotString(
+                                get_basic_query_value_var_name(basic_query),
+                                lit.datatype().to_string(),
+                            ));
+                        }
+                        basic_query.resource = Some(lit.value().into());
+                    } else if let Some(res) = &basic_query.resource {
+                        if res != lit.value() {
+                            return Err(CombinerError::InconsistentResourceName(
+                                get_basic_query_value_var_name(basic_query),
+                                res.clone(),
+                                lit.value().to_string()
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
         let mut ids_vec: Vec<String> = ids.into_iter().collect();
         ids_vec.sort();
         basic_query.ids = Some(ids_vec);

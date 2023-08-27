@@ -27,7 +27,7 @@ impl StaticQueryRewriter {
         &mut self,
         order_expression: &OrderExpression,
         variables_in_scope: &HashSet<Variable>,
-        create_subquery:bool,
+        create_subquery: bool,
         context: &Context,
     ) -> OEReturn {
         let mut oer = OEReturn::new();

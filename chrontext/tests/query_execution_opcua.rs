@@ -134,7 +134,11 @@ fn engine() -> Engine {
     let path = "/";
     let endpoint = format!("opc.tcp://{}:{}{}", hostname().unwrap(), port, path);
     let opcua_tsdb = OPCUAHistoryRead::new(&endpoint, 1);
-    let engine = Engine::new([PushdownSetting::GroupBy].into(), Box::new(opcua_tsdb), QUERY_ENDPOINT.to_string());
+    let engine = Engine::new(
+        [PushdownSetting::GroupBy].into(),
+        Box::new(opcua_tsdb),
+        QUERY_ENDPOINT.to_string(),
+    );
     engine
 }
 
@@ -295,18 +299,19 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     let mut df = runtime
         .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
-    df = df.sort(vec!["w", "datetime_seconds"], false, false).unwrap();
-    df.with_column(
-            df
-                .column("datetime_seconds")
-                .unwrap()
-                .cast(&polars::prelude::DataType::Datetime(
-                    polars::prelude::TimeUnit::Milliseconds,
-                    None,
-                ))
-                .unwrap(),
-        )
+    df = df
+        .sort(vec!["w", "datetime_seconds"], false, false)
         .unwrap();
+    df.with_column(
+        df.column("datetime_seconds")
+            .unwrap()
+            .cast(&polars::prelude::DataType::Datetime(
+                polars::prelude::TimeUnit::Milliseconds,
+                None,
+            ))
+            .unwrap(),
+    )
+    .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_five_second_hybrid_query.csv");
     let file = File::open(file_path.as_path()).expect("Read file problem");
@@ -373,7 +378,9 @@ fn test_no_pushdown_because_of_filter_query(
     let mut df = runtime
         .block_on(engine.execute_hybrid_query(query))
         .expect("Hybrid error");
-    df = df.sort(vec!["w", "datetime_seconds"], false, false).unwrap();
+    df = df
+        .sort(vec!["w", "datetime_seconds"], false, false)
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_no_pushdown_because_of_filter_query.csv");
     let file = File::open(file_path.as_path()).expect("Read file problem");

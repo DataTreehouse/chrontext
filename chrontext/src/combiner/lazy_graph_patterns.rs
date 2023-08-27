@@ -66,7 +66,10 @@ impl Combiner {
                 &mut new_solution_mappings,
                 &context,
             );
-            debug!("Finshed preparing time series queries, {} were created", time_series_queries.len());
+            debug!(
+                "Finshed preparing time series queries, {} were created",
+                time_series_queries.len()
+            );
             updated_solution_mappings = Some(new_solution_mappings);
             new_prepared_time_series_queries = Some(time_series_queries);
         }
@@ -87,7 +90,10 @@ impl Combiner {
         if found_group_by_pushdown
             && (new_prepared_time_series_queries.is_none()
                 || (new_prepared_time_series_queries.is_some()
-                    && new_prepared_time_series_queries.as_ref().unwrap().is_empty()))
+                    && new_prepared_time_series_queries
+                        .as_ref()
+                        .unwrap()
+                        .is_empty()))
         {
             debug!("Will not process graph pattern further due to found static group by");
             return Ok(updated_solution_mappings.unwrap());
