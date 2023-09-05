@@ -37,6 +37,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
+use chrontext::timeseries_database::bigquery_database as RustBigQueryDatabase;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead as RustOPCUAHistoryRead;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable as RustTimeSeriesTable;
@@ -86,6 +87,13 @@ impl Engine {
                     all_pushdowns(), Box::new(db), self.endpoint.clone()
                 ));
         Ok(())
+    }
+
+    pub fn set_bigquery_database(&mut self, db: &BigQueryDatabase) -> PyResult<()> {
+        if self.engine.is_some() {
+            return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
+        }
+        self.engine = Some(Rust)
     }
 
     pub fn set_opcua_history_read(&mut self, db: &OPCUAHistoryRead) -> PyResult<()> {
@@ -159,6 +167,24 @@ impl ArrowFlightSQLDatabase {
             password,
             host,
             port,
+            tables,
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct BigQueryDatabase {
+    tables: Vec<TimeSeriesTable>,
+}
+
+#[pymethods]
+impl BigQueryDatabase {
+    #[new]
+    pub fn new(
+        tables: Vec<TimeSeriesTable>,
+    ) -> BigQueryDatabase {
+        BigQueryDatabase {
             tables,
         }
     }

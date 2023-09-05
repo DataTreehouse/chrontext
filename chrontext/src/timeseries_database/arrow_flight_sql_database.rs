@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::timeseries_database::TimeSeriesQueryable;
+use crate::timeseries_database::{TimeSeriesQueryable, TimeSeriesSQLQueryable};
 use crate::timeseries_query::TimeSeriesQuery;
 use arrow2::io::flight as flight2;
 use arrow_format::flight::data::{FlightDescriptor, FlightInfo, HandshakeRequest};
@@ -22,7 +22,7 @@ use polars::frame::DataFrame;
 use polars_core::utils::accumulate_dataframes_vertical;
 
 use crate::timeseries_database::timeseries_sql_rewrite::{
-    TimeSeriesQueryToSQLError, TimeSeriesQueryToSQLTransformer, TimeSeriesTable,
+    TimeSeriesQueryToSQLError, TimeSeriesTable,
 };
 use arrow_format::flight::service::flight_service_client::FlightServiceClient;
 use arrow_format::ipc::planus::ReadAsRoot;
@@ -30,7 +30,7 @@ use arrow_format::ipc::MessageHeaderRef;
 use log::{debug, warn};
 use polars_core::error::ArrowError;
 use polars_core::prelude::PolarsError;
-use sea_query::PostgresQueryBuilder;
+use sea_query::{PostgresQueryBuilder, QueryBuilder};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
@@ -223,18 +223,18 @@ impl ArrowFlightSQLDatabase {
 #[async_trait]
 impl TimeSeriesQueryable for ArrowFlightSQLDatabase {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
-        let query_string;
-        {
-            let transformer = TimeSeriesQueryToSQLTransformer::new(&self.time_series_tables);
-            let (query, _) = transformer.create_query(tsq, false)?;
-            query_string = query.to_string(PostgresQueryBuilder);
-            debug!("SQL: {}", query_string);
-        }
+        let query_string = self.get_sql_string(tsq, PostgresQueryBuilder)?;
         Ok(self.execute_sql_query(query_string).await?)
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {
         true
+    }
+}
+
+impl TimeSeriesSQLQueryable for ArrowFlightSQLDatabase {
+    fn get_time_series_tables(&self) -> &Vec<TimeSeriesTable> {
+        &self.time_series_tables
     }
 }
 

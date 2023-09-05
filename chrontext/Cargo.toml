@@ -24,6 +24,7 @@ async-trait = "0.1.68"
 base64 = "0.13.0"
 opcua-client = "0.9.1"
 async-recursion = "1.0.4"
+connectorx = {git="https://github.com/sfu-db/connector-x", features = ["dst_arrow2", "src_bigquery"], optional = true}
 
 [dev-dependencies]
 bollard = "0.12.0"
