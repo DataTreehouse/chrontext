@@ -1,10 +1,8 @@
 pub mod arrow_flight_sql_database;
+pub mod bigquery_database;
 pub mod opcua_history_read;
 pub mod simple_in_memory_timeseries;
 pub mod timeseries_sql_rewrite;
-
-#[cfg(feature = "bigquery")]
-pub mod bigquery_database;
 
 use crate::timeseries_database::timeseries_sql_rewrite::{
     TimeSeriesQueryToSQLError, TimeSeriesQueryToSQLTransformer, TimeSeriesTable,

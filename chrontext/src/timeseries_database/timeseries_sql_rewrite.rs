@@ -7,15 +7,14 @@ use crate::timeseries_query::{BasicTimeSeriesQuery, Synchronizer, TimeSeriesQuer
 use oxrdf::{NamedNode, Variable};
 use polars_core::datatypes::AnyValue;
 use polars_core::frame::DataFrame;
-use sea_query::{
-    Alias, BinOper, ColumnRef, JoinType, Order, Query, SelectStatement, SimpleExpr, TableRef,
-};
+use sea_query::{Alias, BinOper, ColumnRef, DynIden, JoinType, Order, Query, SeaRc, SelectStatement, SimpleExpr, TableRef};
 use sea_query::{Expr as SeaExpr, Iden, Value};
 use spargebra::algebra::{AggregateExpression, Expression};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter, Write};
 use std::rc::Rc;
+use sea_query::IntoIden;
 
 const YEAR_PARTITION_COLUMN_NAME: &str = "year_partition_column_name";
 const MONTH_PARTITION_COLUMN_NAME: &str = "month_partition_column_name";
@@ -138,7 +137,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             sort_col = idvars.get(0).unwrap().as_str().to_string();
         }
         select_statement.order_by(
-            ColumnRef::Column(Rc::new(Name::Column(sort_col))),
+            ColumnRef::Column(Name::Column(sort_col).into_iden()),
             Order::Asc,
         );
 
@@ -186,9 +185,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                     let mut sorted_cols: Vec<&String> = columns.iter().collect();
                     sorted_cols.sort();
                     for c in sorted_cols {
-                        outer_select.expr(SimpleExpr::Column(ColumnRef::Column(Rc::new(
-                            Name::Column(c.clone()),
-                        ))));
+                        outer_select.expr(SimpleExpr::Column(ColumnRef::Column(Name::Column(c.clone()).into_iden(),
+                        )));
                     }
                     use_select = outer_select;
                 } else {
@@ -271,7 +269,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         sorted_cols.sort();
         for c in sorted_cols {
             expression_select.expr_as(
-                SimpleExpr::Column(ColumnRef::Column(Rc::new(Name::Column(c.clone())))),
+                SimpleExpr::Column(ColumnRef::Column(Name::Column(c.clone()).into_iden())),
                 Alias::new(c),
             );
         }
@@ -312,15 +310,15 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         static_select.from_values(value_tuples, Alias::new(mapping_values_alias));
         static_select.expr_as(
             SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(mapping_values_alias.to_string())),
-                Rc::new(Name::Column("EXPR$0".to_string())),
+                Name::Table(mapping_values_alias.to_string()).into_iden(),
+                Name::Column("EXPR$0".to_string()).into_iden(),
             )),
             Alias::new(identifier_colname),
         );
         static_select.expr_as(
             SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(mapping_values_alias.to_string())),
-                Rc::new(Name::Column("EXPR$1".to_string())),
+                Name::Table(mapping_values_alias.to_string()).into_iden(),
+                Name::Column("EXPR$1".to_string()).into_iden(),
             )),
             Alias::new(column_name),
         );
@@ -336,15 +334,15 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             JoinType::InnerJoin,
             TableRef::SubQuery(
                 static_select,
-                Rc::new(Name::Table(static_alias.to_string())),
+                Name::Table(static_alias.to_string()).into_iden(),
             ),
             SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(static_alias.to_string())),
-                Rc::new(Name::Column(identifier_colname.to_string())),
+                Name::Table(static_alias.to_string()).into_iden(),
+                Name::Column(identifier_colname.to_string()).into_iden(),
             ))
-            .equals(SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(basic_alias.to_string())),
-                Rc::new(Name::Column(identifier_colname.to_string())),
+            .eq(SimpleExpr::Column(ColumnRef::TableColumn(
+                Name::Table(basic_alias.to_string()).into_iden(),
+                Name::Column(identifier_colname.to_string()).into_iden(),
             ))),
         );
 
@@ -354,8 +352,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             if c != identifier_colname {
                 joined_select.expr_as(
                     SimpleExpr::Column(ColumnRef::TableColumn(
-                        Rc::new(Name::Table(basic_alias.to_string())),
-                        Rc::new(Name::Column(c.clone())),
+                        Name::Table(basic_alias.to_string()).into_iden(),
+                        Name::Column(c.clone()).into_iden(),
                     )),
                     Alias::new(c),
                 );
@@ -365,8 +363,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
 
         joined_select.expr_as(
             SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(static_alias.to_string())),
-                Rc::new(Name::Column(column_name.to_string())),
+                Name::Table(static_alias.to_string()).into_iden(),
+                Name::Column(column_name.to_string()).into_iden(),
             )),
             Alias::new(column_name),
         );
@@ -401,8 +399,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         for c in sorted_cols {
             new_first_select.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
-                    Rc::new(Name::Table(first_select_name.to_string())),
-                    Rc::new(Name::Column(c.to_string())),
+                    Name::Table(first_select_name.to_string()).into_iden(),
+                    Name::Column(c.to_string()).into_iden(),
                 )),
                 Alias::new(c),
             );
@@ -422,12 +420,12 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             for c in col_conditions {
                 conditions.push(
                     SimpleExpr::Column(ColumnRef::TableColumn(
-                        Rc::new(Name::Table(first_select_name.to_string())),
-                        Rc::new(Name::Column(c.clone())),
+                        Name::Table(first_select_name.to_string()).into_iden(),
+                        Name::Column(c.clone()).into_iden(),
                     ))
-                    .equals(SimpleExpr::Column(ColumnRef::TableColumn(
-                        Rc::new(Name::Table(select_name.clone())),
-                        Rc::new(Name::Column(c)),
+                    .eq(SimpleExpr::Column(ColumnRef::TableColumn(
+                        Name::Table(select_name.clone()).into_iden(),
+                        Name::Column(c).into_iden(),
                     ))),
                 );
             }
@@ -439,7 +437,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
 
             first_select.join(
                 JoinType::InnerJoin,
-                TableRef::SubQuery(s, Rc::new(Alias::new(&select_name))),
+                TableRef::SubQuery(s, Alias::new(&select_name).into_iden()),
                 first_condition,
             );
             let mut sorted_cols: Vec<&String> = cols.iter().collect();
@@ -448,10 +446,10 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                 if c != timestamp_col {
                     first_select.expr_as(
                         SimpleExpr::Column(ColumnRef::TableColumn(
-                            Rc::new(Name::Table(select_name.clone())),
-                            Rc::new(Name::Column(c.clone())),
+                            Name::Table(select_name.clone()).into_iden(),
+                            Name::Column(c.clone()).into_iden(),
                         )),
-                        Alias::new(&c),
+                        Alias::new(c),
                     );
                     first_columns.insert(c.clone());
                 }
@@ -541,11 +539,11 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         inner_query.from_subquery(query, inner_query_name.clone());
         let mut sorted_cols: Vec<&String> = columns.iter().collect();
         sorted_cols.sort();
-        for c in &sorted_cols {
+        for c in sorted_cols {
             inner_query.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
-                    Rc::new(inner_query_name.clone()),
-                    Rc::new(Name::Column(c.to_string())),
+                    inner_query_name.clone().into_iden(),
+                    Name::Column(c.to_string()).into_iden(),
                 )),
                 Alias::new(c),
             );
@@ -564,8 +562,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             by.iter()
                 .map(|x| {
                     ColumnRef::TableColumn(
-                        Rc::new(outer_query_name.clone()),
-                        Rc::new(Name::Column(x.as_str().to_string())),
+                        outer_query_name.clone().into_iden(),
+                        Name::Column(x.as_str().to_string()).into_iden(),
                     )
                 })
                 .collect::<Vec<ColumnRef>>(),
@@ -573,8 +571,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         for v in by {
             outer_query.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
-                    Rc::new(outer_query_name.clone()),
-                    Rc::new(Name::Column(v.as_str().to_string())),
+                    outer_query_name.clone().into_iden(),
+                    Name::Column(v.as_str().to_string()).into_iden(),
                 )),
                 Alias::new(v.as_str()),
             );

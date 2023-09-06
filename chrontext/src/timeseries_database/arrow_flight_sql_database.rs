@@ -30,7 +30,7 @@ use arrow_format::ipc::MessageHeaderRef;
 use log::{debug, warn};
 use polars_core::error::ArrowError;
 use polars_core::prelude::PolarsError;
-use sea_query::{PostgresQueryBuilder, QueryBuilder};
+use sea_query::{PostgresQueryBuilder};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::time::Instant;

@@ -1,9 +1,9 @@
 use oxrdf::vocab::xsd;
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
-use sea_query::Expr as SeaExpr;
 use sea_query::{BinOper, ColumnRef, Function, SimpleExpr, UnOper, Value};
+use sea_query::{Expr as SeaExpr, Func};
 use spargebra::algebra::Expression;
-use std::rc::Rc;
+use sea_query::IntoIden;
 
 use crate::constants::DATETIME_AS_SECONDS;
 use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeSeriesQueryToSQLError};
@@ -78,7 +78,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                 .and(self.sparql_expression_to_sql_expression(right)?),
             Expression::Equal(left, right) => self
                 .sparql_expression_to_sql_expression(left)?
-                .equals(self.sparql_expression_to_sql_expression(right)?),
+                .eq(self.sparql_expression_to_sql_expression(right)?),
             Expression::Greater(left, right) => SimpleExpr::Binary(
                 Box::new(self.sparql_expression_to_sql_expression(left)?),
                 BinOper::GreaterThan,
@@ -146,8 +146,8 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     let e = expressions.first().unwrap();
                     let mapped_e = self.sparql_expression_to_sql_expression(e)?;
                     SimpleExpr::FunctionCall(
-                        Function::Custom(Rc::new(Name::Function("FLOOR".to_string()))),
-                        vec![mapped_e],
+                        Func::cust(Name::Function("FLOOR".to_string()).into_iden())
+                            .args(vec![mapped_e]),
                     )
                 }
                 spargebra::algebra::Function::Year
@@ -190,13 +190,13 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                             }
                         };
                         SimpleExpr::FunctionCall(
-                            Function::Custom(Rc::new(Name::Function("date_part".to_string()))),
-                            vec![
-                                SimpleExpr::Value(Value::String(Some(Box::new(
-                                    date_part_name.to_string(),
-                                )))),
-                                mapped_e,
-                            ],
+                            Func::cust(Name::Function("date_part".to_string()).into_iden())
+                                .args(vec![
+                                    SimpleExpr::Value(Value::String(Some(Box::new(
+                                        date_part_name.to_string(),
+                                    )))),
+                                    mapped_e,
+                                ]),
                         )
                     }
                 }
@@ -205,17 +205,19 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     let mapped_e = self.sparql_expression_to_sql_expression(e)?;
                     if c.as_str() == DATETIME_AS_SECONDS {
                         SimpleExpr::FunctionCall(
-                            Function::Custom(Rc::new(Name::Function("UNIX_TIMESTAMP".to_string()))),
-                            vec![
+                            Func::cust(
+                                Name::Function("UNIX_TIMESTAMP".to_string()).into_iden(),
+                            )
+                            .args(vec![
                                 mapped_e,
                                 SimpleExpr::Value(Value::String(Some(Box::new(
                                     "YYYY-MM-DD HH:MI:SS.FFF".to_string(),
                                 )))),
-                            ],
+                            ]),
                         )
                     } else if c.as_str() == xsd::INTEGER.as_str() {
                         SimpleExpr::AsEnum(
-                            Rc::new(Name::Table("INTEGER".to_string())),
+                            Name::Table("INTEGER".to_string()).into_iden(),
                             Box::new(mapped_e),
                         )
                     } else {
@@ -236,12 +238,12 @@ impl SPARQLToSQLExpressionTransformer<'_> {
 fn simple_expr_from_column_name(table_name: &Option<&Name>, column_name: &str) -> SimpleExpr {
     if let Some(name) = table_name {
         SimpleExpr::Column(ColumnRef::TableColumn(
-            Rc::new(name.clone().clone()),
-            Rc::new(Name::Column(column_name.to_string())),
+            (*name).clone().into_iden(),
+            Name::Column(column_name.to_string()).into_iden(),
         ))
     } else {
-        SimpleExpr::Column(ColumnRef::Column(Rc::new(Name::Column(
-            column_name.to_string(),
-        ))))
+        SimpleExpr::Column(ColumnRef::Column(
+            Name::Column(column_name.to_string()).into_iden(),
+        ))
     }
 }

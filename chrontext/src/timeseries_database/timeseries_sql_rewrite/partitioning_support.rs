@@ -1,8 +1,7 @@
 use super::Name;
 use log::debug;
 use polars_core::export::chrono::Datelike;
-use sea_query::{BinOper, ColumnRef, SimpleExpr, Value};
-use std::rc::Rc;
+use sea_query::{IntoIden,BinOper, ColumnRef, SimpleExpr, Value};
 
 pub fn add_partitioned_timestamp_conditions(
     se: SimpleExpr,
@@ -25,12 +24,13 @@ pub fn add_partitioned_timestamp_conditions(
                 added,
             )
         }
-        SimpleExpr::FunctionCall(func, inner) => {
-            let rewrites_and_added: Vec<(SimpleExpr, bool)> = inner
+        SimpleExpr::FunctionCall(func_call) => {
+            let inner_args = func_call.get_args();
+            let rewrites_and_added: Vec<(SimpleExpr, bool)> = inner_args
                 .into_iter()
                 .map(|x| {
                     add_partitioned_timestamp_conditions(
-                        x,
+                        x.clone(),
                         timestamp_col,
                         year_col,
                         month_col,
@@ -39,8 +39,9 @@ pub fn add_partitioned_timestamp_conditions(
                 })
                 .collect();
             let added = rewrites_and_added.iter().fold(false, |x, (_, y)| x || *y);
-            let se_rewrites = rewrites_and_added.into_iter().map(|(x, _)| x).collect();
-            (SimpleExpr::FunctionCall(func.clone(), se_rewrites), added)
+            let se_rewrites: Vec<SimpleExpr> = rewrites_and_added.into_iter().map(|(x, _)| x).collect();
+            //TODO: Upstream change to sea-query to avoid this messy workaround
+            (SimpleExpr::FunctionCall(func_call.clone().args(se_rewrites)), added)
         }
         SimpleExpr::Binary(left, op, right) => rewrite_binary_expression(
             *left,
@@ -539,9 +540,9 @@ fn smaller_than_or_original(
 }
 
 fn named_column_box_simple_expression(name: String) -> Box<SimpleExpr> {
-    Box::new(SimpleExpr::Column(ColumnRef::Column(Rc::new(
-        Name::Column(name),
-    ))))
+    Box::new(
+        SimpleExpr::Column(ColumnRef::Column(Name::Column(name).into_iden())
+    ))
 }
 
 fn year_equal_and_month_equal_and_day_equal(

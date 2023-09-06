@@ -1,5 +1,6 @@
 pub mod errors;
 
+use std::thread;
 //The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
 //And has a MIT license:
 //Copyright (c) 2020 Ritchie Vink
@@ -37,12 +38,12 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
-use chrontext::timeseries_database::bigquery_database as RustBigQueryDatabase;
+use chrontext::engine::Engine as RustEngine;
+use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
+use chrontext::timeseries_database::bigquery_database::BigQueryDatabase as RustBigQueryDatabase;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead as RustOPCUAHistoryRead;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable as RustTimeSeriesTable;
-use chrontext::engine::Engine as RustEngine;
-use chrontext::pushdown_setting::{PushdownSetting, all_pushdowns};
 use log::debug;
 use oxrdf::{IriParseError, NamedNode};
 use pyo3::prelude::*;
@@ -84,8 +85,10 @@ impl Engine {
             ));
         let db = afsqldb_result.map_err(PyQueryError::from)?;
         self.engine = Some(RustEngine::new(
-                    all_pushdowns(), Box::new(db), self.endpoint.clone()
-                ));
+            all_pushdowns(),
+            Box::new(db),
+            self.endpoint.clone(),
+        ));
         Ok(())
     }
 
@@ -93,7 +96,23 @@ impl Engine {
         if self.engine.is_some() {
             return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
         }
-        self.engine = Some(Rust)
+        let mut new_tables = vec![];
+        for t in &db.tables {
+            new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
+        }
+        let key = db.key.clone();
+        let db = thread::spawn(|| {
+            RustBigQueryDatabase::new(key, new_tables)
+        })
+        .join()
+        .unwrap();
+
+        self.engine = Some(RustEngine::new(
+            all_pushdowns(),
+            Box::new(db),
+            self.endpoint.clone(),
+        ));
+        Ok(())
     }
 
     pub fn set_opcua_history_read(&mut self, db: &OPCUAHistoryRead) -> PyResult<()> {
@@ -102,8 +121,10 @@ impl Engine {
         }
         let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
         self.engine = Some(RustEngine::new(
-                    [PushdownSetting::GroupBy].into(), Box::new(actual_db), self.endpoint.clone()
-                ));
+            [PushdownSetting::GroupBy].into(),
+            Box::new(actual_db),
+            self.endpoint.clone(),
+        ));
         Ok(())
     }
 
@@ -120,9 +141,10 @@ impl Engine {
         }
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let df_result = builder.build().unwrap().block_on(self.engine.as_mut().unwrap().execute_hybrid_query(
-                sparql
-            ));
+        let df_result = builder
+            .build()
+            .unwrap()
+            .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql));
         match df_result {
             Ok(mut df) => {
                 let names_vec: Vec<String> = df
@@ -140,7 +162,6 @@ impl Engine {
         }
     }
 }
-
 
 #[pyclass]
 #[derive(Clone)]
@@ -176,17 +197,14 @@ impl ArrowFlightSQLDatabase {
 #[derive(Clone)]
 pub struct BigQueryDatabase {
     tables: Vec<TimeSeriesTable>,
+    key: String,
 }
 
 #[pymethods]
 impl BigQueryDatabase {
     #[new]
-    pub fn new(
-        tables: Vec<TimeSeriesTable>,
-    ) -> BigQueryDatabase {
-        BigQueryDatabase {
-            tables,
-        }
+    pub fn new(tables: Vec<TimeSeriesTable>, key: String) -> BigQueryDatabase {
+        BigQueryDatabase { tables, key }
     }
 }
 
@@ -248,7 +266,7 @@ impl TimeSeriesTable {
             value_datatype,
             year_column,
             month_column,
-            day_column
+            day_column,
         }
     }
 }
@@ -265,7 +283,7 @@ impl TimeSeriesTable {
             value_datatype: NamedNode::new(&self.value_datatype)?,
             year_column: self.year_column.clone(),
             month_column: self.month_column.clone(),
-            day_column: self.day_column.clone()
+            day_column: self.day_column.clone(),
         })
     }
 }
@@ -275,6 +293,7 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<Engine>()?;
     m.add_class::<TimeSeriesTable>()?;
     m.add_class::<ArrowFlightSQLDatabase>()?;
+    m.add_class::<BigQueryDatabase>()?;
     m.add_class::<OPCUAHistoryRead>()?;
     Ok(())
 }

@@ -7,12 +7,12 @@ use async_trait::async_trait;
 use connectorx::prelude::*;
 use polars::prelude::PolarsError;
 use polars_core::error::ArrowError;
-use polars_core::prelude::{ChunkedArray, DataFrame, Series};
+use polars_core::prelude::{DataFrame, Series};
 use sea_query::PostgresQueryBuilder;
-use std::env;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
+use std::thread;
 use thiserror::Error;
 use tokio::runtime::Runtime;
 use tonic::Status;
@@ -53,10 +53,7 @@ pub struct BigQueryDatabase {
 }
 
 impl BigQueryDatabase {
-    pub async fn new(
-        gcp_sa_key: String,
-        time_series_tables: Vec<TimeSeriesTable>,
-    ) -> BigQueryDatabase {
+    pub fn new(gcp_sa_key: String, time_series_tables: Vec<TimeSeriesTable>) -> BigQueryDatabase {
         BigQueryDatabase {
             gcp_sa_key,
             time_series_tables,
@@ -68,20 +65,24 @@ impl BigQueryDatabase {
 impl TimeSeriesQueryable for BigQueryDatabase {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, PostgresQueryBuilder)?;
-
-        let rt = Arc::new(Runtime::new().unwrap());
-        let source = BigQuerySource::new(rt, &self.gcp_sa_key).unwrap();
-        let queries = [CXQuery::naked(query_string)];
-        let mut destination = Arrow2Destination::new();
-        let dispatcher =
-            Dispatcher::<BigQuerySource, Arrow2Destination, BigQueryArrow2Transport>::new(
-                source,
-                &mut destination,
-                &queries,
-                None,
-            );
-        dispatcher.run().unwrap();
-        let (chunks, schema) = destination.arrow().unwrap();
+        let key = self.gcp_sa_key.clone();
+        // Using a thread here since we do not want nested runtimes in the same thread
+        let (chunks, schema) =
+            thread::spawn(move || {
+                let source = BigQuerySource::new(Arc::new(Runtime::new().unwrap()), &key).unwrap();
+                let queries = [CXQuery::naked(query_string)];
+                let mut destination = Arrow2Destination::new();
+                let dispatcher = Dispatcher::<
+                    BigQuerySource,
+                    Arrow2Destination,
+                    BigQueryArrow2Transport,
+                >::new(source, &mut destination, &queries, None);
+                dispatcher.run().unwrap();
+                let (chunks, schema) = destination.arrow().unwrap();
+                return (chunks, schema);
+            })
+            .join()
+            .unwrap();
         let mut series_vec = vec![];
         for (ch, field) in chunks.into_iter().zip(schema.fields.iter()) {
             let mut array_refs = vec![];
