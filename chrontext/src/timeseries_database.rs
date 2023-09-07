@@ -11,7 +11,7 @@ use crate::timeseries_query::TimeSeriesQuery;
 use async_trait::async_trait;
 use log::debug;
 use polars::frame::DataFrame;
-use sea_query::QueryBuilder;
+use sea_query::{BigQueryQueryBuilder, PostgresQueryBuilder, QueryBuilder};
 use std::error::Error;
 
 #[async_trait]
@@ -20,17 +20,29 @@ pub trait TimeSeriesQueryable: Send {
     fn allow_compound_timeseries_queries(&self) -> bool;
 }
 
+#[derive(Clone)]
+pub enum DatabaseType {
+    BigQuery,
+    Dremio
+}
+
 pub trait TimeSeriesSQLQueryable {
-    fn get_sql_string<T: QueryBuilder>(
+    fn get_sql_string(
         &self,
         tsq: &TimeSeriesQuery,
-        query_builder: T,
+        database_type:DatabaseType,
     ) -> Result<String, TimeSeriesQueryToSQLError> {
+
+
         let query_string;
         {
-            let transformer = TimeSeriesQueryToSQLTransformer::new(&self.get_time_series_tables());
+            let transformer = TimeSeriesQueryToSQLTransformer::new(&self.get_time_series_tables(), database_type.clone());
             let (query, _) = transformer.create_query(tsq, false)?;
-            query_string = query.to_string(query_builder);
+            query_string = match database_type {
+            DatabaseType::BigQuery => {query.to_string(BigQueryQueryBuilder)}
+            DatabaseType::Dremio => {query.to_string(PostgresQueryBuilder)}
+             };
+
             debug!("SQL: {}", query_string);
         }
         Ok(query_string)

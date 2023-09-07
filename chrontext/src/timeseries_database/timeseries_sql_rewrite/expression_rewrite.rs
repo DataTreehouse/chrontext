@@ -1,12 +1,14 @@
 use oxrdf::vocab::xsd;
 use polars::export::chrono::{DateTime, NaiveDateTime, Utc};
-use sea_query::{BinOper, ColumnRef, Function, SimpleExpr, UnOper, Value};
-use sea_query::{Expr as SeaExpr, Func};
-use spargebra::algebra::Expression;
+use sea_query::extension::bigquery::{BqFunc, DateTimePart};
 use sea_query::IntoIden;
+use sea_query::{BinOper, ColumnRef, SimpleExpr, UnOper, Value};
+use sea_query::{Expr as SeaExpr, Func};
+use spargebra::algebra::{Expression};
 
 use crate::constants::DATETIME_AS_SECONDS;
 use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeSeriesQueryToSQLError};
+use crate::timeseries_database::DatabaseType;
 
 pub mod aggregate_expressions;
 
@@ -16,6 +18,7 @@ pub(crate) struct SPARQLToSQLExpressionTransformer<'a> {
     month_col: Option<&'a str>,
     day_col: Option<&'a str>,
     pub used_partitioning: bool,
+    database_type: DatabaseType
 }
 
 impl SPARQLToSQLExpressionTransformer<'_> {
@@ -24,6 +27,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
         year_col: Option<&'a str>,
         month_col: Option<&'a str>,
         day_col: Option<&'a str>,
+        database_type: DatabaseType
     ) -> SPARQLToSQLExpressionTransformer<'a> {
         SPARQLToSQLExpressionTransformer {
             table_name,
@@ -31,6 +35,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
             month_col,
             day_col,
             used_partitioning: false,
+            database_type
         }
     }
 
@@ -178,26 +183,42 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                             self.day_col.as_ref().unwrap(),
                         )
                     } else {
-                        let date_part_name = match f {
-                            spargebra::algebra::Function::Year => "year",
-                            spargebra::algebra::Function::Month => "month",
-                            spargebra::algebra::Function::Day => "day",
-                            spargebra::algebra::Function::Hours => "hour",
-                            spargebra::algebra::Function::Minutes => "minute",
-                            spargebra::algebra::Function::Seconds => "second",
-                            _ => {
-                                panic!("Cannot happen")
+                        SimpleExpr::FunctionCall(match &self.database_type {
+                            DatabaseType::BigQuery => {
+                                let datetime_part = match f {
+                                    spargebra::algebra::Function::Year => DateTimePart::YEAR,
+                                    spargebra::algebra::Function::Month => DateTimePart::MONTH,
+                                    spargebra::algebra::Function::Day => DateTimePart::DAY,
+                                    spargebra::algebra::Function::Hours => DateTimePart::HOUR,
+                                    spargebra::algebra::Function::Minutes => DateTimePart::MINUTE,
+                                    spargebra::algebra::Function::Seconds => DateTimePart::SECOND,
+                                    _ => {
+                                        panic!("Cannot happen")
+                                    }
+                                };
+                                BqFunc::extract(datetime_part, mapped_e)
+                            },
+                            DatabaseType::Dremio => {
+                                let date_part_name = match f {
+                                    spargebra::algebra::Function::Year => "year",
+                                    spargebra::algebra::Function::Month => "month",
+                                    spargebra::algebra::Function::Day => "day",
+                                    spargebra::algebra::Function::Hours => "hour",
+                                    spargebra::algebra::Function::Minutes => "minute",
+                                    spargebra::algebra::Function::Seconds => "second",
+                                    _ => {
+                                        panic!("Cannot happen")
+                                    }
+                                };
+                                Func::cust(Name::Function("date_part".to_string()).into_iden())
+                                    .args(vec![
+                                        SimpleExpr::Value(Value::String(Some(Box::new(
+                                            date_part_name.to_string(),
+                                        )))),
+                                        mapped_e,
+                                    ])
                             }
-                        };
-                        SimpleExpr::FunctionCall(
-                            Func::cust(Name::Function("date_part".to_string()).into_iden())
-                                .args(vec![
-                                    SimpleExpr::Value(Value::String(Some(Box::new(
-                                        date_part_name.to_string(),
-                                    )))),
-                                    mapped_e,
-                                ]),
-                        )
+                        })
                     }
                 }
                 spargebra::algebra::Function::Custom(c) => {
@@ -205,15 +226,13 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     let mapped_e = self.sparql_expression_to_sql_expression(e)?;
                     if c.as_str() == DATETIME_AS_SECONDS {
                         SimpleExpr::FunctionCall(
-                            Func::cust(
-                                Name::Function("UNIX_TIMESTAMP".to_string()).into_iden(),
-                            )
-                            .args(vec![
-                                mapped_e,
-                                SimpleExpr::Value(Value::String(Some(Box::new(
-                                    "YYYY-MM-DD HH:MI:SS.FFF".to_string(),
-                                )))),
-                            ]),
+                            Func::cust(Name::Function("UNIX_TIMESTAMP".to_string()).into_iden())
+                                .args(vec![
+                                    mapped_e,
+                                    SimpleExpr::Value(Value::String(Some(Box::new(
+                                        "YYYY-MM-DD HH:MI:SS.FFF".to_string(),
+                                    )))),
+                                ]),
                         )
                     } else if c.as_str() == xsd::INTEGER.as_str() {
                         SimpleExpr::AsEnum(

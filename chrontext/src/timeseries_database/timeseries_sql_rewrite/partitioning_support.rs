@@ -1,7 +1,7 @@
 use super::Name;
 use log::debug;
 use polars_core::export::chrono::Datelike;
-use sea_query::{IntoIden,BinOper, ColumnRef, SimpleExpr, Value};
+use sea_query::{IntoIden, BinOper, ColumnRef, SimpleExpr, Value, FunctionCall};
 
 pub fn add_partitioned_timestamp_conditions(
     se: SimpleExpr,
@@ -40,8 +40,7 @@ pub fn add_partitioned_timestamp_conditions(
                 .collect();
             let added = rewrites_and_added.iter().fold(false, |x, (_, y)| x || *y);
             let se_rewrites: Vec<SimpleExpr> = rewrites_and_added.into_iter().map(|(x, _)| x).collect();
-            //TODO: Upstream change to sea-query to avoid this messy workaround
-            (SimpleExpr::FunctionCall(func_call.clone().args(se_rewrites)), added)
+            (SimpleExpr::FunctionCall(FunctionCall::new(func_call.get_func().clone()).args(se_rewrites)), added)
         }
         SimpleExpr::Binary(left, op, right) => rewrite_binary_expression(
             *left,

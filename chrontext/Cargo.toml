@@ -19,7 +19,7 @@ tokio-stream = "0.1.14"
 arrow2 = {version="0.17.3", features=["io_flight"]}
 arrow-format = {version="0.8.1", features=["flight-data", "flight-service"]}
 polars-core = "0.32.1"
-sea-query = { version="0.30.1", features=["with-chrono"]}
+sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
 async-trait = "0.1.68"
 base64 = "0.13.0"
 opcua-client = "0.9.1"

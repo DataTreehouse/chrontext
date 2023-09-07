@@ -2,6 +2,7 @@ use super::SPARQLToSQLExpressionTransformer;
 use crate::timeseries_database::timeseries_sql_rewrite::TimeSeriesQueryToSQLError;
 use sea_query::{Func, SimpleExpr};
 use spargebra::algebra::AggregateExpression;
+use crate::timeseries_database::DatabaseType;
 
 impl SPARQLToSQLExpressionTransformer<'_> {
     //TODO: Support distinct in aggregates.. how???

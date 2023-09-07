@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::timeseries_database::{TimeSeriesQueryable, TimeSeriesSQLQueryable};
+use crate::timeseries_database::{DatabaseType, TimeSeriesQueryable, TimeSeriesSQLQueryable};
 use crate::timeseries_query::TimeSeriesQuery;
 use arrow2::io::flight as flight2;
 use arrow_format::flight::data::{FlightDescriptor, FlightInfo, HandshakeRequest};
@@ -30,7 +30,6 @@ use arrow_format::ipc::MessageHeaderRef;
 use log::{debug, warn};
 use polars_core::error::ArrowError;
 use polars_core::prelude::PolarsError;
-use sea_query::{PostgresQueryBuilder};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
@@ -223,7 +222,7 @@ impl ArrowFlightSQLDatabase {
 #[async_trait]
 impl TimeSeriesQueryable for ArrowFlightSQLDatabase {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
-        let query_string = self.get_sql_string(tsq, PostgresQueryBuilder)?;
+        let query_string = self.get_sql_string(tsq, DatabaseType::Dremio)?;
         Ok(self.execute_sql_query(query_string).await?)
     }
 

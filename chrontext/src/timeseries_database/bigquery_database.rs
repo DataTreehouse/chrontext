@@ -1,20 +1,20 @@
+
 use crate::timeseries_database::timeseries_sql_rewrite::{
     TimeSeriesQueryToSQLError, TimeSeriesTable,
 };
-use crate::timeseries_database::{TimeSeriesQueryable, TimeSeriesSQLQueryable};
+use crate::timeseries_database::{DatabaseType, TimeSeriesQueryable, TimeSeriesSQLQueryable};
 use crate::timeseries_query::TimeSeriesQuery;
 use async_trait::async_trait;
 use connectorx::prelude::*;
 use polars::prelude::PolarsError;
 use polars_core::error::ArrowError;
 use polars_core::prelude::{DataFrame, Series};
-use sea_query::PostgresQueryBuilder;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
-use std::thread;
 use thiserror::Error;
 use tokio::runtime::Runtime;
+use tokio::task;
 use tonic::Status;
 
 #[derive(Error, Debug)]
@@ -64,11 +64,11 @@ impl BigQueryDatabase {
 #[async_trait]
 impl TimeSeriesQueryable for BigQueryDatabase {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
-        let query_string = self.get_sql_string(tsq, PostgresQueryBuilder)?;
+        let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
         let key = self.gcp_sa_key.clone();
         // Using a thread here since we do not want nested runtimes in the same thread
         let (chunks, schema) =
-            thread::spawn(move || {
+            task::spawn_blocking(move || {
                 let source = BigQuerySource::new(Arc::new(Runtime::new().unwrap()), &key).unwrap();
                 let queries = [CXQuery::naked(query_string)];
                 let mut destination = Arrow2Destination::new();
@@ -80,15 +80,20 @@ impl TimeSeriesQueryable for BigQueryDatabase {
                 dispatcher.run().unwrap();
                 let (chunks, schema) = destination.arrow().unwrap();
                 return (chunks, schema);
-            })
-            .join()
-            .unwrap();
+            }).await?;
         let mut series_vec = vec![];
-        for (ch, field) in chunks.into_iter().zip(schema.fields.iter()) {
-            let mut array_refs = vec![];
-            for arr in ch.into_arrays() {
-                array_refs.push(arr)
+        let mut array_ref_vecs = vec![];
+
+        for ch in chunks.into_iter() {
+            for (i,arr) in ch.into_arrays().into_iter().enumerate() {
+                if array_ref_vecs.len() < i+1 {
+                    array_ref_vecs.push(vec![]);
+                }
+                array_ref_vecs.get_mut(i).unwrap().push(arr)
             }
+        }
+
+        for (array_refs, field) in array_ref_vecs.into_iter().zip(schema.fields.iter()) {
             let ser = Series::try_from((field.name.as_str(), array_refs)).unwrap();
             series_vec.push(ser);
         }

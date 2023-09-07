@@ -132,13 +132,6 @@ impl Engine {
         if self.engine.is_none() {
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         }
-        let res = env_logger::try_init();
-        match res {
-            Ok(_) => {}
-            Err(_) => {
-                debug!("Tried to initialize logger which is already initialize")
-            }
-        }
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
         let df_result = builder
@@ -290,6 +283,14 @@ impl TimeSeriesTable {
 
 #[pymodule]
 fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    let res = env_logger::try_init();
+    match res {
+        Ok(_) => {}
+        Err(_) => {
+            debug!("Tried to initialize logger which is already initialize");
+        }
+    }
+
     m.add_class::<Engine>()?;
     m.add_class::<TimeSeriesTable>()?;
     m.add_class::<ArrowFlightSQLDatabase>()?;
