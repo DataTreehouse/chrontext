@@ -1,4 +1,4 @@
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 use polars::export::chrono::{DateTime as PolarsDateTime, Utc as PolarsUtc};
 use polars::export::chrono::{NaiveDateTime, Utc};
 use polars::prelude::{col, lit, DataType as PolarsDataType, IntoLazy};
@@ -7,7 +7,8 @@ use polars_core::frame::DataFrame;
 use polars_core::prelude::TimeUnit;
 use std::collections::HashMap;
 use std::ops::{Div, Mul};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
+use opcua::sync::RwLock;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 #[allow(dead_code)]

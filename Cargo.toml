@@ -4,3 +4,6 @@ members=[
     "chrontext",
     "arrow_python_utils"
 ]
+
+[patch.crates-io]
+opcua = { git = 'https://github.com/locka99/opcua.git' }

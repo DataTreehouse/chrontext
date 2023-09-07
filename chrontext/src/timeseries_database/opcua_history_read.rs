@@ -3,7 +3,7 @@ use crate::query_context::Context;
 use crate::timeseries_database::TimeSeriesQueryable;
 use crate::timeseries_query::TimeSeriesQuery;
 use async_trait::async_trait;
-use opcua_client::prelude::{
+use opcua::client::prelude::{
     AggregateConfiguration, AttributeService, ByteString, Client, ClientBuilder, DateTime,
     EndpointDescription, Guid, HistoryData, HistoryReadAction, HistoryReadResult,
     HistoryReadValueId, Identifier, IdentityToken, MessageSecurityMode, NodeId, QualifiedName,
@@ -22,7 +22,8 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
+use opcua::sync::RwLock;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;
@@ -94,7 +95,7 @@ impl OPCUAHistoryRead {
 impl TimeSeriesQueryable for OPCUAHistoryRead {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         validate_tsq(tsq, true, false)?;
-        let session = self.session.write().unwrap();
+        let session = self.session.write();
         let start_time = find_time(tsq, &FindTime::Start);
         let end_time = find_time(tsq, &FindTime::End);
 

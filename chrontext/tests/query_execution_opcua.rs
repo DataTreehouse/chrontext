@@ -5,7 +5,7 @@ use chrontext::engine::Engine;
 use chrontext::pushdown_setting::PushdownSetting;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead;
 use log::debug;
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 use polars::io::SerReader;
 use polars::prelude::CsvReader;
 use polars_core::frame::DataFrame;
@@ -120,7 +120,7 @@ fn opcua_server_fixture(frames: HashMap<String, DataFrame>) -> JoinHandle<()> {
         .unwrap();
     {
         let server_state = server.server_state();
-        let mut server_state = server_state.write().unwrap();
+        let mut server_state = server_state.write();
         server_state.set_historical_data_provider(Box::new(OPCUADataProvider { frames }))
     }
     let handle = thread::spawn(move || server.run());
