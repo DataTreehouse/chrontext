@@ -4,16 +4,14 @@ use crate::timeseries_database::timeseries_sql_rewrite::{
 use crate::timeseries_database::{DatabaseType, TimeSeriesQueryable, TimeSeriesSQLQueryable};
 use crate::timeseries_query::TimeSeriesQuery;
 use async_trait::async_trait;
-use connectorx::prelude::*;
 use polars::prelude::PolarsError;
 use polars_core::error::ArrowError;
 use polars_core::prelude::{DataFrame, Series};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::sync::Arc;
+use bigquery_arrow2::{BigQueryExecutor, Client, env_vars};
+use reqwest::Url;
 use thiserror::Error;
-use tokio::runtime::Runtime;
-use tokio::task;
 use tonic::Status;
 
 #[derive(Error, Debug)]
@@ -64,41 +62,51 @@ impl BigQueryDatabase {
 impl TimeSeriesQueryable for BigQueryDatabase {
     async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
-        let key = self.gcp_sa_key.clone();
-        // Using a thread here since we do not want nested runtimes in the same thread
-        let (chunks, schema) =
-            task::spawn_blocking(move || {
-                let source = BigQuerySource::new(Arc::new(Runtime::new().unwrap()), &key).unwrap();
-                let queries = [CXQuery::naked(query_string)];
-                let mut destination = Arrow2Destination::new();
-                let dispatcher = Dispatcher::<
-                    BigQuerySource,
-                    Arrow2Destination,
-                    BigQueryArrow2Transport,
-                >::new(source, &mut destination, &queries, None);
-                dispatcher.run().unwrap();
-                let (chunks, schema) = destination.arrow().unwrap();
-                return (chunks, schema);
-            })
-            .await?;
-        let mut series_vec = vec![];
-        let mut array_ref_vecs = vec![];
 
-        for ch in chunks.into_iter() {
-            for (i, arr) in ch.into_arrays().into_iter().enumerate() {
-                if array_ref_vecs.len() < i + 1 {
-                    array_ref_vecs.push(vec![]);
-                }
-                array_ref_vecs.get_mut(i).unwrap().push(arr)
-            }
-        }
+        // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
+        // Last modified in commit: 8134d42
+        // It has been simplified and made async
+        // Connector-x has the following license:
+        // MIT License
+        //
+        // Copyright (c) 2021 SFU Database Group
+        //
+        // Permission is hereby granted, free of charge, to any person obtaining a copy
+        // of this software and associated documentation files (the "Software"), to deal
+        // in the Software without restriction, including without limitation the rights
+        // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        // copies of the Software, and to permit persons to whom the Software is
+        // furnished to do so, subject to the following conditions:
+        //
+        // The above copyright notice and this permission notice shall be included in all
+        // copies or substantial portions of the Software.
+        //
+        // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        // SOFTWARE.
 
-        for (array_refs, field) in array_ref_vecs.into_iter().zip(schema.fields.iter()) {
-            let ser = Series::try_from((field.name.as_str(), array_refs)).unwrap();
-            series_vec.push(ser);
-        }
-        let df = DataFrame::new(series_vec).unwrap();
-        Ok(df)
+        let url = Url::parse(&self.gcp_sa_key)?;
+        let sa_key_path = url.path();
+        let client =
+            Client::from_service_account_key_file(sa_key_path).await?;
+
+        let auth_data = std::fs::read_to_string(sa_key_path)?;
+        let auth_json: serde_json::Value = serde_json::from_str(&auth_data)?;
+        let project_id = auth_json
+            .get("project_id")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string();
+        //End copied code.
+
+        let ex = BigQueryExecutor::new(client,project_id, query_string);
+        let lf = ex.execute_query().await?;
+        Ok(lf.collect().unwrap())
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {
@@ -111,3 +119,4 @@ impl TimeSeriesSQLQueryable for BigQueryDatabase {
         &self.time_series_tables
     }
 }
+
