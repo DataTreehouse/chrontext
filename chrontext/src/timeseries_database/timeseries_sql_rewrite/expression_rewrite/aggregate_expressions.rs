@@ -1,6 +1,5 @@
 use super::SPARQLToSQLExpressionTransformer;
 use crate::timeseries_database::timeseries_sql_rewrite::TimeSeriesQueryToSQLError;
-use crate::timeseries_database::DatabaseType;
 use sea_query::{Func, SimpleExpr};
 use spargebra::algebra::AggregateExpression;
 
