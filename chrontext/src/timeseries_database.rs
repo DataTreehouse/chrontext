@@ -23,25 +23,26 @@ pub trait TimeSeriesQueryable: Send {
 #[derive(Clone)]
 pub enum DatabaseType {
     BigQuery,
-    Dremio
+    Dremio,
 }
 
 pub trait TimeSeriesSQLQueryable {
     fn get_sql_string(
         &self,
         tsq: &TimeSeriesQuery,
-        database_type:DatabaseType,
+        database_type: DatabaseType,
     ) -> Result<String, TimeSeriesQueryToSQLError> {
-
-
         let query_string;
         {
-            let transformer = TimeSeriesQueryToSQLTransformer::new(&self.get_time_series_tables(), database_type.clone());
+            let transformer = TimeSeriesQueryToSQLTransformer::new(
+                &self.get_time_series_tables(),
+                database_type.clone(),
+            );
             let (query, _) = transformer.create_query(tsq, false)?;
             query_string = match database_type {
-            DatabaseType::BigQuery => {query.to_string(BigQueryQueryBuilder)}
-            DatabaseType::Dremio => {query.to_string(PostgresQueryBuilder)}
-             };
+                DatabaseType::BigQuery => query.to_string(BigQueryQueryBuilder),
+                DatabaseType::Dremio => query.to_string(PostgresQueryBuilder),
+            };
 
             debug!("SQL: {}", query_string);
         }

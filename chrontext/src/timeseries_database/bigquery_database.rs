@@ -1,4 +1,3 @@
-
 use crate::timeseries_database::timeseries_sql_rewrite::{
     TimeSeriesQueryToSQLError, TimeSeriesTable,
 };
@@ -80,13 +79,14 @@ impl TimeSeriesQueryable for BigQueryDatabase {
                 dispatcher.run().unwrap();
                 let (chunks, schema) = destination.arrow().unwrap();
                 return (chunks, schema);
-            }).await?;
+            })
+            .await?;
         let mut series_vec = vec![];
         let mut array_ref_vecs = vec![];
 
         for ch in chunks.into_iter() {
-            for (i,arr) in ch.into_arrays().into_iter().enumerate() {
-                if array_ref_vecs.len() < i+1 {
+            for (i, arr) in ch.into_arrays().into_iter().enumerate() {
+                if array_ref_vecs.len() < i + 1 {
                     array_ref_vecs.push(vec![]);
                 }
                 array_ref_vecs.get_mut(i).unwrap().push(arr)

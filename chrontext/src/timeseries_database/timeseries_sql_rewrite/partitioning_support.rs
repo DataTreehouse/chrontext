@@ -1,7 +1,7 @@
 use super::Name;
 use log::debug;
 use polars_core::export::chrono::Datelike;
-use sea_query::{IntoIden, BinOper, ColumnRef, SimpleExpr, Value, FunctionCall};
+use sea_query::{BinOper, ColumnRef, FunctionCall, IntoIden, SimpleExpr, Value};
 
 pub fn add_partitioned_timestamp_conditions(
     se: SimpleExpr,
@@ -39,8 +39,14 @@ pub fn add_partitioned_timestamp_conditions(
                 })
                 .collect();
             let added = rewrites_and_added.iter().fold(false, |x, (_, y)| x || *y);
-            let se_rewrites: Vec<SimpleExpr> = rewrites_and_added.into_iter().map(|(x, _)| x).collect();
-            (SimpleExpr::FunctionCall(FunctionCall::new(func_call.get_func().clone()).args(se_rewrites)), added)
+            let se_rewrites: Vec<SimpleExpr> =
+                rewrites_and_added.into_iter().map(|(x, _)| x).collect();
+            (
+                SimpleExpr::FunctionCall(
+                    FunctionCall::new(func_call.get_func().clone()).args(se_rewrites),
+                ),
+                added,
+            )
         }
         SimpleExpr::Binary(left, op, right) => rewrite_binary_expression(
             *left,
@@ -539,9 +545,9 @@ fn smaller_than_or_original(
 }
 
 fn named_column_box_simple_expression(name: String) -> Box<SimpleExpr> {
-    Box::new(
-        SimpleExpr::Column(ColumnRef::Column(Name::Column(name).into_iden())
-    ))
+    Box::new(SimpleExpr::Column(ColumnRef::Column(
+        Name::Column(name).into_iden(),
+    )))
 }
 
 fn year_equal_and_month_equal_and_day_equal(

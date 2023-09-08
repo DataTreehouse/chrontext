@@ -1,8 +1,8 @@
 use super::SPARQLToSQLExpressionTransformer;
 use crate::timeseries_database::timeseries_sql_rewrite::TimeSeriesQueryToSQLError;
+use crate::timeseries_database::DatabaseType;
 use sea_query::{Func, SimpleExpr};
 use spargebra::algebra::AggregateExpression;
-use crate::timeseries_database::DatabaseType;
 
 impl SPARQLToSQLExpressionTransformer<'_> {
     //TODO: Support distinct in aggregates.. how???
@@ -29,9 +29,9 @@ impl SPARQLToSQLExpressionTransformer<'_> {
             AggregateExpression::Min { expr, distinct: _ } => {
                 SimpleExpr::FunctionCall(Func::min(self.sparql_expression_to_sql_expression(expr)?))
             }
-            AggregateExpression::Max { expr, distinct: _ } => SimpleExpr::FunctionCall(
-                Func::max(self.sparql_expression_to_sql_expression(expr)?)
-            ),
+            AggregateExpression::Max { expr, distinct: _ } => {
+                SimpleExpr::FunctionCall(Func::max(self.sparql_expression_to_sql_expression(expr)?))
+            }
             AggregateExpression::GroupConcat {
                 expr: _,
                 distinct: _,

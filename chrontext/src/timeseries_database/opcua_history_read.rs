@@ -10,6 +10,7 @@ use opcua::client::prelude::{
     ReadProcessedDetails, ReadRawModifiedDetails, Session, TimestampsToReturn, UAString,
     UserTokenPolicy, Variant,
 };
+use opcua::sync::RwLock;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, Variable};
 use polars::export::chrono::{DateTime as ChronoDateTime, Duration, NaiveDateTime, TimeZone, Utc};
@@ -22,8 +23,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use std::sync::{Arc};
-use opcua::sync::RwLock;
+use std::sync::Arc;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;

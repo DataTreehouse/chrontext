@@ -4,7 +4,7 @@ use sea_query::extension::bigquery::{BqFunc, DateTimePart};
 use sea_query::IntoIden;
 use sea_query::{BinOper, ColumnRef, SimpleExpr, UnOper, Value};
 use sea_query::{Expr as SeaExpr, Func};
-use spargebra::algebra::{Expression};
+use spargebra::algebra::Expression;
 
 use crate::constants::DATETIME_AS_SECONDS;
 use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeSeriesQueryToSQLError};
@@ -18,7 +18,7 @@ pub(crate) struct SPARQLToSQLExpressionTransformer<'a> {
     month_col: Option<&'a str>,
     day_col: Option<&'a str>,
     pub used_partitioning: bool,
-    database_type: DatabaseType
+    database_type: DatabaseType,
 }
 
 impl SPARQLToSQLExpressionTransformer<'_> {
@@ -27,7 +27,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
         year_col: Option<&'a str>,
         month_col: Option<&'a str>,
         day_col: Option<&'a str>,
-        database_type: DatabaseType
+        database_type: DatabaseType,
     ) -> SPARQLToSQLExpressionTransformer<'a> {
         SPARQLToSQLExpressionTransformer {
             table_name,
@@ -35,7 +35,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
             month_col,
             day_col,
             used_partitioning: false,
-            database_type
+            database_type,
         }
     }
 
@@ -197,7 +197,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                                     }
                                 };
                                 BqFunc::extract(datetime_part, mapped_e)
-                            },
+                            }
                             DatabaseType::Dremio => {
                                 let date_part_name = match f {
                                     spargebra::algebra::Function::Year => "year",

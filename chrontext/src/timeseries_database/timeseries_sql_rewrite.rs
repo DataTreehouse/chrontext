@@ -11,8 +11,7 @@ use polars_core::frame::DataFrame;
 use sea_query::extension::bigquery::{NamedField, Unnest};
 use sea_query::IntoIden;
 use sea_query::{
-    Alias, BinOper, ColumnRef, JoinType, Order, Query, SelectStatement, SimpleExpr,
-    TableRef,
+    Alias, BinOper, ColumnRef, JoinType, Order, Query, SelectStatement, SimpleExpr, TableRef,
 };
 use sea_query::{Expr as SeaExpr, Iden, Value};
 use spargebra::algebra::{AggregateExpression, Expression};
@@ -254,7 +253,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
     ) -> Result<(SelectStatement, HashSet<String>), TimeSeriesQueryToSQLError> {
         let subquery_alias = "subquery";
         let subquery_name = Name::Table(subquery_alias.to_string());
-        let mut expr_transformer = self.create_transformer(Some(&subquery_name), self.database_type.clone());
+        let mut expr_transformer =
+            self.create_transformer(Some(&subquery_name), self.database_type.clone());
         let se = expr_transformer.sparql_expression_to_sql_expression(e)?;
 
         let (select, mut columns) = self.create_query_nested(
@@ -557,7 +557,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         let outer_query_str = "outer_query";
         let outer_query_name = Name::Table(outer_query_str.to_string());
         let mut new_columns = HashSet::new();
-        let mut agg_transformer = self.create_transformer(Some(&outer_query_name), self.database_type.clone());
+        let mut agg_transformer =
+            self.create_transformer(Some(&outer_query_name), self.database_type.clone());
         let mut aggs = vec![];
         for (_, agg) in aggregations {
             aggs.push(agg_transformer.sparql_aggregate_expression_to_sql_expression(agg)?);
@@ -622,7 +623,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
     fn create_transformer<'a>(
         &'a self,
         table_name: Option<&'a Name>,
-        database_type: DatabaseType
+        database_type: DatabaseType,
     ) -> SPARQLToSQLExpressionTransformer {
         if self.partition_support {
             SPARQLToSQLExpressionTransformer::new(
@@ -630,7 +631,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                 Some(YEAR_PARTITION_COLUMN_NAME),
                 Some(MONTH_PARTITION_COLUMN_NAME),
                 Some(DAY_PARTITION_COLUMN_NAME),
-            database_type)
+                database_type,
+            )
         } else {
             SPARQLToSQLExpressionTransformer::new(table_name, None, None, None, database_type)
         }
@@ -739,6 +741,7 @@ mod tests {
     use crate::timeseries_database::timeseries_sql_rewrite::{
         TimeSeriesQueryToSQLTransformer, TimeSeriesTable,
     };
+    use crate::timeseries_database::DatabaseType;
     use crate::timeseries_query::{
         BasicTimeSeriesQuery, GroupedTimeSeriesQuery, Synchronizer, TimeSeriesQuery,
     };
@@ -750,7 +753,6 @@ mod tests {
     use sea_query::PostgresQueryBuilder;
     use spargebra::algebra::{AggregateExpression, Expression, Function};
     use std::vec;
-    use crate::timeseries_database::DatabaseType;
 
     #[test]
     pub fn test_translate() {
