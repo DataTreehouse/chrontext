@@ -4,13 +4,13 @@ use crate::timeseries_database::timeseries_sql_rewrite::{
 use crate::timeseries_database::{DatabaseType, TimeSeriesQueryable, TimeSeriesSQLQueryable};
 use crate::timeseries_query::TimeSeriesQuery;
 use async_trait::async_trait;
+use bigquery_polars::{BigQueryExecutor, Client};
 use polars::prelude::PolarsError;
 use polars_core::error::ArrowError;
-use polars_core::prelude::{DataFrame};
+use polars_core::prelude::DataFrame;
+use reqwest::Url;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use bigquery_polars::{BigQueryExecutor, Client};
-use reqwest::Url;
 use thiserror::Error;
 use tonic::Status;
 
@@ -91,8 +91,7 @@ impl TimeSeriesQueryable for BigQueryDatabase {
 
         let url = Url::parse(&self.gcp_sa_key)?;
         let sa_key_path = url.path();
-        let client =
-            Client::from_service_account_key_file(sa_key_path).await?;
+        let client = Client::from_service_account_key_file(sa_key_path).await?;
 
         let auth_data = std::fs::read_to_string(sa_key_path)?;
         let auth_json: serde_json::Value = serde_json::from_str(&auth_data)?;
@@ -104,7 +103,7 @@ impl TimeSeriesQueryable for BigQueryDatabase {
             .to_string();
         //End copied code.
 
-        let ex = BigQueryExecutor::new(client,project_id, query_string);
+        let ex = BigQueryExecutor::new(client, project_id, query_string);
         let lf = ex.execute_query().await?;
         Ok(lf.collect().unwrap())
     }
@@ -119,4 +118,3 @@ impl TimeSeriesSQLQueryable for BigQueryDatabase {
         &self.time_series_tables
     }
 }
-

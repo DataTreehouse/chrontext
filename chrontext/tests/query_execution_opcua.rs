@@ -133,7 +133,7 @@ fn engine() -> Engine {
     let path = "/";
     let endpoint = format!("opc.tcp://{}:{}{}", hostname().unwrap(), port, path);
     let opcua_tsdb = OPCUAHistoryRead::new(&endpoint, 1);
-    
+
     Engine::new(
         [PushdownSetting::GroupBy].into(),
         Box::new(opcua_tsdb),

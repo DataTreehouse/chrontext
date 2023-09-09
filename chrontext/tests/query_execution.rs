@@ -913,20 +913,25 @@ async fn test_values_query(
         FILTER(?v = ?v2)
     }
     "#;
-    let df = engine
+    let mut df = engine
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error");
+    df = df.sort(&["v", "w"], vec![true, true], false).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_values_query.csv");
 
     let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
+    let mut expected_df = CsvReader::new(file)
         .infer_schema(None)
         .has_header(true)
         .with_try_parse_dates(true)
         .finish()
         .expect("DF read error");
+    expected_df = expected_df
+        .sort(&["v", "w"], vec![true, true], false)
+        .unwrap();
+
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);
