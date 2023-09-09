@@ -11,7 +11,7 @@ use crate::timeseries_query::TimeSeriesQuery;
 use async_trait::async_trait;
 use log::debug;
 use polars::frame::DataFrame;
-use sea_query::{BigQueryQueryBuilder, PostgresQueryBuilder, QueryBuilder};
+use sea_query::{BigQueryQueryBuilder, PostgresQueryBuilder};
 use std::error::Error;
 
 #[async_trait]
