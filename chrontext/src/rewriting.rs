@@ -22,6 +22,7 @@ pub struct StaticQueryRewriter {
     basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
     static_subqueries: HashMap<Context, Query>,
     rewritten_filters: HashMap<Context, Expression>,
+    is_hybrid:bool
 }
 
 impl StaticQueryRewriter {
@@ -33,6 +34,7 @@ impl StaticQueryRewriter {
             basic_time_series_queries: vec![],
             static_subqueries: HashMap::new(),
             rewritten_filters: HashMap::new(),
+            is_hybrid:variable_constraints.has_datapoints()
         }
     }
 
@@ -44,6 +46,11 @@ impl StaticQueryRewriter {
         Vec<BasicTimeSeriesQuery>,
         HashMap<Context, Expression>,
     ) {
+        if !self.is_hybrid {
+            let mut map =  HashMap::new();
+            map.insert(Context::new(), query);
+            return (map, vec![], HashMap::new())
+        }
         if let Query::Select {
             dataset,
             pattern,
