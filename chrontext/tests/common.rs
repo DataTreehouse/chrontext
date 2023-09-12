@@ -38,8 +38,7 @@ pub async fn find_container(docker: &Docker, container_name: &str) -> Option<Con
                     .as_ref()
                     .unwrap()
                     .iter()
-                    .find(|n| n == &&slashed_container_name)
-                    .is_some()
+                    .any(|n| &n == &&slashed_container_name)
         })
         .cloned();
     existing
@@ -49,7 +48,7 @@ pub async fn start_sparql_container() {
     let docker = Docker::connect_with_local_defaults().expect("Could not find local docker");
     let container_name = "my-oxigraph-server";
     let existing = find_container(&docker, container_name).await;
-    if let Some(_) = existing {
+    if existing.is_some() {
         docker
             .remove_container(
                 container_name,

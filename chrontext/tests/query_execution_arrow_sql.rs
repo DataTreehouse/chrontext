@@ -91,7 +91,7 @@ async fn arrow_sql_endpoint(dockerfile_tar_gz_path: PathBuf) {
     let docker = Docker::connect_with_local_defaults().expect("Could not find local docker");
     let container_name = "my-dremio-server";
     let existing = find_container(&docker, container_name).await;
-    if let Some(_) = existing {
+    if existing.is_some() {
         docker
             .remove_container(
                 container_name,
@@ -316,7 +316,7 @@ async fn test_simple_hybrid_query(
     shared_testdata_path: PathBuf,
     use_logger: (),
 ) {
-    let _ = use_logger;
+    use_logger;
     let _ = with_sparql_testdata.await;
     let _ = with_timeseries_testdata.await;
     let db = ts_sql_db(timeseries_table).await;

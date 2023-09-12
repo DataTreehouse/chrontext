@@ -3,10 +3,13 @@ mod partitioning_support;
 
 use crate::timeseries_database::timeseries_sql_rewrite::expression_rewrite::SPARQLToSQLExpressionTransformer;
 use crate::timeseries_database::timeseries_sql_rewrite::partitioning_support::add_partitioned_timestamp_conditions;
+use crate::timeseries_database::DatabaseType;
 use crate::timeseries_query::{BasicTimeSeriesQuery, Synchronizer, TimeSeriesQuery};
 use oxrdf::{NamedNode, Variable};
 use polars_core::datatypes::AnyValue;
 use polars_core::frame::DataFrame;
+use sea_query::extension::bigquery::{NamedField, Unnest};
+use sea_query::IntoIden;
 use sea_query::{
     Alias, BinOper, ColumnRef, JoinType, Order, Query, SelectStatement, SimpleExpr, TableRef,
 };
@@ -15,7 +18,6 @@ use spargebra::algebra::{AggregateExpression, Expression};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter, Write};
-use std::rc::Rc;
 
 const YEAR_PARTITION_COLUMN_NAME: &str = "year_partition_column_name";
 const MONTH_PARTITION_COLUMN_NAME: &str = "month_partition_column_name";
@@ -113,13 +115,18 @@ pub struct TimeSeriesTable {
 pub struct TimeSeriesQueryToSQLTransformer<'a> {
     pub partition_support: bool,
     pub tables: &'a Vec<TimeSeriesTable>,
+    pub database_type: DatabaseType,
 }
 
 impl TimeSeriesQueryToSQLTransformer<'_> {
-    pub fn new(tables: &Vec<TimeSeriesTable>) -> TimeSeriesQueryToSQLTransformer {
+    pub fn new(
+        tables: &Vec<TimeSeriesTable>,
+        database_type: DatabaseType,
+    ) -> TimeSeriesQueryToSQLTransformer {
         TimeSeriesQueryToSQLTransformer {
             partition_support: check_partitioning_support(tables),
             tables,
+            database_type,
         }
     }
 
@@ -138,7 +145,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             sort_col = idvars.get(0).unwrap().as_str().to_string();
         }
         select_statement.order_by(
-            ColumnRef::Column(Rc::new(Name::Column(sort_col))),
+            ColumnRef::Column(Name::Column(sort_col).into_iden()),
             Order::Asc,
         );
 
@@ -186,9 +193,9 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                     let mut sorted_cols: Vec<&String> = columns.iter().collect();
                     sorted_cols.sort();
                     for c in sorted_cols {
-                        outer_select.expr(SimpleExpr::Column(ColumnRef::Column(Rc::new(
-                            Name::Column(c.clone()),
-                        ))));
+                        outer_select.expr(SimpleExpr::Column(ColumnRef::Column(
+                            Name::Column(c.clone()).into_iden(),
+                        )));
                     }
                     use_select = outer_select;
                 } else {
@@ -246,7 +253,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
     ) -> Result<(SelectStatement, HashSet<String>), TimeSeriesQueryToSQLError> {
         let subquery_alias = "subquery";
         let subquery_name = Name::Table(subquery_alias.to_string());
-        let mut expr_transformer = self.create_transformer(Some(&subquery_name));
+        let mut expr_transformer =
+            self.create_transformer(Some(&subquery_name), self.database_type.clone());
         let se = expr_transformer.sparql_expression_to_sql_expression(e)?;
 
         let (select, mut columns) = self.create_query_nested(
@@ -271,7 +279,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         sorted_cols.sort();
         for c in sorted_cols {
             expression_select.expr_as(
-                SimpleExpr::Column(ColumnRef::Column(Rc::new(Name::Column(c.clone())))),
+                SimpleExpr::Column(ColumnRef::Column(Name::Column(c.clone()).into_iden())),
                 Alias::new(c),
             );
         }
@@ -309,21 +317,49 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
 
         let mut static_select = Query::select();
         let mapping_values_alias = "mapping";
-        static_select.from_values(value_tuples, Alias::new(mapping_values_alias));
-        static_select.expr_as(
-            SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(mapping_values_alias.to_string())),
-                Rc::new(Name::Column("EXPR$0".to_string())),
-            )),
-            Alias::new(identifier_colname),
-        );
-        static_select.expr_as(
-            SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(mapping_values_alias.to_string())),
-                Rc::new(Name::Column("EXPR$1".to_string())),
-            )),
-            Alias::new(column_name),
-        );
+        match &self.database_type {
+            DatabaseType::BigQuery => {
+                static_select.columns([
+                    ColumnRef::Column(Name::Column(identifier_colname.to_string()).into_iden()),
+                    ColumnRef::Column(Name::Column(column_name.to_string()).into_iden()),
+                ]);
+                let mut structs = vec![];
+                for (e, n) in value_tuples {
+                    structs.push(SimpleExpr::Struct(vec![
+                        NamedField::new(
+                            Some(identifier_colname.to_string()),
+                            SimpleExpr::Value(Value::String(Some(Box::new(e.to_string())))),
+                        ),
+                        NamedField::new(
+                            Some(column_name.to_string()),
+                            SimpleExpr::Value(Value::BigInt(Some(n))),
+                        ),
+                    ]))
+                }
+                static_select.from(TableRef::Unnest(
+                    Unnest::new(structs),
+                    Name::Table("values".to_string()).into_iden(),
+                ));
+            }
+            DatabaseType::Dremio => {
+                static_select.from_values(value_tuples, Alias::new(mapping_values_alias));
+                static_select.expr_as(
+                    SimpleExpr::Column(ColumnRef::TableColumn(
+                        Name::Table(mapping_values_alias.to_string()).into_iden(),
+                        Name::Column("EXPR$0".to_string()).into_iden(),
+                    )),
+                    Alias::new(identifier_colname),
+                );
+                static_select.expr_as(
+                    SimpleExpr::Column(ColumnRef::TableColumn(
+                        Name::Table(mapping_values_alias.to_string()).into_iden(),
+                        Name::Column("EXPR$1".to_string()).into_iden(),
+                    )),
+                    Alias::new(column_name),
+                );
+            }
+        }
+
         let static_alias = "static_query";
 
         let (basic_select, mut columns) = self.create_basic_select(btsq, project_date_partition)?;
@@ -336,15 +372,15 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             JoinType::InnerJoin,
             TableRef::SubQuery(
                 static_select,
-                Rc::new(Name::Table(static_alias.to_string())),
+                Name::Table(static_alias.to_string()).into_iden(),
             ),
             SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(static_alias.to_string())),
-                Rc::new(Name::Column(identifier_colname.to_string())),
+                Name::Table(static_alias.to_string()).into_iden(),
+                Name::Column(identifier_colname.to_string()).into_iden(),
             ))
-            .equals(SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(basic_alias.to_string())),
-                Rc::new(Name::Column(identifier_colname.to_string())),
+            .eq(SimpleExpr::Column(ColumnRef::TableColumn(
+                Name::Table(basic_alias.to_string()).into_iden(),
+                Name::Column(identifier_colname.to_string()).into_iden(),
             ))),
         );
 
@@ -354,8 +390,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             if c != identifier_colname {
                 joined_select.expr_as(
                     SimpleExpr::Column(ColumnRef::TableColumn(
-                        Rc::new(Name::Table(basic_alias.to_string())),
-                        Rc::new(Name::Column(c.clone())),
+                        Name::Table(basic_alias.to_string()).into_iden(),
+                        Name::Column(c.clone()).into_iden(),
                     )),
                     Alias::new(c),
                 );
@@ -365,8 +401,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
 
         joined_select.expr_as(
             SimpleExpr::Column(ColumnRef::TableColumn(
-                Rc::new(Name::Table(static_alias.to_string())),
-                Rc::new(Name::Column(column_name.to_string())),
+                Name::Table(static_alias.to_string()).into_iden(),
+                Name::Column(column_name.to_string()).into_iden(),
             )),
             Alias::new(column_name),
         );
@@ -401,8 +437,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         for c in sorted_cols {
             new_first_select.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
-                    Rc::new(Name::Table(first_select_name.to_string())),
-                    Rc::new(Name::Column(c.to_string())),
+                    Name::Table(first_select_name.to_string()).into_iden(),
+                    Name::Column(c.to_string()).into_iden(),
                 )),
                 Alias::new(c),
             );
@@ -422,12 +458,12 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             for c in col_conditions {
                 conditions.push(
                     SimpleExpr::Column(ColumnRef::TableColumn(
-                        Rc::new(Name::Table(first_select_name.to_string())),
-                        Rc::new(Name::Column(c.clone())),
+                        Name::Table(first_select_name.to_string()).into_iden(),
+                        Name::Column(c.clone()).into_iden(),
                     ))
-                    .equals(SimpleExpr::Column(ColumnRef::TableColumn(
-                        Rc::new(Name::Table(select_name.clone())),
-                        Rc::new(Name::Column(c)),
+                    .eq(SimpleExpr::Column(ColumnRef::TableColumn(
+                        Name::Table(select_name.clone()).into_iden(),
+                        Name::Column(c).into_iden(),
                     ))),
                 );
             }
@@ -439,7 +475,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
 
             first_select.join(
                 JoinType::InnerJoin,
-                TableRef::SubQuery(s, Rc::new(Alias::new(&select_name))),
+                TableRef::SubQuery(s, Alias::new(&select_name).into_iden()),
                 first_condition,
             );
             let mut sorted_cols: Vec<&String> = cols.iter().collect();
@@ -448,10 +484,10 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                 if c != timestamp_col {
                     first_select.expr_as(
                         SimpleExpr::Column(ColumnRef::TableColumn(
-                            Rc::new(Name::Table(select_name.clone())),
-                            Rc::new(Name::Column(c.clone())),
+                            Name::Table(select_name.clone()).into_iden(),
+                            Name::Column(c.clone()).into_iden(),
                         )),
-                        Alias::new(&c),
+                        Alias::new(c),
                     );
                     first_columns.insert(c.clone());
                 }
@@ -489,7 +525,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         expression: &Expression,
         timestamp_column: Option<&String>,
     ) -> Result<(SimpleExpr, bool), TimeSeriesQueryToSQLError> {
-        let mut transformer = self.create_transformer(None);
+        let mut transformer = self.create_transformer(None, self.database_type.clone());
         let mut se = transformer.sparql_expression_to_sql_expression(expression)?;
         let mut partitioned = false;
         if self.partition_support {
@@ -521,7 +557,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         let outer_query_str = "outer_query";
         let outer_query_name = Name::Table(outer_query_str.to_string());
         let mut new_columns = HashSet::new();
-        let mut agg_transformer = self.create_transformer(Some(&outer_query_name));
+        let mut agg_transformer =
+            self.create_transformer(Some(&outer_query_name), self.database_type.clone());
         let mut aggs = vec![];
         for (_, agg) in aggregations {
             aggs.push(agg_transformer.sparql_aggregate_expression_to_sql_expression(agg)?);
@@ -541,11 +578,11 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         inner_query.from_subquery(query, inner_query_name.clone());
         let mut sorted_cols: Vec<&String> = columns.iter().collect();
         sorted_cols.sort();
-        for c in &sorted_cols {
+        for c in sorted_cols {
             inner_query.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
-                    Rc::new(inner_query_name.clone()),
-                    Rc::new(Name::Column(c.to_string())),
+                    inner_query_name.clone().into_iden(),
+                    Name::Column(c.to_string()).into_iden(),
                 )),
                 Alias::new(c),
             );
@@ -564,8 +601,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
             by.iter()
                 .map(|x| {
                     ColumnRef::TableColumn(
-                        Rc::new(outer_query_name.clone()),
-                        Rc::new(Name::Column(x.as_str().to_string())),
+                        outer_query_name.clone().into_iden(),
+                        Name::Column(x.as_str().to_string()).into_iden(),
                     )
                 })
                 .collect::<Vec<ColumnRef>>(),
@@ -573,8 +610,8 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
         for v in by {
             outer_query.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
-                    Rc::new(outer_query_name.clone()),
-                    Rc::new(Name::Column(v.as_str().to_string())),
+                    outer_query_name.clone().into_iden(),
+                    Name::Column(v.as_str().to_string()).into_iden(),
                 )),
                 Alias::new(v.as_str()),
             );
@@ -586,6 +623,7 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
     fn create_transformer<'a>(
         &'a self,
         table_name: Option<&'a Name>,
+        database_type: DatabaseType,
     ) -> SPARQLToSQLExpressionTransformer {
         if self.partition_support {
             SPARQLToSQLExpressionTransformer::new(
@@ -593,9 +631,10 @@ impl TimeSeriesQueryToSQLTransformer<'_> {
                 Some(YEAR_PARTITION_COLUMN_NAME),
                 Some(MONTH_PARTITION_COLUMN_NAME),
                 Some(DAY_PARTITION_COLUMN_NAME),
+                database_type,
             )
         } else {
-            SPARQLToSQLExpressionTransformer::new(table_name, None, None, None)
+            SPARQLToSQLExpressionTransformer::new(table_name, None, None, None, database_type)
         }
     }
 }
@@ -702,6 +741,7 @@ mod tests {
     use crate::timeseries_database::timeseries_sql_rewrite::{
         TimeSeriesQueryToSQLTransformer, TimeSeriesTable,
     };
+    use crate::timeseries_database::DatabaseType;
     use crate::timeseries_query::{
         BasicTimeSeriesQuery, GroupedTimeSeriesQuery, Synchronizer, TimeSeriesQuery,
     };
@@ -764,11 +804,11 @@ mod tests {
             day_column: Some("dir2".to_string()),
         };
         let tables = vec![table];
-        let transformer = TimeSeriesQueryToSQLTransformer::new(&tables);
+        let transformer = TimeSeriesQueryToSQLTransformer::new(&tables, DatabaseType::Dremio);
         let (sql_query, _) = transformer.create_query(&tsq, false).unwrap();
         assert_eq!(
             &sql_query.to_string(PostgresQueryBuilder),
-            r#"SELECT "id", "t", "v" FROM (SELECT "dir3" AS "id", "timestamp" AS "t", "value" AS "v", CAST("dir2" AS INTEGER) AS "day_partition_column_name", CAST("dir1" AS INTEGER) AS "month_partition_column_name", CAST("dir0" AS INTEGER) AS "year_partition_column_name" FROM "s3.ct-benchmark"."timeseries_double" WHERE "dir3" IN ('A', 'B')) AS "filtering_query" WHERE ("year_partition_column_name" < 2022) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" < 6)) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" = 6) AND ("day_partition_column_name" < 1)) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" = 6) AND ("day_partition_column_name" = 1) AND ("t" <= '2022-06-01 08:46:53')) ORDER BY "id" ASC"#
+            r#"SELECT "id", "t", "v" FROM (SELECT "dir3" AS "id", "timestamp" AS "t", "value" AS "v", CAST("dir2" AS INTEGER) AS "day_partition_column_name", CAST("dir1" AS INTEGER) AS "month_partition_column_name", CAST("dir0" AS INTEGER) AS "year_partition_column_name" FROM "s3.ct-benchmark"."timeseries_double" WHERE "dir3" IN ('A', 'B')) AS "filtering_query" WHERE "year_partition_column_name" < 2022 OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" < 6) OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" = 6 AND "day_partition_column_name" < 1) OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" = 6 AND "day_partition_column_name" = 1 AND "t" <= '2022-06-01 08:46:53') ORDER BY "id" ASC"#
         );
     }
 
@@ -983,10 +1023,10 @@ mod tests {
             day_column: Some("dir2".to_string()),
         };
         let tables = vec![table];
-        let transformer = TimeSeriesQueryToSQLTransformer::new(&tables);
+        let transformer = TimeSeriesQueryToSQLTransformer::new(&tables, DatabaseType::Dremio);
         let (sql_query, _) = transformer.create_query(&tsq, false).unwrap();
 
-        let expected_str = r#"SELECT AVG("outer_query"."val_dir") AS "f7ca5ee9058effba8691ac9c642fbe95", AVG("outer_query"."val_speed") AS "990362f372e4019bc151c13baf0b50d5", "outer_query"."year" AS "year", "outer_query"."month" AS "month", "outer_query"."day" AS "day", "outer_query"."hour" AS "hour", "outer_query"."minute_10" AS "minute_10", "outer_query"."grouping_col_0" AS "grouping_col_0" FROM (SELECT "inner_query"."day" AS "day", "inner_query"."grouping_col_0" AS "grouping_col_0", "inner_query"."hour" AS "hour", "inner_query"."minute_10" AS "minute_10", "inner_query"."month" AS "month", "inner_query"."t" AS "t", "inner_query"."val_dir" AS "val_dir", "inner_query"."val_speed" AS "val_speed", "inner_query"."year" AS "year" FROM (SELECT "day" AS "day", "grouping_col_0" AS "grouping_col_0", "hour" AS "hour", "minute_10" AS "minute_10", "month" AS "month", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "subquery"."year_partition_column_name" AS "year" FROM (SELECT "day" AS "day", "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "hour" AS "hour", "minute_10" AS "minute_10", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", "subquery"."month_partition_column_name" AS "month" FROM (SELECT "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "hour" AS "hour", "minute_10" AS "minute_10", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", "subquery"."day_partition_column_name" AS "day" FROM (SELECT "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "minute_10" AS "minute_10", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", date_part('hour', "subquery"."t") AS "hour" FROM (SELECT "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", CAST(FLOOR(date_part('minute', "subquery"."t") / 10) AS INTEGER) AS "minute_10" FROM (SELECT "first_query"."day_partition_column_name" AS "day_partition_column_name", "first_query"."grouping_col_0" AS "grouping_col_0", "first_query"."month_partition_column_name" AS "month_partition_column_name", "first_query"."t" AS "t", "first_query"."val_speed" AS "val_speed", "first_query"."year_partition_column_name" AS "year_partition_column_name", "other_0"."day_partition_column_name" AS "day_partition_column_name", "other_0"."grouping_col_0" AS "grouping_col_0", "other_0"."month_partition_column_name" AS "month_partition_column_name", "other_0"."val_dir" AS "val_dir", "other_0"."year_partition_column_name" AS "year_partition_column_name" FROM (SELECT "basic_query"."day_partition_column_name" AS "day_partition_column_name", "basic_query"."month_partition_column_name" AS "month_partition_column_name", "basic_query"."t" AS "t", "basic_query"."val_speed" AS "val_speed", "basic_query"."year_partition_column_name" AS "year_partition_column_name", "static_query"."grouping_col_0" AS "grouping_col_0" FROM (SELECT "timestamp" AS "t", "dir3" AS "ts_external_id_1", "value" AS "val_speed", CAST("dir2" AS INTEGER) AS "day_partition_column_name", CAST("dir1" AS INTEGER) AS "month_partition_column_name", CAST("dir0" AS INTEGER) AS "year_partition_column_name" FROM "s3.ct-benchmark"."timeseries_double" WHERE "dir3" IN ('id1')) AS "basic_query" INNER JOIN (SELECT "mapping"."EXPR$0" AS "ts_external_id_1", "mapping"."EXPR$1" AS "grouping_col_0" FROM (VALUES ('id1', 0)) AS "mapping") AS "static_query" ON "static_query"."ts_external_id_1" = "basic_query"."ts_external_id_1") AS "first_query" INNER JOIN (SELECT "basic_query"."day_partition_column_name" AS "day_partition_column_name", "basic_query"."month_partition_column_name" AS "month_partition_column_name", "basic_query"."t" AS "t", "basic_query"."val_dir" AS "val_dir", "basic_query"."year_partition_column_name" AS "year_partition_column_name", "static_query"."grouping_col_0" AS "grouping_col_0" FROM (SELECT "timestamp" AS "t", "dir3" AS "ts_external_id_2", "value" AS "val_dir", CAST("dir2" AS INTEGER) AS "day_partition_column_name", CAST("dir1" AS INTEGER) AS "month_partition_column_name", CAST("dir0" AS INTEGER) AS "year_partition_column_name" FROM "s3.ct-benchmark"."timeseries_double" WHERE "dir3" IN ('id2')) AS "basic_query" INNER JOIN (SELECT "mapping"."EXPR$0" AS "ts_external_id_2", "mapping"."EXPR$1" AS "grouping_col_0" FROM (VALUES ('id2', 1)) AS "mapping") AS "static_query" ON "static_query"."ts_external_id_2" = "basic_query"."ts_external_id_2") AS "other_0" ON ("first_query"."grouping_col_0" = "other_0"."grouping_col_0") AND ("first_query"."t" = "other_0"."t") AND ("first_query"."year_partition_column_name" = "other_0"."year_partition_column_name") AND ("first_query"."month_partition_column_name" = "other_0"."month_partition_column_name") AND ("first_query"."day_partition_column_name" = "other_0"."day_partition_column_name") WHERE (("year_partition_column_name" > 2022) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" > 8)) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" = 8) AND ("day_partition_column_name" > 30)) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" = 8) AND ("day_partition_column_name" = 30) AND ("t" >= '2022-08-30 08:46:53'))) AND (("year_partition_column_name" < 2022) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" < 8)) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" = 8) AND ("day_partition_column_name" < 30)) OR (("year_partition_column_name" = 2022) AND ("month_partition_column_name" = 8) AND ("day_partition_column_name" = 30) AND ("t" <= '2022-08-30 21:46:53')))) AS "subquery") AS "subquery") AS "subquery") AS "subquery") AS "subquery") AS "inner_query") AS "outer_query" GROUP BY "outer_query"."year", "outer_query"."month", "outer_query"."day", "outer_query"."hour", "outer_query"."minute_10", "outer_query"."grouping_col_0" ORDER BY "grouping_col_0" ASC"#;
+        let expected_str = r#"SELECT AVG("outer_query"."val_dir") AS "f7ca5ee9058effba8691ac9c642fbe95", AVG("outer_query"."val_speed") AS "990362f372e4019bc151c13baf0b50d5", "outer_query"."year" AS "year", "outer_query"."month" AS "month", "outer_query"."day" AS "day", "outer_query"."hour" AS "hour", "outer_query"."minute_10" AS "minute_10", "outer_query"."grouping_col_0" AS "grouping_col_0" FROM (SELECT "inner_query"."day" AS "day", "inner_query"."grouping_col_0" AS "grouping_col_0", "inner_query"."hour" AS "hour", "inner_query"."minute_10" AS "minute_10", "inner_query"."month" AS "month", "inner_query"."t" AS "t", "inner_query"."val_dir" AS "val_dir", "inner_query"."val_speed" AS "val_speed", "inner_query"."year" AS "year" FROM (SELECT "day" AS "day", "grouping_col_0" AS "grouping_col_0", "hour" AS "hour", "minute_10" AS "minute_10", "month" AS "month", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "subquery"."year_partition_column_name" AS "year" FROM (SELECT "day" AS "day", "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "hour" AS "hour", "minute_10" AS "minute_10", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", "subquery"."month_partition_column_name" AS "month" FROM (SELECT "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "hour" AS "hour", "minute_10" AS "minute_10", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", "subquery"."day_partition_column_name" AS "day" FROM (SELECT "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "minute_10" AS "minute_10", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", date_part('hour', "subquery"."t") AS "hour" FROM (SELECT "day_partition_column_name" AS "day_partition_column_name", "grouping_col_0" AS "grouping_col_0", "month_partition_column_name" AS "month_partition_column_name", "t" AS "t", "val_dir" AS "val_dir", "val_speed" AS "val_speed", "year_partition_column_name" AS "year_partition_column_name", CAST(FLOOR(date_part('minute', "subquery"."t") / 10) AS INTEGER) AS "minute_10" FROM (SELECT "first_query"."day_partition_column_name" AS "day_partition_column_name", "first_query"."grouping_col_0" AS "grouping_col_0", "first_query"."month_partition_column_name" AS "month_partition_column_name", "first_query"."t" AS "t", "first_query"."val_speed" AS "val_speed", "first_query"."year_partition_column_name" AS "year_partition_column_name", "other_0"."day_partition_column_name" AS "day_partition_column_name", "other_0"."grouping_col_0" AS "grouping_col_0", "other_0"."month_partition_column_name" AS "month_partition_column_name", "other_0"."val_dir" AS "val_dir", "other_0"."year_partition_column_name" AS "year_partition_column_name" FROM (SELECT "basic_query"."day_partition_column_name" AS "day_partition_column_name", "basic_query"."month_partition_column_name" AS "month_partition_column_name", "basic_query"."t" AS "t", "basic_query"."val_speed" AS "val_speed", "basic_query"."year_partition_column_name" AS "year_partition_column_name", "static_query"."grouping_col_0" AS "grouping_col_0" FROM (SELECT "timestamp" AS "t", "dir3" AS "ts_external_id_1", "value" AS "val_speed", CAST("dir2" AS INTEGER) AS "day_partition_column_name", CAST("dir1" AS INTEGER) AS "month_partition_column_name", CAST("dir0" AS INTEGER) AS "year_partition_column_name" FROM "s3.ct-benchmark"."timeseries_double" WHERE "dir3" IN ('id1')) AS "basic_query" INNER JOIN (SELECT "mapping"."EXPR$0" AS "ts_external_id_1", "mapping"."EXPR$1" AS "grouping_col_0" FROM (VALUES ('id1', 0)) AS "mapping") AS "static_query" ON "static_query"."ts_external_id_1" = "basic_query"."ts_external_id_1") AS "first_query" INNER JOIN (SELECT "basic_query"."day_partition_column_name" AS "day_partition_column_name", "basic_query"."month_partition_column_name" AS "month_partition_column_name", "basic_query"."t" AS "t", "basic_query"."val_dir" AS "val_dir", "basic_query"."year_partition_column_name" AS "year_partition_column_name", "static_query"."grouping_col_0" AS "grouping_col_0" FROM (SELECT "timestamp" AS "t", "dir3" AS "ts_external_id_2", "value" AS "val_dir", CAST("dir2" AS INTEGER) AS "day_partition_column_name", CAST("dir1" AS INTEGER) AS "month_partition_column_name", CAST("dir0" AS INTEGER) AS "year_partition_column_name" FROM "s3.ct-benchmark"."timeseries_double" WHERE "dir3" IN ('id2')) AS "basic_query" INNER JOIN (SELECT "mapping"."EXPR$0" AS "ts_external_id_2", "mapping"."EXPR$1" AS "grouping_col_0" FROM (VALUES ('id2', 1)) AS "mapping") AS "static_query" ON "static_query"."ts_external_id_2" = "basic_query"."ts_external_id_2") AS "other_0" ON "first_query"."grouping_col_0" = "other_0"."grouping_col_0" AND "first_query"."t" = "other_0"."t" AND "first_query"."year_partition_column_name" = "other_0"."year_partition_column_name" AND "first_query"."month_partition_column_name" = "other_0"."month_partition_column_name" AND "first_query"."day_partition_column_name" = "other_0"."day_partition_column_name" WHERE ("year_partition_column_name" > 2022 OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" > 8) OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" = 8 AND "day_partition_column_name" > 30) OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" = 8 AND "day_partition_column_name" = 30 AND "t" >= '2022-08-30 08:46:53')) AND ("year_partition_column_name" < 2022 OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" < 8) OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" = 8 AND "day_partition_column_name" < 30) OR ("year_partition_column_name" = 2022 AND "month_partition_column_name" = 8 AND "day_partition_column_name" = 30 AND "t" <= '2022-08-30 21:46:53'))) AS "subquery") AS "subquery") AS "subquery") AS "subquery") AS "subquery") AS "inner_query") AS "outer_query" GROUP BY "outer_query"."year", "outer_query"."month", "outer_query"."day", "outer_query"."hour", "outer_query"."minute_10", "outer_query"."grouping_col_0" ORDER BY "grouping_col_0" ASC"#;
         assert_eq!(sql_query.to_string(PostgresQueryBuilder), expected_str);
     }
 }

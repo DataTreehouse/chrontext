@@ -39,7 +39,7 @@ impl StaticQueryRewriter {
             .keys()
             .collect::<Vec<&Variable>>();
         datatype_keys_sorted.sort_by_key(|v| v.to_string());
-        
+
         for k in datatype_keys_sorted {
             let vs = gpreturn.datatypes_in_scope.get(k).unwrap();
             let mut vars = vs.iter().collect::<Vec<&Variable>>();
@@ -51,13 +51,13 @@ impl StaticQueryRewriter {
                 }
             }
         }
-        
+
         let mut resource_keys_sorted = gpreturn
             .resources_in_scope
             .keys()
             .collect::<Vec<&Variable>>();
         resource_keys_sorted.sort_by_key(|v| v.to_string());
-        
+
         for k in resource_keys_sorted {
             let vs = gpreturn.resources_in_scope.get(k).unwrap();
             let mut vars = vs.iter().collect::<Vec<&Variable>>();

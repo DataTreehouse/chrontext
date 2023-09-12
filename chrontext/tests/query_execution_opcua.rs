@@ -5,7 +5,7 @@ use chrontext::engine::Engine;
 use chrontext::pushdown_setting::PushdownSetting;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead;
 use log::debug;
-use opcua_server::prelude::*;
+use opcua::server::prelude::*;
 use polars::io::SerReader;
 use polars::prelude::CsvReader;
 use polars_core::frame::DataFrame;
@@ -52,7 +52,7 @@ fn sparql_endpoint() {
 
 #[fixture]
 fn with_testdata(sparql_endpoint: (), testdata_path: PathBuf) {
-    let _ = sparql_endpoint;
+    sparql_endpoint;
     let mut testdata_path = testdata_path.clone();
     testdata_path.push("testdata.sparql");
     let mut builder = Builder::new_multi_thread();
@@ -93,8 +93,7 @@ fn opcua_server_fixture(frames: HashMap<String, DataFrame>) -> JoinHandle<()> {
             hostname().unwrap(),
             port,
             path
-        )
-        .into()])
+        )])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
@@ -120,7 +119,7 @@ fn opcua_server_fixture(frames: HashMap<String, DataFrame>) -> JoinHandle<()> {
         .unwrap();
     {
         let server_state = server.server_state();
-        let mut server_state = server_state.write().unwrap();
+        let mut server_state = server_state.write();
         server_state.set_historical_data_provider(Box::new(OPCUADataProvider { frames }))
     }
     let handle = thread::spawn(move || server.run());
@@ -134,12 +133,12 @@ fn engine() -> Engine {
     let path = "/";
     let endpoint = format!("opc.tcp://{}:{}{}", hostname().unwrap(), port, path);
     let opcua_tsdb = OPCUAHistoryRead::new(&endpoint, 1);
-    let engine = Engine::new(
+
+    Engine::new(
         [PushdownSetting::GroupBy].into(),
         Box::new(opcua_tsdb),
         QUERY_ENDPOINT.to_string(),
-    );
-    engine
+    )
 }
 
 #[rstest]
@@ -151,8 +150,8 @@ fn test_basic_query(
     testdata_path: PathBuf,
     mut engine: Engine,
 ) {
-    let _ = with_testdata;
-    let _ = use_logger;
+    with_testdata;
+    use_logger;
     let _ = opcua_server_fixture;
 
     let query = r#"
@@ -213,8 +212,8 @@ fn test_basic_no_end_time_query(
     testdata_path: PathBuf,
     mut engine: Engine,
 ) {
-    let _ = with_testdata;
-    let _ = use_logger;
+    with_testdata;
+    use_logger;
     let _ = opcua_server_fixture;
 
     let query = r#"
@@ -275,8 +274,8 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     testdata_path: PathBuf,
     mut engine: Engine,
 ) {
-    let _ = with_testdata;
-    let _ = use_logger;
+    with_testdata;
+    use_logger;
     let _ = opcua_server_fixture;
 
     let query = r#"
@@ -354,8 +353,8 @@ fn test_no_pushdown_because_of_filter_query(
     testdata_path: PathBuf,
     mut engine: Engine,
 ) {
-    let _ = with_testdata;
-    let _ = use_logger;
+    with_testdata;
+    use_logger;
     let _ = opcua_server_fixture;
 
     let query = r#"

@@ -88,7 +88,7 @@ async fn test_should_pushdown_query(
     testdata_path: PathBuf,
     use_logger: (),
 ) {
-    let _ = use_logger;
+    use_logger;
     let _ = with_testdata.await;
     let query = r#"PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
 PREFIX ct:<https://github.com/magbak/chrontext#>
@@ -182,7 +182,7 @@ async fn test_multi_should_pushdown_query(
     testdata_path: PathBuf,
     use_logger: (),
 ) {
-    let _ = use_logger;
+    use_logger;
     let _ = with_testdata.await;
     let query = r#"PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
 PREFIX ct:<https://github.com/magbak/chrontext#>
