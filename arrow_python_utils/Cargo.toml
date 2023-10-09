@@ -7,4 +7,4 @@ edition = "2021"
 pyo3 = {version = "0.19.2", features = ["extension-module"]}
 polars-core = {version="0.32.1"}
 thiserror="1.0.31"
-simple-error = "0.2.3"
+simple-error = "0.3.0"

@@ -13,9 +13,9 @@ thiserror="1.0.31"
 polars-core = {version="0.32.1"}
 oxrdf = "0.1.0"
 spargebra = "0.2.0"
-simple-error = "0.2.3"
+simple-error = "0.3.0"
 tokio = "1.29.0"
-env_logger = "0.9.0"
+env_logger = "0.10.0"
 log="0.4.19"
 
 [lib]

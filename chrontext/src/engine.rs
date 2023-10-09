@@ -1,4 +1,4 @@
-use crate::combiner::Combiner;
+use crate::combiner::{Combiner};
 use crate::preprocessing::Preprocessor;
 use crate::pushdown_setting::PushdownSetting;
 use crate::rewriting::StaticQueryRewriter;
@@ -50,9 +50,15 @@ impl Engine {
             basic_time_series_queries,
             rewritten_filters,
         );
-        let solution_mappings = combiner
+        let solution_mappings = match combiner
             .combine_static_and_time_series_results(static_queries_map, &parsed_query)
-            .await?;
+            .await {
+            Ok(solution_mappings) => {solution_mappings}
+            Err(e) => {
+                self.time_series_database = Some(combiner.time_series_database);
+                return Err(Box::new(e))
+            }
+        };
         self.time_series_database = Some(combiner.time_series_database);
         Ok(solution_mappings.mappings.collect()?)
     }

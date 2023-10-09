@@ -1,6 +1,5 @@
-pytest
-maturin
-docker
-requests
-sparqlwrapper
-asyncua
+pytest==7.4.2
+docker==6.1.3
+requests==2.31.0
+sparqlwrapper==2.0.0
+asyncua==1.0.4
