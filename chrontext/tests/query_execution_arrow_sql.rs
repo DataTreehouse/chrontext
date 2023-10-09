@@ -121,6 +121,7 @@ async fn arrow_sql_endpoint(dockerfile_tar_gz_path: PathBuf) {
 
     let options = CreateContainerOptions {
         name: container_name,
+        platform: None,
     };
     let config = Config {
         image: Some("my_dremio"),

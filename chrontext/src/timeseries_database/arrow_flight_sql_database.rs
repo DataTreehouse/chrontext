@@ -33,6 +33,7 @@ use polars_core::prelude::PolarsError;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
+use base64::Engine;
 use thiserror::Error;
 use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;
@@ -266,7 +267,8 @@ async fn authenticate(
     };
     let user_pass_string = format!("{}:{}", username, password);
     let user_pass_bytes = user_pass_string.as_bytes();
-    let base64_bytes = base64::encode(user_pass_bytes);
+    let standard_engine = base64::prelude::BASE64_STANDARD_NO_PAD;
+    let base64_bytes = standard_engine.encode(user_pass_bytes);
     let basic_auth = format!("Basic {}", base64_bytes);
     let mut client = FlightServiceClient::with_interceptor(conn, |mut req: Request<()>| {
         req.metadata_mut()

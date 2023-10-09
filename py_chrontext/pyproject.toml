@@ -1,11 +1,33 @@
-[tool.maturin]
-module-name = "chrontext._chrontext"
-python-source = "python"
-
 [project]
 name = "chrontext"
 dependencies = ["rdflib==6.2.0", "polars==0.18.0", "pyarrow>=7.0.0", "pandas"]
+authors = [{name = "Magnus Bakken", email = "magnus@data-treehouse.com" }]
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+keywords = ["rdf", "graph", "arrow", "sparql", "timeseries"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Rust",
+    "Topic :: Database :: Database Engines/Servers",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Homepage = "https://github.com/DataTreehouse/chrontext"
+Documentation = "https://github.com/DataTreehouse/chrontext"
+Repository = "https://github.com/DataTreehouse/chrontext"
+Changelog = "https://github.com/DataTreehouse/chrontext/releases"
 
 [build-system]
-requires = ["maturin>=1.1.0"]
+requires = ["maturin==1.2.3"]
 build-backend = "maturin"
+
+[tool.maturin]
+module-name = "chrontext._chrontext"
+python-source = "python"

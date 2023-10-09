@@ -62,6 +62,7 @@ pub async fn start_sparql_container() {
     }
     let options = CreateContainerOptions {
         name: container_name,
+        platform: None
     };
     let config = Config {
         image: Some(OXIGRAPH_SERVER_IMAGE),
