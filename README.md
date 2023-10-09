@@ -58,9 +58,9 @@ SELECT ?w ?s ?t ?v WHERE {
 ```
 
 ## Installing pre-built wheels
-From the latest [release](https://github.com/magbak/chrontext/releases), copy the appropriate .whl-file for your system, then run:
+Chrontext is in pip, just use:
 ```shell
-pip install https://github.com/magbak/chrontext/releases/download/v0.2.3/chrontext-0.2.3-cp310-cp310-manylinux_2_31_x86_64.whl
+pip install chrontext
 ```
 
 ## License

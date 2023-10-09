@@ -1,3 +1,5 @@
+# Adapted from https://github.com/pola-rs/polars/blob/main/.github/workflows/release-python.yml
+# With license found in chrontext/licensing/POLARS_LICENSE
 name: Python query tests
 
 on:
@@ -9,6 +11,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_LOG: debug
+  MATURIN_VERSION: '1.2.3'
 
 jobs:
   build_and_test:
@@ -18,12 +21,18 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Fix README symlink
+      run: |
+        rm py_chrontext/README.md
+        cp README.md py_chrontext/README.md
+
     - name: Install dependencies
       run: |
         python -m venv .venv
         source .venv/bin/activate
         pip install --upgrade pip
         pip install -r tests/requirements.txt
+        pip install maturin==${{ env.MATURIN_VERSION }}
       working-directory: ./py_chrontext
 
     - name: Set up nightly rust
