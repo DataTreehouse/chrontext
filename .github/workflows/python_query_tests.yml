@@ -1,3 +1,5 @@
+# Adapted from https://github.com/pola-rs/polars/blob/main/.github/workflows/release-python.yml
+# With license found in chrontext/licensing/POLARS_LICENSE
 name: Python query tests
 
 on:
@@ -18,6 +20,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Fix README symlink
+      run: |
+        rm py_chrontext/README.md
+        cp README.md py_chrontext/README.md
 
     - name: Install dependencies
       run: |
