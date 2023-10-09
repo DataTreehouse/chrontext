@@ -9,6 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_LOG: debug
+  MATURIN_VERSION: '1.2.3'
 
 jobs:
   build_and_test:
@@ -24,6 +25,7 @@ jobs:
         source .venv/bin/activate
         pip install --upgrade pip
         pip install -r tests/requirements.txt
+        pip install maturin=${{ env.MATURIN_VERSION }}
       working-directory: ./py_chrontext
 
     - name: Set up nightly rust
