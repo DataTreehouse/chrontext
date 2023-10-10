@@ -26,10 +26,6 @@ jobs:
       matrix:
         python-version: [ '3.8', '3.9', '3.10', '3.11' ]
     steps:
-      - name: Install openssl dep
-        run: |
-          sudo apt-get install pkg-config libssl-dev libudev-dev      
-
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
@@ -46,6 +42,7 @@ jobs:
         env:
           RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx,+fma
         with:
+          before-script-linux: sudo apt-get install pkg-config libssl-dev libudev-dev
           command: publish
           args: -m py_chrontext/Cargo.toml --skip-existing -o wheels -i python${{ matrix.python-version }} -u magbak
           maturin-version: ${{ env.MATURIN_VERSION }}
@@ -64,10 +61,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install openssl dep
-        run: |
-          sudo apt-get install pkg-config libssl-dev libudev-dev
 
       # Needed to avoid out-of-memory error
       - name: Set Swap Space
@@ -104,11 +97,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install openssl
-        run: |
-          vcpkg install openssl:x64-windows-static-md
-          vcpkg integrate install
 
       - name: Fix README symlink
         run: |
@@ -167,12 +155,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      #Fix from https://rymc.io/blog/2019/rust-cargo-lcrypto-openssl-mac-and-you/
-      - name: Install openssl
-        run: |
-          brew install openssl@3
-          brew install pkg-config@0.29.2
 
       - name: Fix README symlink
         run: |

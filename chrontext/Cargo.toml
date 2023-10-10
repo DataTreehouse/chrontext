@@ -22,7 +22,7 @@ polars-core = "0.32.1"
 sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
 async-trait = "0.1.68"
 base64 = "0.21.3"
-opcua = "0.12.0"
+opcua = {version="0.12.0", features = ["vendored-openssl"]}
 async-recursion = "1.0.4"
 bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars"}
 crossbeam = {version = "0.8.2"}
