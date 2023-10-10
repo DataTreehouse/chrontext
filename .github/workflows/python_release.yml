@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Install openssl dep
         run: |
-          apt-get install pkg-config libssl-dev      
+          sudo apt-get install pkg-config libssl-dev      
 
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -39,6 +39,7 @@ jobs:
         run: |
           rm py_chrontext/README.md
           cp README.md py_chrontext/README.md
+          cp -r doc py_chrontext/doc
 
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
@@ -66,7 +67,7 @@ jobs:
 
       - name: Install openssl dep
         run: |
-          apt-get install pkg-config libssl-dev   
+          sudo apt-get install pkg-config libssl-dev   
 
       # Needed to avoid out-of-memory error
       - name: Set Swap Space
@@ -78,6 +79,7 @@ jobs:
         run: |
           rm py_chrontext/README.md
           cp README.md py_chrontext/README.md
+          cp -r doc py_chrontext/doc
 
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
@@ -111,6 +113,7 @@ jobs:
         run: |
           rm py_chrontext/README.md
           cp README.md py_chrontext/README.md
+          cp -r doc py_chrontext/doc
 
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
@@ -139,6 +142,7 @@ jobs:
         run: |
           rm py_chrontext/README.md
           cp README.md py_chrontext/README.md
+          cp -r doc py_chrontext/doc
 
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
@@ -171,6 +175,7 @@ jobs:
         run: |
           rm py_chrontext/README.md
           cp README.md py_chrontext/README.md
+          cp -r doc py_chrontext/doc
 
       - name: Set up Rust targets
         run: rustup target add aarch64-apple-darwin
