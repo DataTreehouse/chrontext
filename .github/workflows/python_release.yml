@@ -108,6 +108,7 @@ jobs:
       - name: Install openssl
         run: |
           vcpkg install openssl:x64-windows-static-md
+          vcpkg integrate install
 
       - name: Fix README symlink
         run: |
@@ -171,13 +172,7 @@ jobs:
       - name: Install openssl
         run: |
           brew install openssl@3
-          export OPENSSL_ROOT_DIR=$(brew --prefix openssl)
-          export OPENSSL_LIB_DIR="$OPENSSL_ROOT_DIR/lib"
-          export OPENSSL_INCLUDE_DIR="$OPENSSL_ROOT_DIR/include"
-          export LDFLAGS="-L$OPENSSL_ROOT_DIR/lib"
-          export CPPFLAGS="-I$OPENSSL_ROOT_DIR/include"
-          export PKG_CONFIG_PATH="$OPENSSL_ROOT_DIR/lib/pkgconfig"
-          export LIBRARY_PATH="$LIBRARY_PATH:$OPENSSL_ROOT_DIR/lib/"
+          brew install pkg-config@0.29.2
 
       - name: Fix README symlink
         run: |
