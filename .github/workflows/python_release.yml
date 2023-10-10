@@ -42,7 +42,7 @@ jobs:
         env:
           RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx,+fma
         with:
-          before-script-linux: yum install perl-IPC-Cmd
+          before-script-linux: yum -y install perl-IPC-Cmd
           command: publish
           args: -m py_chrontext/Cargo.toml --skip-existing -o wheels -i python${{ matrix.python-version }} -u magbak
           maturin-version: ${{ env.MATURIN_VERSION }}
