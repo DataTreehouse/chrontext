@@ -67,7 +67,7 @@ jobs:
 
       - name: Install openssl dep
         run: |
-          sudo apt-get install pkg-config libssl-dev   
+          sudo apt-get install pkg-config libssl-dev libudev-dev
 
       # Needed to avoid out-of-memory error
       - name: Set Swap Space
@@ -107,7 +107,7 @@ jobs:
 
       - name: Install openssl
         run: |
-          choco install openssl
+          vcpkg install openssl:x64-windows-static-md
 
       - name: Fix README symlink
         run: |
@@ -167,9 +167,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      #Fix from https://rymc.io/blog/2019/rust-cargo-lcrypto-openssl-mac-and-you/
       - name: Install openssl
         run: |
           brew install openssl@3
+          export OPENSSL_ROOT_DIR=$(brew --prefix openssl)
+          export OPENSSL_LIB_DIR="$OPENSSL_ROOT_DIR/lib"
+          export OPENSSL_INCLUDE_DIR="$OPENSSL_ROOT_DIR/include"
+          export LDFLAGS="-L$OPENSSL_ROOT_DIR/lib"
+          export CPPFLAGS="-I$OPENSSL_ROOT_DIR/include"
+          export PKG_CONFIG_PATH="$OPENSSL_ROOT_DIR/lib/pkgconfig"
+          export LIBRARY_PATH="$LIBRARY_PATH:$OPENSSL_ROOT_DIR/lib/"
 
       - name: Fix README symlink
         run: |
