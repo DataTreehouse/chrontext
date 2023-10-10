@@ -20,6 +20,7 @@ env:
 jobs:
   manylinux-x64_64:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     environment: release
     strategy:
       fail-fast: false
@@ -50,6 +51,7 @@ jobs:
 
   win:
     runs-on: windows-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +81,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -108,6 +111,7 @@ jobs:
 
   macos-aarch64:
     runs-on: macos-latest
+    timeout-minutes: 60
     environment: release
     strategy:
       fail-fast: false
