@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Install openssl dep
         run: |
-          sudo apt-get install pkg-config libssl-dev      
+          sudo apt-get install pkg-config libssl-dev libudev-dev      
 
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
