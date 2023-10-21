@@ -28,6 +28,10 @@ impl Engine {
         }
     }
 
+    pub fn has_time_series_db(&self) -> bool {
+        self.time_series_database.is_some()
+}
+
     pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<DataFrame, Box<dyn Error>> {
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {:?}", &parsed_query);

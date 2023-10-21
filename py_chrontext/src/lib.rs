@@ -51,6 +51,9 @@ use tokio::runtime::{Builder, Runtime};
 
 #[pyclass(unsendable)]
 pub struct Engine {
+    opcua_hread: Option<OPCUAHistoryRead>,
+    bigquery_db: Option<BigQueryDatabase>,
+    arrowflight_db: Option<ArrowFlightSQLDatabase>,
     engine: Option<RustEngine>,
     endpoint: String,
 }
@@ -62,6 +65,9 @@ impl Engine {
         Box::new(Engine {
             engine: None,
             endpoint: endpoint.to_string(),
+            arrowflight_db: None,
+            bigquery_db:None,
+            opcua_hread:None,
         })
     }
 
@@ -69,6 +75,7 @@ impl Engine {
         if self.engine.is_some() {
             return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
         }
+        self.arrowflight_db = Some(db.clone());
         let endpoint = format!("http://{}:{}", &db.host, &db.port);
         let mut new_tables = vec![];
         for t in &db.tables {
@@ -96,6 +103,7 @@ impl Engine {
         if self.engine.is_some() {
             return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
         }
+        self.bigquery_db = Some(db.clone());
         let mut new_tables = vec![];
         for t in &db.tables {
             new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
@@ -119,6 +127,7 @@ impl Engine {
         if self.engine.is_some() {
             return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
         }
+        self.opcua_hread = Some(db.clone());
         let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
         self.engine = Some(RustEngine::new(
             [PushdownSetting::GroupBy].into(),
@@ -132,6 +141,19 @@ impl Engine {
         if self.engine.is_none() {
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         }
+        //Logic to recover from crash
+        if self.engine.unwrap().has_time_series_db() {
+            if let Some(db) = &self.opcua_hread {
+                self.set_opcua_history_read(db)?;
+            } else if let Some(db) = &self.bigquery_db {
+                self.set_bigquery_database(db)?;
+            } else if let Some(db) = &self.arrowflight_db {
+                self.set_arrow_flight_sql(db)?;
+            } else {
+                return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
+            }
+        }
+
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
         let df_result = builder
