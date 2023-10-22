@@ -71,10 +71,16 @@ impl Engine {
         })
     }
 
-    pub fn set_arrow_flight_sql(&mut self, db: &ArrowFlightSQLDatabase) -> PyResult<()> {
-        if self.engine.is_some() {
+    fn check_engine_and_timeseries_db_already_set(&self) -> PyResult<()> {
+        if self.engine.is_some() && self.engine.as_ref().unwrap().has_time_series_db() {
             return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
         }
+        Ok(())
+
+    }
+
+    pub fn set_arrow_flight_sql(&mut self, db: &ArrowFlightSQLDatabase) -> PyResult<()> {
+        self.check_engine_and_timeseries_db_already_set()?;
         self.arrowflight_db = Some(db.clone());
         let endpoint = format!("http://{}:{}", &db.host, &db.port);
         let mut new_tables = vec![];
@@ -100,9 +106,7 @@ impl Engine {
     }
 
     pub fn set_bigquery_database(&mut self, db: &BigQueryDatabase) -> PyResult<()> {
-        if self.engine.is_some() {
-            return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
-        }
+        self.check_engine_and_timeseries_db_already_set()?;
         self.bigquery_db = Some(db.clone());
         let mut new_tables = vec![];
         for t in &db.tables {
@@ -124,9 +128,7 @@ impl Engine {
     }
 
     pub fn set_opcua_history_read(&mut self, db: &OPCUAHistoryRead) -> PyResult<()> {
-        if self.engine.is_some() {
-            return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
-        }
+        self.check_engine_and_timeseries_db_already_set()?;
         self.opcua_hread = Some(db.clone());
         let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
         self.engine = Some(RustEngine::new(
@@ -142,7 +144,7 @@ impl Engine {
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         }
         //Logic to recover from crash
-        if self.engine.as_ref().unwrap().has_time_series_db() {
+        if !self.engine.as_ref().unwrap().has_time_series_db() {
             if let Some(db) = &self.opcua_hread {
                 self.set_opcua_history_read(&db.clone())?;
             } else if let Some(db) = &self.bigquery_db {
