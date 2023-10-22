@@ -142,13 +142,13 @@ impl Engine {
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         }
         //Logic to recover from crash
-        if self.engine.unwrap().has_time_series_db() {
+        if self.engine.as_ref().unwrap().has_time_series_db() {
             if let Some(db) = &self.opcua_hread {
-                self.set_opcua_history_read(db)?;
+                self.set_opcua_history_read(&db.clone())?;
             } else if let Some(db) = &self.bigquery_db {
-                self.set_bigquery_database(db)?;
+                self.set_bigquery_database(&db.clone())?;
             } else if let Some(db) = &self.arrowflight_db {
-                self.set_arrow_flight_sql(db)?;
+                self.set_arrow_flight_sql(&db.clone())?;
             } else {
                 return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
             }
