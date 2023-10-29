@@ -178,6 +178,20 @@ pub struct OxigraphStore {
     ntriples_file: Option<String>,
 }
 
+#[pymethods]
+impl OxigraphStore {
+    #[new]
+    pub fn new(
+        path: Option<String>,
+        ntriples_file: Option<String>,
+    ) -> OxigraphStore {
+        OxigraphStore {
+            path,
+            ntriples_file
+        }
+    }
+}
+
 #[pyclass]
 #[derive(Clone)]
 pub struct ArrowFlightSQLDatabase {
