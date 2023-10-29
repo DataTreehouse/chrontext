@@ -141,6 +141,7 @@ jobs:
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --target aarch64-apple-darwin --no-sdist -o wheels -i python${{ matrix.python-version }} -u magbak
-          container: quay.io/pypa/manylinux_2_28_aarch64:latest
+          container: messense/manylinux_2_28-cross:aarch64
+          before-script-linux: yum -y install perl-IPC-Cmd clang lld
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
