@@ -46,7 +46,7 @@ jobs:
           command: publish
           args: -m py_chrontext/Cargo.toml --skip-existing -o wheels -i python${{ matrix.python-version }} -u magbak
           container: ghcr.io/rust-cross/manylinux_2_28-cross:x86_64
-          before-script-linux: sudo apt-get install build-essential
+          before-script-linux: sudo apt-get -y install build-essential
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
@@ -141,7 +141,7 @@ jobs:
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --target aarch64-apple-darwin --no-sdist -o wheels -i python${{ matrix.python-version }} -u magbak
-          before-script-linux: sudo apt-get install build-essential
+          before-script-linux: sudo apt-get -y install build-essential
           container: ghcr.io/rust-cross/manylinux_2_28-cross:aarch64
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
