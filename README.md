@@ -27,21 +27,21 @@ We can make queries in Python. The code assumes that we have a SPARQL-endpoint a
 import pathlib
 from chrontext import Engine, ArrowFlightSQLDatabase, TimeSeriesTable
 
-engine = Engine(OXIGRAPH_QUERY_ENDPOINT)
-    tables = [
-        TimeSeriesTable(
-            resource_name="my_resource",
-            schema="my_nas",
-            time_series_table="ts.parquet",
-            value_column="v",
-            timestamp_column="ts",
-            identifier_column="id",
-            value_datatype="http://www.w3.org/2001/XMLSchema#unsignedInt")
-    ]
-arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
+tables = [
+    TimeSeriesTable(
+        resource_name="my_resource",
+        schema="my_nas",
+        time_series_table="ts.parquet",
+        value_column="v",
+        timestamp_column="ts",
+        identifier_column="id",
+        value_datatype="http://www.w3.org/2001/XMLSchema#unsignedInt")
+]
+arrow_flight_sql_db = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                    password="dremio123", tables=tables)
-engine.set_arrow_flight_sql(arrow_flight_sql_database)
-df = engine.execute_hybrid_query("""
+engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, arrow_flight_sql_db=arrow_flight_sql_db)
+
+df = engine.query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
 PREFIX chrontext:<https://github.com/magbak/chrontext#>
 PREFIX types:<http://example.org/types#>
