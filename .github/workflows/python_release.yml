@@ -43,7 +43,7 @@ jobs:
         env:
           RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx,+fma
         with:
-          before-script-linux: yum -y install perl-IPC-Cmd
+          before-script-linux: yum -y install perl-IPC-Cmd && yum -y install llvm-toolset-7.0 && source scl_source enable llvm-toolset-7.0
           command: publish
           args: -m py_chrontext/Cargo.toml --skip-existing -o wheels -i python${{ matrix.python-version }} -u magbak
           maturin-version: ${{ env.MATURIN_VERSION }}
@@ -137,5 +137,6 @@ jobs:
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --target aarch64-apple-darwin --no-sdist -o wheels -i python${{ matrix.python-version }} -u magbak
+          before-script-linux: yum -y install llvm-toolset-7.0 && source scl_source enable llvm-toolset-7.0
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
