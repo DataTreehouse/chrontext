@@ -132,11 +132,13 @@ jobs:
       - name: Set up Rust targets
         run: rustup target add aarch64-apple-darwin
 
+      - name: Install gcc
+        run: brew install gcc
+
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --target aarch64-apple-darwin --no-sdist -o wheels -i python${{ matrix.python-version }} -u magbak
-          before-script-linux: yum -y install llvm-toolset-7.0
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
