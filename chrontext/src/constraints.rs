@@ -46,7 +46,7 @@ impl VariableConstraints {
     }
 
     pub fn has_datapoints(&self) -> bool {
-        for (_,c) in &self.variable_constraints {
+        for (_, c) in &self.variable_constraints {
             if &Constraint::ExternalDataPoint == c {
                 return true;
             }

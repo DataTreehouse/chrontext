@@ -9,6 +9,7 @@ use bollard::models::{HostConfig, PortBinding};
 use bollard::Docker;
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
+use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable;
 use futures_util::stream::StreamExt;
@@ -335,7 +336,13 @@ async fn test_simple_hybrid_query(
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
     }
     "#;
-    let mut engine = Engine::new(all_pushdowns(), Box::new(db), QUERY_ENDPOINT.to_string());
+    let mut engine = Engine::new(
+        all_pushdowns(),
+        Box::new(db),
+        Box::new(SparqlEndpoint {
+            endpoint: QUERY_ENDPOINT.to_string(),
+        }),
+    );
     let mut df = engine
         .execute_hybrid_query(query)
         .await

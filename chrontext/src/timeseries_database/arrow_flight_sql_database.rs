@@ -27,13 +27,13 @@ use crate::timeseries_database::timeseries_sql_rewrite::{
 use arrow_format::flight::service::flight_service_client::FlightServiceClient;
 use arrow_format::ipc::planus::ReadAsRoot;
 use arrow_format::ipc::MessageHeaderRef;
+use base64::Engine;
 use log::{debug, warn};
 use polars_core::error::ArrowError;
 use polars_core::prelude::PolarsError;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
-use base64::Engine;
 use thiserror::Error;
 use tokio_stream::StreamExt;
 use tonic::metadata::MetadataValue;

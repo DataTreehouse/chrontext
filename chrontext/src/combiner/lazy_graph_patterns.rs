@@ -251,6 +251,9 @@ impl Combiner {
                 .await
             }
             GraphPattern::Service { .. } => Ok(updated_solution_mappings.unwrap()),
+            GraphPattern::Lateral { .. } => {
+                todo!("Lateral not yet implemented")
+            }
         }
     }
 }

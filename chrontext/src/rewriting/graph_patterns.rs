@@ -165,6 +165,9 @@ impl StaticQueryRewriter {
                 inner,
                 silent,
             } => self.rewrite_service(name, inner, silent, context),
+            GraphPattern::Lateral { .. } => {
+                todo!("Lateral not yet implemented")
+            }
         }
     }
 }

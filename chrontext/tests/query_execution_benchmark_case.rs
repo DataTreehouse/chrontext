@@ -2,6 +2,7 @@ mod common;
 
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
+use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
 use log::debug;
 use polars::prelude::{CsvReader, SerReader};
@@ -75,7 +76,9 @@ fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
         Box::new(inmem_time_series_database),
-        QUERY_ENDPOINT.to_string(),
+        Box::new(SparqlEndpoint {
+            endpoint: QUERY_ENDPOINT.to_string(),
+        }),
     )
 }
 

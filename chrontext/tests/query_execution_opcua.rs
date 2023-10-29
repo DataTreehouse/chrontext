@@ -3,6 +3,7 @@ mod opcua_data_provider;
 
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::PushdownSetting;
+use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead;
 use log::debug;
 use opcua::server::prelude::*;
@@ -137,7 +138,9 @@ fn engine() -> Engine {
     Engine::new(
         [PushdownSetting::GroupBy].into(),
         Box::new(opcua_tsdb),
-        QUERY_ENDPOINT.to_string(),
+        Box::new(SparqlEndpoint {
+            endpoint: QUERY_ENDPOINT.to_string(),
+        }),
     )
 }
 

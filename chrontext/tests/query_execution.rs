@@ -2,8 +2,9 @@ mod common;
 
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
+use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
+use chrontext::sparql_database::SparqlQueryable;
 use chrontext::splitter::parse_sparql_select_query;
-use chrontext::static_sparql::execute_sparql_query;
 use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
@@ -77,7 +78,9 @@ fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
         Box::new(inmem_time_series_database),
-        QUERY_ENDPOINT.to_string(),
+        Box::new(SparqlEndpoint {
+            endpoint: QUERY_ENDPOINT.to_string(),
+        }),
     )
 }
 
@@ -94,7 +97,10 @@ async fn test_static_query(#[future] with_testdata: (), use_logger: ()) {
     "#,
     )
     .unwrap();
-    let query_solns = execute_sparql_query(QUERY_ENDPOINT, &query).await.unwrap();
+    let mut ep = SparqlEndpoint {
+        endpoint: QUERY_ENDPOINT.to_string(),
+    };
+    let query_solns = ep.execute(&query).await.unwrap();
     let expected_solutions = vec![
         QuerySolution::from((
             vec![Variable::new("a").unwrap(), Variable::new("b").unwrap()],

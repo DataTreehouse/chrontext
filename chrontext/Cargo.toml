@@ -1,15 +1,15 @@
 [package]
 name = "chrontext"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 
 [dependencies]
 polars = {version="0.32.1", features=["lazy", "concat_str", "random", "unique_counts", "groupby_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
 tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
 log = "0.4.17"
-spargebra = "0.2.0"
-sparesults = "0.1.0"
-oxrdf = "0.1.0"
+spargebra = {version="0.2.8"}
+sparesults = {version="0.1.8"}
+oxrdf = {version="0.1.7"}
 reqwest= {version="0.11.10", features=["stream"]}
 env_logger = "0.10.0"
 tonic = "0.8.3"
@@ -27,6 +27,7 @@ async-recursion = "1.0.4"
 bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars"}
 crossbeam = {version = "0.8.2"}
 serde_json = "1.0.105"
+oxigraph = "0.3.20"
 
 [dev-dependencies]
 bollard = "0.14.0"

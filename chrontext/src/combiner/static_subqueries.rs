@@ -4,7 +4,6 @@ use crate::combiner::time_series_queries::complete_basic_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::query_context::Context;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
-use crate::static_sparql::execute_sparql_query;
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, NamedNode, NamedNodeRef, Variable};
@@ -34,7 +33,9 @@ impl Combiner {
             use_solution_mappings = solution_mappings;
         }
         debug!("Static query: {}", use_query.to_string());
-        let solutions = execute_sparql_query(&self.endpoint, &use_query)
+        let solutions = self
+            .sparql_database
+            .execute(&use_query)
             .await
             .map_err(|x| CombinerError::StaticQueryExecutionError(x))?;
         complete_basic_time_series_queries(

@@ -3,6 +3,7 @@ use crate::combiner::Combiner;
 use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
 use crate::query_context::{Context, PathEntry};
+use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
 use crate::timeseries_database::TimeSeriesQueryable;
 use crate::timeseries_query::{
     BasicTimeSeriesQuery, GroupedTimeSeriesQuery, Synchronizer, TimeSeriesQuery,
@@ -67,7 +68,9 @@ impl InMemoryTimeseriesDatabase {
                     .collect();
                 let solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
                 let mut combiner = Combiner::new(
-                    "".to_string(),
+                    Box::new(SparqlEndpoint {
+                        endpoint: "".to_string(),
+                    }),
                     all_pushdowns(),
                     Box::new(InMemoryTimeseriesDatabase {
                         frames: Default::default(),
@@ -133,7 +136,9 @@ impl InMemoryTimeseriesDatabase {
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
         let mut solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
         let mut combiner = Combiner::new(
-            "".to_string(),
+            Box::new(SparqlEndpoint {
+                endpoint: "".to_string(),
+            }),
             all_pushdowns(),
             Box::new(InMemoryTimeseriesDatabase {
                 frames: Default::default(),
@@ -165,7 +170,9 @@ impl InMemoryTimeseriesDatabase {
 
         let mut aggregation_exprs = vec![];
         let mut combiner = Combiner::new(
-            "".to_string(),
+            Box::new(SparqlEndpoint {
+                endpoint: "".to_string(),
+            }),
             all_pushdowns(),
             Box::new(InMemoryTimeseriesDatabase {
                 frames: Default::default(),

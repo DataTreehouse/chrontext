@@ -11,7 +11,7 @@ use crate::query_context::Context;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::TimeSeriesQueryPrepper;
 use crate::pushdown_setting::PushdownSetting;
-use crate::static_sparql::QueryExecutionError;
+use crate::sparql_database::SparqlQueryable;
 use crate::timeseries_database::TimeSeriesQueryable;
 use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesValidationError};
 use spargebra::algebra::Expression;
@@ -23,7 +23,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug)]
 pub enum CombinerError {
     TimeSeriesQueryError(Box<dyn Error>),
-    StaticQueryExecutionError(QueryExecutionError),
+    StaticQueryExecutionError(Box<dyn Error>),
     InconsistentDatatype(String, String, String),
     TimeSeriesValidationError(TimeSeriesValidationError),
     ResourceIsNotString(String, String),
@@ -69,14 +69,14 @@ impl Error for CombinerError {}
 
 pub struct Combiner {
     counter: u16,
-    endpoint: String,
+    pub sparql_database: Box<dyn SparqlQueryable>,
     pub time_series_database: Box<dyn TimeSeriesQueryable>,
     prepper: TimeSeriesQueryPrepper,
 }
 
 impl Combiner {
     pub fn new(
-        endpoint: String,
+        sparql_database: Box<dyn SparqlQueryable>,
         pushdown_settings: HashSet<PushdownSetting>,
         time_series_database: Box<dyn TimeSeriesQueryable>,
         basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
@@ -89,7 +89,7 @@ impl Combiner {
         );
         Combiner {
             counter: 0,
-            endpoint,
+            sparql_database,
             time_series_database,
             prepper,
         }

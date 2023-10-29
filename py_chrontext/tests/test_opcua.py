@@ -89,13 +89,11 @@ def oxigraph_testdata(oxigraph_db):
 
 def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
     print("Begin test")
-    engine = Engine(OXIGRAPH_QUERY_ENDPOINT)
-    print("defined engine")
     opcua_backend = OPCUAHistoryRead(namespace=2, endpoint=OPCUA_ENDPOINT)
     print("created opcua backend")
-    engine.set_opcua_history_read(opcua_backend)
-    print("Set backend")
-    df = engine.execute_hybrid_query("""
+    engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, opcua_history_read=opcua_backend)
+    print("defined engine")
+    df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX chrontext:<https://github.com/magbak/chrontext#>
         PREFIX types:<http://example.org/types#>

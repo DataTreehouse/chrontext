@@ -1,6 +1,6 @@
 [package]
 name = "py_chrontext"
-version = "0.3.12"
+version = "0.4.0"
 edition = "2021"
 
 [workspace]
@@ -11,12 +11,13 @@ chrontext = {path="../chrontext"}
 arrow_python_utils = {path="../arrow_python_utils"}
 thiserror="1.0.31"
 polars-core = {version="0.32.1"}
-oxrdf = "0.1.0"
-spargebra = "0.2.0"
+oxrdf = "0.1.7"
+spargebra = "0.2.8"
 simple-error = "0.3.0"
 tokio = "1.29.0"
 env_logger = "0.10.0"
 log="0.4.19"
+oxigraph="0.3.19"
 
 [lib]
 name = "chrontext"

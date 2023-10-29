@@ -323,6 +323,9 @@ impl Preprocessor {
                     silent: silent.clone(),
                 }
             }
+            GraphPattern::Lateral { .. } => {
+                todo!("Lateral not yet implemented")
+            }
         }
     }
 

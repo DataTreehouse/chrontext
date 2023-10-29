@@ -27,7 +27,6 @@ def oxigraph_testdata(oxigraph_db):
     print(res)
 
 def test_simple_query(dremio_testdata, oxigraph_testdata):
-    engine = Engine(OXIGRAPH_QUERY_ENDPOINT)
     tables = [
         TimeSeriesTable(
             resource_name="my_resource",
@@ -40,8 +39,8 @@ def test_simple_query(dremio_testdata, oxigraph_testdata):
     ]
     arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                        password="dremio123", tables=tables)
-    engine.set_arrow_flight_sql(arrow_flight_sql_database)
-    df = engine.execute_hybrid_query("""
+    engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, arrow_flight_sql_db=arrow_flight_sql_database)
+    df = engine.query("""
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
     PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
@@ -60,7 +59,6 @@ def test_simple_query(dremio_testdata, oxigraph_testdata):
     assert_frame_equal(df, expected_df, check_dtype=False)
 
 def test_simple_query_after_exception(dremio_testdata, oxigraph_testdata):
-    engine = Engine(OXIGRAPH_QUERY_ENDPOINT)
     tables = [
         TimeSeriesTable(
             resource_name="my_resource",
@@ -73,11 +71,11 @@ def test_simple_query_after_exception(dremio_testdata, oxigraph_testdata):
     ]
     arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                        password="dremio123", tables=tables)
-    engine.set_arrow_flight_sql(arrow_flight_sql_database)
+    engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, arrow_flight_sql_db=arrow_flight_sql_database)
 
     # This query wrong on purpose..
     try:
-        engine.execute_hybrid_query("""
+        engine.query("""
     FIX xsd:<http://www.w3.org/2001/XMLSchema#>
     PREFIX chrontext:<https://github.com/magbak/chrontext#>
     PREFIX types:<http://example.org/types#>
@@ -95,7 +93,7 @@ def test_simple_query_after_exception(dremio_testdata, oxigraph_testdata):
     except:
         print("Exception happened.. ")
 
-    df = engine.execute_hybrid_query("""
+    df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX chrontext:<https://github.com/magbak/chrontext#>
         PREFIX types:<http://example.org/types#>

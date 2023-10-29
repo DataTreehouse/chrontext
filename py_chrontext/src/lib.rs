@@ -1,5 +1,9 @@
 pub mod errors;
 
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::BufReader;
+use std::path::Path;
 use std::thread;
 //The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
 //And has a MIT license:
@@ -40,121 +44,108 @@ use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
 use chrontext::engine::Engine as RustEngine;
 use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
+use chrontext::sparql_database::embedded_oxigraph::EmbeddedOxigraph;
+use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
+use chrontext::sparql_database::SparqlQueryable;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
 use chrontext::timeseries_database::bigquery_database::BigQueryDatabase as RustBigQueryDatabase;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead as RustOPCUAHistoryRead;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable as RustTimeSeriesTable;
+use chrontext::timeseries_database::TimeSeriesQueryable;
 use log::debug;
+use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
 use pyo3::prelude::*;
 use tokio::runtime::{Builder, Runtime};
 
 #[pyclass(unsendable)]
 pub struct Engine {
-    opcua_hread: Option<OPCUAHistoryRead>,
+    opcua_history_read: Option<OPCUAHistoryRead>,
     bigquery_db: Option<BigQueryDatabase>,
-    arrowflight_db: Option<ArrowFlightSQLDatabase>,
+    arrow_flight_sql_db: Option<ArrowFlightSQLDatabase>,
     engine: Option<RustEngine>,
-    endpoint: String,
+    endpoint: Option<String>,
+    oxigraph_store: Option<OxigraphStore>,
 }
 
 #[pymethods]
 impl Engine {
     #[new]
-    pub fn new(endpoint: &str) -> Box<Engine> {
-        Box::new(Engine {
-            engine: None,
-            endpoint: endpoint.to_string(),
-            arrowflight_db: None,
-            bigquery_db:None,
-            opcua_hread:None,
-        })
-    }
+    #[pyo3(text_signature = "(endpoint, oxigraph_store, arrow_flight_sql_db, bigquery_db, opcua_history_read)")]
+    pub fn new(
+        endpoint: Option<String>,
+        oxigraph_store: Option<OxigraphStore>,
+        arrow_flight_sql_db: Option<ArrowFlightSQLDatabase>,
+        bigquery_db: Option<BigQueryDatabase>,
+        opcua_history_read: Option<OPCUAHistoryRead>,
+    ) -> PyResult<Engine> {
+        let num_sparql = endpoint.is_some() as usize + oxigraph_store.is_some() as usize;
+        let num_ts = arrow_flight_sql_db.is_some() as usize
+            + bigquery_db.is_some() as usize
+            + opcua_history_read.is_some() as usize;
 
-    fn check_engine_and_timeseries_db_already_set(&self) -> PyResult<()> {
-        if self.engine.is_some() && self.engine.as_ref().unwrap().has_time_series_db() {
-            return Err(PyQueryError::TimeSeriesDatabaseAlreadyDefined.into());
+        if num_sparql == 0 {
+            return Err(PyQueryError::MissingSPARQLDatabaseError.into());
         }
-        Ok(())
-
-    }
-
-    pub fn set_arrow_flight_sql(&mut self, db: &ArrowFlightSQLDatabase) -> PyResult<()> {
-        self.check_engine_and_timeseries_db_already_set()?;
-        self.arrowflight_db = Some(db.clone());
-        let endpoint = format!("http://{}:{}", &db.host, &db.port);
-        let mut new_tables = vec![];
-        for t in &db.tables {
-            new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
+        if num_sparql > 1 {
+            return Err(PyQueryError::MultipleSPARQLDatabases.into());
         }
 
-        let afsqldb_result = Runtime::new()
-            .unwrap()
-            .block_on(RustArrowFlightSQLDatabase::new(
-                &endpoint,
-                &db.username,
-                &db.password,
-                new_tables,
-            ));
-        let db = afsqldb_result.map_err(PyQueryError::from)?;
-        self.engine = Some(RustEngine::new(
-            all_pushdowns(),
-            Box::new(db),
-            self.endpoint.clone(),
-        ));
-        Ok(())
-    }
-
-    pub fn set_bigquery_database(&mut self, db: &BigQueryDatabase) -> PyResult<()> {
-        self.check_engine_and_timeseries_db_already_set()?;
-        self.bigquery_db = Some(db.clone());
-        let mut new_tables = vec![];
-        for t in &db.tables {
-            new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
-        }
-        let key = db.key.clone();
-        let db = thread::spawn(|| {
-            RustBigQueryDatabase::new(key, new_tables)
-        })
-        .join()
-        .unwrap();
-
-        self.engine = Some(RustEngine::new(
-            all_pushdowns(),
-            Box::new(db),
-            self.endpoint.clone(),
-        ));
-        Ok(())
-    }
-
-    pub fn set_opcua_history_read(&mut self, db: &OPCUAHistoryRead) -> PyResult<()> {
-        self.check_engine_and_timeseries_db_already_set()?;
-        self.opcua_hread = Some(db.clone());
-        let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
-        self.engine = Some(RustEngine::new(
-            [PushdownSetting::GroupBy].into(),
-            Box::new(actual_db),
-            self.endpoint.clone(),
-        ));
-        Ok(())
-    }
-
-    pub fn execute_hybrid_query(&mut self, py: Python<'_>, sparql: &str) -> PyResult<PyObject> {
-        if self.engine.is_none() {
+        if num_ts == 0 {
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         }
-        //Logic to recover from crash
-        if !self.engine.as_ref().unwrap().has_time_series_db() {
-            if let Some(db) = &self.opcua_hread {
-                self.set_opcua_history_read(&db.clone())?;
-            } else if let Some(db) = &self.bigquery_db {
-                self.set_bigquery_database(&db.clone())?;
-            } else if let Some(db) = &self.arrowflight_db {
-                self.set_arrow_flight_sql(&db.clone())?;
-            } else {
-                return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
-            }
+        if num_ts > 1 {
+            return Err(PyQueryError::MultipleTimeSeriesDatabases.into());
         }
+
+        Ok(Engine {
+            engine: None,
+            endpoint,
+            oxigraph_store,
+            arrow_flight_sql_db,
+            bigquery_db,
+            opcua_history_read,
+        })
+    }
+
+    pub fn init_engine(&mut self) -> PyResult<()> {
+        let (pushdown_settings, time_series_db) = if let Some(db) = &self.opcua_history_read {
+            create_opcua_history_read(&db.clone())?
+        } else if let Some(db) = &self.bigquery_db {
+            create_bigquery_database(&db.clone())?
+        } else if let Some(db) = &self.arrow_flight_sql_db {
+            create_arrow_flight_sql(&db.clone())?
+        } else {
+            return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
+        };
+
+        let sparql_db = if let Some(endpoint) = &self.endpoint {
+            Box::new(SparqlEndpoint {
+                endpoint: endpoint.to_string(),
+            })
+        } else if let Some(oxi) = &self.oxigraph_store {
+            create_oxigraph(oxi)?
+        } else {
+            return Err(PyQueryError::MissingSPARQLDatabaseError.into());
+        };
+
+        self.engine = Some(RustEngine::new(
+            pushdown_settings,
+            time_series_db,
+            sparql_db,
+        ));
+        Ok(())
+    }
+
+    pub fn query(&mut self, py: Python<'_>, sparql: &str) -> PyResult<PyObject> {
+        if self.engine.is_none()
+            || !self.engine.as_ref().unwrap().has_time_series_db()
+            || !self.engine.as_ref().unwrap().has_sparql_db()
+        {
+            self.init_engine()?;
+        }
+        //Logic to recover from crash
+        if !self.engine.as_ref().unwrap().has_time_series_db() {}
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
@@ -178,6 +169,13 @@ impl Engine {
             Err(err) => Err(PyErr::from(PyQueryError::QueryExecutionError(err))),
         }
     }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct OxigraphStore {
+    path: Option<String>,
+    ntriples_file: Option<String>,
 }
 
 #[pyclass]
@@ -241,6 +239,72 @@ impl OPCUAHistoryRead {
             endpoint,
         }
     }
+}
+
+pub fn create_arrow_flight_sql(
+    db: &ArrowFlightSQLDatabase,
+) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
+    let endpoint = format!("http://{}:{}", &db.host, &db.port);
+    let mut new_tables = vec![];
+    for t in &db.tables {
+        new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
+    }
+
+    let afsqldb_result = Runtime::new()
+        .unwrap()
+        .block_on(RustArrowFlightSQLDatabase::new(
+            &endpoint,
+            &db.username,
+            &db.password,
+            new_tables,
+        ));
+    let db = afsqldb_result.map_err(PyQueryError::from)?;
+    Ok((all_pushdowns(), Box::new(db)))
+}
+
+pub fn create_bigquery_database(
+    db: &BigQueryDatabase,
+) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
+    let mut new_tables = vec![];
+    for t in &db.tables {
+        new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
+    }
+    let key = db.key.clone();
+    let db = thread::spawn(|| RustBigQueryDatabase::new(key, new_tables))
+        .join()
+        .unwrap();
+
+    Ok((all_pushdowns(), Box::new(db)))
+}
+
+fn create_opcua_history_read(
+    db: &OPCUAHistoryRead,
+) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
+    let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
+    Ok(([PushdownSetting::GroupBy].into(), Box::new(actual_db)))
+}
+
+fn create_oxigraph(db: &OxigraphStore) -> PyResult<Box<dyn SparqlQueryable>> {
+    if db.ntriples_file.is_none() && db.path.is_none() {}
+
+    let store = if let Some(p) = &db.path {
+        oxigraph::store::Store::open(Path::new(p))
+            .map_err(|x| PyQueryError::OxigraphStorageError(x))?
+    } else {
+        oxigraph::store::Store::new().unwrap()
+    };
+
+    if let Some(f) = &db.ntriples_file {
+        let file = File::open(f).map_err(|x| PyQueryError::ReadNTriplesFileError(x))?;
+        let reader = BufReader::new(file);
+        store
+            .bulk_loader()
+            .load_dataset(reader, DatasetFormat::NQuads, None)
+            .map_err(|x| PyQueryError::OxigraphLoaderError(x))?;
+    }
+    let oxi = EmbeddedOxigraph { store };
+
+    Ok(Box::new(oxi))
 }
 
 #[pyclass]
@@ -320,5 +384,6 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<ArrowFlightSQLDatabase>()?;
     m.add_class::<BigQueryDatabase>()?;
     m.add_class::<OPCUAHistoryRead>()?;
+    m.add_class::<OxigraphStore>()?;
     Ok(())
 }
