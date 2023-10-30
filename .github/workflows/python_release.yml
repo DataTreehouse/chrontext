@@ -100,6 +100,9 @@ jobs:
           cp README.md py_chrontext/README.md
           cp -r doc py_chrontext/doc
 
+      - name: Install gcc
+        run: brew install gcc
+
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
         env:
@@ -108,6 +111,7 @@ jobs:
           command: publish
           args: -m py_chrontext/Cargo.toml --no-sdist --skip-existing -o wheels -i python${{ matrix.PYTHON_VERSION }} -u magbak
           container: messense/manylinux_2_28-cross:x86_64
+          docker-options: -e MACOSX_DEPLOYMENT_TARGET=10.9
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
@@ -134,15 +138,10 @@ jobs:
       - name: Set up Rust targets
         run: rustup target add aarch64-apple-darwin
 
-      - name: Install gcc
-        run: brew install gcc
-
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --target aarch64-apple-darwin --no-sdist -o wheels -i python${{ matrix.python-version }} -u magbak
-          container: messense/manylinux_2_28-cross:aarch64
-          before-script-linux: sudo apt-get install -y build-essential
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
