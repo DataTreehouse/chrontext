@@ -107,6 +107,8 @@ jobs:
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --no-sdist --skip-existing -o wheels -i python${{ matrix.PYTHON_VERSION }} -u magbak
+          container: quay.io/pypa/manylinux_2_28_x86_64:latest
+          before-script-linux: yum -y install perl-IPC-Cmd clang
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
