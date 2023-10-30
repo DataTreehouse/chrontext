@@ -104,7 +104,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         env:
           RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+sse4.1,+sse4.2
-          MACOSX_DEPLOYMENT_TARGET: 10.9
+          MACOSX_DEPLOYMENT_TARGET: 12.6
         with:
           command: publish
           args: -m py_chrontext/Cargo.toml --no-sdist --skip-existing -o wheels -i python${{ matrix.PYTHON_VERSION }} -u magbak
