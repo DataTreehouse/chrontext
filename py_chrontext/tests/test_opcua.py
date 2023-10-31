@@ -13,7 +13,7 @@ from asyncua.server.history_sql import HistorySQLite
 from asyncua.ua import NodeId, String, Int16, DataValue, Variant
 from datetime import datetime
 
-from chrontext import Engine, OPCUAHistoryRead, TimeSeriesTable
+from chrontext import Engine, TimeseriesOPCUADatabase, TimeSeriesTable
 
 PATH_HERE = pathlib.Path(__file__).parent
 TESTDATA_PATH = PATH_HERE / "testdata"
@@ -89,9 +89,9 @@ def oxigraph_testdata(oxigraph_db):
 
 def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
     print("Begin test")
-    opcua_backend = OPCUAHistoryRead(namespace=2, endpoint=OPCUA_ENDPOINT)
+    timeseries_opcua_db = TimeseriesOPCUADatabase(namespace=2, endpoint=OPCUA_ENDPOINT)
     print("created opcua backend")
-    engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, opcua_history_read=opcua_backend)
+    engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, timeseries_opcua_db=timeseries_opcua_db)
     print("defined engine")
     df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>

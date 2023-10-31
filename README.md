@@ -25,7 +25,7 @@ Query execution is then interleaved and results are combined to produce the answ
 We can make queries in Python. The code assumes that we have a SPARQL-endpoint and an Arrow Flight SQL-endpoint (Dremio) set up. 
 ```python
 import pathlib
-from chrontext import Engine, ArrowFlightSQLDatabase, TimeSeriesTable
+from chrontext import Engine, TimeseriesDremioDatabase, TimeSeriesTable
 
 tables = [
     TimeSeriesTable(
@@ -37,9 +37,9 @@ tables = [
         identifier_column="id",
         value_datatype="http://www.w3.org/2001/XMLSchema#unsignedInt")
 ]
-arrow_flight_sql_db = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
+arrow_flight_sql_db = TimeseriesDremioDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                    password="dremio123", tables=tables)
-engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, arrow_flight_sql_db=arrow_flight_sql_db)
+engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, timeseries_dremio_db=timeseries_dremio_db)
 
 df = engine.query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>

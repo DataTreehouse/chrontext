@@ -60,29 +60,33 @@ use tokio::runtime::{Builder, Runtime};
 
 #[pyclass(unsendable)]
 pub struct Engine {
-    opcua_history_read: Option<OPCUAHistoryRead>,
-    bigquery_db: Option<BigQueryDatabase>,
-    arrow_flight_sql_db: Option<ArrowFlightSQLDatabase>,
+    timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
+    timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
+    timeseries_dremio_db: Option<TimeseriesDremioDatabase>,
     engine: Option<RustEngine>,
-    endpoint: Option<String>,
-    oxigraph_store: Option<OxigraphStore>,
+    sparql_endpoint: Option<String>,
+    sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
 }
 
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(text_signature = "(endpoint, oxigraph_store, arrow_flight_sql_db, bigquery_db, opcua_history_read)")]
+    #[pyo3(text_signature = "(sparql_endpoint: Optional[String],
+sparql_embedded_oxigraph: Optional[SparqlEmbeddedOxigraph],
+timeseries_dremio_db: Optional[TimeseriesDremioDatabase],
+timeseries_bigquery_db: Optional[TimeseriesBigQueryDatabase],
+timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
     pub fn new(
-        endpoint: Option<String>,
-        oxigraph_store: Option<OxigraphStore>,
-        arrow_flight_sql_db: Option<ArrowFlightSQLDatabase>,
-        bigquery_db: Option<BigQueryDatabase>,
-        opcua_history_read: Option<OPCUAHistoryRead>,
+        sparql_endpoint: Option<String>,
+        sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
+        timeseries_dremio_db: Option<TimeseriesDremioDatabase>,
+        timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
+        timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
     ) -> PyResult<Engine> {
-        let num_sparql = endpoint.is_some() as usize + oxigraph_store.is_some() as usize;
-        let num_ts = arrow_flight_sql_db.is_some() as usize
-            + bigquery_db.is_some() as usize
-            + opcua_history_read.is_some() as usize;
+        let num_sparql = sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
+        let num_ts = timeseries_dremio_db.is_some() as usize
+            + timeseries_bigquery_db.is_some() as usize
+            + timeseries_opcua_db.is_some() as usize;
 
         if num_sparql == 0 {
             return Err(PyQueryError::MissingSPARQLDatabaseError.into());
@@ -100,30 +104,30 @@ impl Engine {
 
         Ok(Engine {
             engine: None,
-            endpoint,
-            oxigraph_store,
-            arrow_flight_sql_db,
-            bigquery_db,
-            opcua_history_read,
+            sparql_endpoint,
+            sparql_embedded_oxigraph,
+            timeseries_dremio_db,
+            timeseries_bigquery_db,
+            timeseries_opcua_db,
         })
     }
 
     pub fn init_engine(&mut self) -> PyResult<()> {
-        let (pushdown_settings, time_series_db) = if let Some(db) = &self.opcua_history_read {
+        let (pushdown_settings, time_series_db) = if let Some(db) = &self.timeseries_opcua_db {
             create_opcua_history_read(&db.clone())?
-        } else if let Some(db) = &self.bigquery_db {
+        } else if let Some(db) = &self.timeseries_bigquery_db {
             create_bigquery_database(&db.clone())?
-        } else if let Some(db) = &self.arrow_flight_sql_db {
+        } else if let Some(db) = &self.timeseries_dremio_db {
             create_arrow_flight_sql(&db.clone())?
         } else {
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         };
 
-        let sparql_db = if let Some(endpoint) = &self.endpoint {
+        let sparql_db = if let Some(endpoint) = &self.sparql_endpoint {
             Box::new(SparqlEndpoint {
                 endpoint: endpoint.to_string(),
             })
-        } else if let Some(oxi) = &self.oxigraph_store {
+        } else if let Some(oxi) = &self.sparql_embedded_oxigraph {
             create_oxigraph(oxi)?
         } else {
             return Err(PyQueryError::MissingSPARQLDatabaseError.into());
@@ -173,19 +177,19 @@ impl Engine {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct OxigraphStore {
+pub struct SparqlEmbeddedOxigraph {
     path: Option<String>,
     ntriples_file: Option<String>,
 }
 
 #[pymethods]
-impl OxigraphStore {
+impl SparqlEmbeddedOxigraph {
     #[new]
     pub fn new(
         path: Option<String>,
         ntriples_file: Option<String>,
-    ) -> OxigraphStore {
-        OxigraphStore {
+    ) -> SparqlEmbeddedOxigraph {
+        SparqlEmbeddedOxigraph {
             path,
             ntriples_file
         }
@@ -194,7 +198,7 @@ impl OxigraphStore {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct ArrowFlightSQLDatabase {
+pub struct TimeseriesDremioDatabase {
     host: String,
     port: u16,
     username: String,
@@ -203,7 +207,7 @@ pub struct ArrowFlightSQLDatabase {
 }
 
 #[pymethods]
-impl ArrowFlightSQLDatabase {
+impl TimeseriesDremioDatabase {
     #[new]
     pub fn new(
         host: String,
@@ -211,8 +215,8 @@ impl ArrowFlightSQLDatabase {
         username: String,
         password: String,
         tables: Vec<TimeSeriesTable>,
-    ) -> ArrowFlightSQLDatabase {
-        ArrowFlightSQLDatabase {
+    ) -> TimeseriesDremioDatabase {
+        TimeseriesDremioDatabase {
             username,
             password,
             host,
@@ -224,31 +228,31 @@ impl ArrowFlightSQLDatabase {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct BigQueryDatabase {
+pub struct TimeseriesBigQueryDatabase {
     tables: Vec<TimeSeriesTable>,
     key: String,
 }
 
 #[pymethods]
-impl BigQueryDatabase {
+impl TimeseriesBigQueryDatabase {
     #[new]
-    pub fn new(tables: Vec<TimeSeriesTable>, key: String) -> BigQueryDatabase {
-        BigQueryDatabase { tables, key }
+    pub fn new(tables: Vec<TimeSeriesTable>, key: String) -> TimeseriesBigQueryDatabase {
+        TimeseriesBigQueryDatabase { tables, key }
     }
 }
 
 #[pyclass]
 #[derive(Clone)]
-pub struct OPCUAHistoryRead {
+pub struct TimeseriesOPCUADatabase {
     namespace: u16,
     endpoint: String,
 }
 
 #[pymethods]
-impl OPCUAHistoryRead {
+impl TimeseriesOPCUADatabase {
     #[new]
-    pub fn new(endpoint: String, namespace: u16) -> OPCUAHistoryRead {
-        OPCUAHistoryRead {
+    pub fn new(endpoint: String, namespace: u16) -> TimeseriesOPCUADatabase {
+        TimeseriesOPCUADatabase {
             namespace,
             endpoint,
         }
@@ -256,7 +260,7 @@ impl OPCUAHistoryRead {
 }
 
 pub fn create_arrow_flight_sql(
-    db: &ArrowFlightSQLDatabase,
+    db: &TimeseriesDremioDatabase,
 ) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
     let endpoint = format!("http://{}:{}", &db.host, &db.port);
     let mut new_tables = vec![];
@@ -277,7 +281,7 @@ pub fn create_arrow_flight_sql(
 }
 
 pub fn create_bigquery_database(
-    db: &BigQueryDatabase,
+    db: &TimeseriesBigQueryDatabase,
 ) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
     let mut new_tables = vec![];
     for t in &db.tables {
@@ -292,13 +296,13 @@ pub fn create_bigquery_database(
 }
 
 fn create_opcua_history_read(
-    db: &OPCUAHistoryRead,
+    db: &TimeseriesOPCUADatabase,
 ) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
     let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
     Ok(([PushdownSetting::GroupBy].into(), Box::new(actual_db)))
 }
 
-fn create_oxigraph(db: &OxigraphStore) -> PyResult<Box<dyn SparqlQueryable>> {
+fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQueryable>> {
     if db.ntriples_file.is_none() && db.path.is_none() {}
 
     let store = if let Some(p) = &db.path {
@@ -395,9 +399,9 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<Engine>()?;
     m.add_class::<TimeSeriesTable>()?;
-    m.add_class::<ArrowFlightSQLDatabase>()?;
-    m.add_class::<BigQueryDatabase>()?;
-    m.add_class::<OPCUAHistoryRead>()?;
-    m.add_class::<OxigraphStore>()?;
+    m.add_class::<TimeseriesDremioDatabase>()?;
+    m.add_class::<TimeseriesBigQueryDatabase>()?;
+    m.add_class::<TimeseriesOPCUADatabase>()?;
+    m.add_class::<SparqlEmbeddedOxigraph>()?;
     Ok(())
 }

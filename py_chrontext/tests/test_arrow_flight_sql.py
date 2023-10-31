@@ -3,7 +3,7 @@ import pathlib
 import pytest
 from SPARQLWrapper import SPARQLWrapper, POST, JSON
 
-from chrontext import Engine, ArrowFlightSQLDatabase, TimeSeriesTable, OxigraphStore
+from chrontext import Engine, TimeseriesDremioDatabase, TimeSeriesTable, SparqlEmbeddedOxigraph
 import polars as pl
 from polars.testing import assert_frame_equal
 
@@ -28,7 +28,7 @@ def oxigraph_testdata(oxigraph_db):
 
 @pytest.fixture(scope="module")
 def oxigraph_embedded(oxigraph_db):
-    return OxigraphStore(ntriples_file=str(PATH_HERE / "testdata" / "testdata_arrow_flight_sql.nt"))
+    return SparqlEmbeddedOxigraph(ntriples_file=str(PATH_HERE / "testdata" / "testdata_arrow_flight_sql.nt"))
 
 def test_simple_query(dremio_testdata, oxigraph_testdata):
     tables = [
@@ -41,9 +41,9 @@ def test_simple_query(dremio_testdata, oxigraph_testdata):
             identifier_column="id",
             value_datatype="http://www.w3.org/2001/XMLSchema#unsignedInt")
     ]
-    arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
+    arrow_flight_sql_database = TimeseriesDremioDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                        password="dremio123", tables=tables)
-    engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, arrow_flight_sql_db=arrow_flight_sql_database)
+    engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, timeseries_dremio_db=arrow_flight_sql_database)
     df = engine.query("""
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
     PREFIX chrontext:<https://github.com/magbak/chrontext#>
@@ -73,9 +73,9 @@ def test_simple_query_embedded_oxigraph(dremio_testdata, oxigraph_embedded):
             identifier_column="id",
             value_datatype="http://www.w3.org/2001/XMLSchema#unsignedInt")
     ]
-    arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
+    timeseries_dremio_db = TimeseriesDremioDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                        password="dremio123", tables=tables)
-    engine = Engine(oxigraph_store=oxigraph_embedded, arrow_flight_sql_db=arrow_flight_sql_database)
+    engine = Engine(sparql_embedded_oxigraph=oxigraph_embedded, timeseries_dremio_db=timeseries_dremio_db)
     df = engine.query("""
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
     PREFIX chrontext:<https://github.com/magbak/chrontext#>
@@ -106,9 +106,9 @@ def test_simple_query_after_exception(dremio_testdata, oxigraph_testdata):
             identifier_column="id",
             value_datatype="http://www.w3.org/2001/XMLSchema#unsignedInt")
     ]
-    arrow_flight_sql_database = ArrowFlightSQLDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
+    timeseries_dremio_db = TimeseriesDremioDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                        password="dremio123", tables=tables)
-    engine = Engine(endpoint=OXIGRAPH_QUERY_ENDPOINT, arrow_flight_sql_db=arrow_flight_sql_database)
+    engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, timeseries_dremio_db=timeseries_dremio_db)
 
     # This query wrong on purpose..
     try:
