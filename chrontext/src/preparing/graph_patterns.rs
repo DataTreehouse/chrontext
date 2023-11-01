@@ -17,10 +17,10 @@ mod sliced_pattern;
 mod union_pattern;
 mod values_pattern;
 
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::query_context::Context;
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use spargebra::algebra::GraphPattern;
 use std::collections::HashMap;
@@ -28,11 +28,11 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct GPPrepReturn {
     pub fail_groupby_complex_query: bool,
-    pub time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>,
+    pub time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>,
 }
 
 impl GPPrepReturn {
-    fn new(time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>) -> GPPrepReturn {
+    fn new(time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>) -> GPPrepReturn {
         GPPrepReturn {
             fail_groupby_complex_query: false,
             time_series_queries,
@@ -57,7 +57,7 @@ impl GPPrepReturn {
     }
 }
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_graph_pattern(
         &mut self,
         graph_pattern: &GraphPattern,

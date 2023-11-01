@@ -1,10 +1,10 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_exists_expression(
         &mut self,
         wrapped: &GraphPattern,

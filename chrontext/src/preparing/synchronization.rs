@@ -1,10 +1,10 @@
-use crate::timeseries_query::{Synchronizer, TimeSeriesQuery};
+use crate::timeseries_query::{Synchronizer, TimeseriesQuery};
 use oxrdf::Variable;
 use std::collections::HashSet;
 
 pub fn create_identity_synchronized_queries(
-    mut tsqs: Vec<TimeSeriesQuery>,
-) -> Vec<TimeSeriesQuery> {
+    mut tsqs: Vec<TimeseriesQuery>,
+) -> Vec<TimeseriesQuery> {
     let mut out_queries = vec![];
     while tsqs.len() > 1 {
         let mut queries_to_synchronize = vec![];
@@ -34,7 +34,7 @@ pub fn create_identity_synchronized_queries(
         tsqs = keep_tsqs;
         if !queries_to_synchronize.is_empty() {
             queries_to_synchronize.push(Box::new(first_query));
-            out_queries.push(TimeSeriesQuery::InnerSynchronized(
+            out_queries.push(TimeseriesQuery::InnerSynchronized(
                 queries_to_synchronize,
                 vec![Synchronizer::Identity(
                     first_query_timestamp_variables_set

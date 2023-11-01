@@ -13,7 +13,7 @@ from asyncua.server.history_sql import HistorySQLite
 from asyncua.ua import NodeId, String, Int16, DataValue, Variant
 from datetime import datetime
 
-from chrontext import Engine, TimeseriesOPCUADatabase, TimeSeriesTable
+from chrontext import Engine, TimeseriesOPCUADatabase, TimeseriesTable
 
 PATH_HERE = pathlib.Path(__file__).parent
 TESTDATA_PATH = PATH_HERE / "testdata"

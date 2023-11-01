@@ -5,26 +5,26 @@ mod synchronization;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::pushdown_setting::PushdownSetting;
 use crate::query_context::Context;
-use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
+use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
-pub struct TimeSeriesQueryPrepper {
+pub struct TimeseriesQueryPrepper {
     pushdown_settings: HashSet<PushdownSetting>,
-    pub(crate) basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+    pub(crate) basic_time_series_queries: Vec<BasicTimeseriesQuery>,
     grouping_counter: u16,
     rewritten_filters: HashMap<Context, Expression>,
 }
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
-        basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+        basic_time_series_queries: Vec<BasicTimeseriesQuery>,
         rewritten_filters: HashMap<Context, Expression>,
-    ) -> TimeSeriesQueryPrepper {
-        TimeSeriesQueryPrepper {
+    ) -> TimeseriesQueryPrepper {
+        TimeseriesQueryPrepper {
             pushdown_settings,
             basic_time_series_queries,
             grouping_counter: 0,
@@ -36,7 +36,7 @@ impl TimeSeriesQueryPrepper {
         &mut self,
         query: &Query,
         solution_mappings: &mut SolutionMappings,
-    ) -> HashMap<Context, Vec<TimeSeriesQuery>> {
+    ) -> HashMap<Context, Vec<TimeseriesQuery>> {
         if let Query::Select { pattern, .. } = query {
             let pattern_prepared =
                 self.prepare_graph_pattern(pattern, false, solution_mappings, &Context::new());

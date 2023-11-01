@@ -1,4 +1,4 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
@@ -17,7 +17,7 @@ pub enum BinaryOrdinaryOperator {
     Equal,
 }
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_binary_ordinary_expression(
         &mut self,
         left: &Expression,

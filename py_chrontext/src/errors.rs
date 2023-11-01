@@ -15,14 +15,14 @@ pub enum PyQueryError {
     #[error(transparent)]
     QueryExecutionError(Box<dyn std::error::Error>),
     #[error("Missing time series database")]
-    MissingTimeSeriesDatabaseError,
+    MissingTimeseriesDatabaseError,
     #[error("Missing sparql database")]
     MissingSPARQLDatabaseError,
     #[error("Time series database defined multiple times")]
-    MultipleTimeSeriesDatabases,
+    MultipleTimeseriesDatabases,
     #[error("Sparql database defined multiple times")]
     MultipleSPARQLDatabases,
-    #[error("Oxigraph storage error `{0}`")]
+    #[error("Oxigraph storage error. Perhaps another variable in a notebook is holding the lock on your database? Try setting e.g. engine=None first. \nThe error message was:`{0}`")]
     OxigraphStorageError(StorageError),
     #[error("Read ntriples file error `{0}`")]
     ReadNTriplesFileError(io::Error),
@@ -42,10 +42,10 @@ impl std::convert::From<PyQueryError> for PyErr {
             PyQueryError::QueryExecutionError(err) => {
                 QueryExecutionError::new_err(format!("{}", err))
             }
-            PyQueryError::MissingTimeSeriesDatabaseError => {
-                MissingTimeSeriesDatabaseError::new_err("")
+            PyQueryError::MissingTimeseriesDatabaseError => {
+                MissingTimeseriesDatabaseError::new_err("")
             }
-            PyQueryError::MultipleTimeSeriesDatabases => MultipleTimeSeriesDatabases::new_err(""),
+            PyQueryError::MultipleTimeseriesDatabases => MultipleTimeseriesDatabases::new_err(""),
             PyQueryError::OxigraphStorageError(o) => {
                 OxigraphStorageError::new_err(format!("{}", o))
             }
@@ -62,8 +62,8 @@ impl std::convert::From<PyQueryError> for PyErr {
 create_exception!(exceptions, ArrowFlightSQLError, PyException);
 create_exception!(exceptions, DatatypeIRIParseError, PyException);
 create_exception!(exceptions, QueryExecutionError, PyException);
-create_exception!(exceptions, MissingTimeSeriesDatabaseError, PyException);
-create_exception!(exceptions, MultipleTimeSeriesDatabases, PyException);
+create_exception!(exceptions, MissingTimeseriesDatabaseError, PyException);
+create_exception!(exceptions, MultipleTimeseriesDatabases, PyException);
 create_exception!(exceptions, OxigraphStorageError, PyException);
 create_exception!(exceptions, ReadNTriplesFileError, PyException);
 create_exception!(exceptions, OxigraphLoaderError, PyException);

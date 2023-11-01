@@ -1,7 +1,7 @@
 use crate::change_types::ChangeType;
 use crate::pushdown_setting::PushdownSetting;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Literal;
 use spargebra::algebra::Expression;
 use std::collections::HashSet;
@@ -34,7 +34,7 @@ impl RecursiveRewriteReturn {
 }
 
 pub(crate) fn rewrite_filter_expression(
-    tsq: &TimeSeriesQuery,
+    tsq: &TimeseriesQuery,
     expression: &Expression,
     required_change_direction: &ChangeType,
     context: &Context,
@@ -53,7 +53,7 @@ pub(crate) fn rewrite_filter_expression(
 }
 
 pub(crate) fn try_recursive_rewrite_expression(
-    tsq: &TimeSeriesQuery,
+    tsq: &TimeseriesQuery,
     static_rewrite_conjunction: &Option<Vec<&Expression>>,
     expression: &Expression,
     required_change_direction: &ChangeType,

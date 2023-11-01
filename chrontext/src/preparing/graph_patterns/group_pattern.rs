@@ -2,13 +2,13 @@ use crate::query_context::{Context, PathEntry};
 use log::debug;
 use std::collections::{HashMap, HashSet};
 
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::constants::GROUPING_COL;
 use crate::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::pushdown_setting::PushdownSetting;
-use crate::timeseries_query::{GroupedTimeSeriesQuery, TimeSeriesQuery};
+use crate::timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
 use oxrdf::Variable;
 use polars::prelude::DataFrameJoinOps;
 use polars::prelude::IntoLazy;
@@ -16,7 +16,7 @@ use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
 use polars_core::series::Series;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_group(
         &mut self,
         graph_pattern: &GraphPattern,
@@ -64,7 +64,7 @@ impl TimeSeriesQueryPrepper {
                             }
                         }
                         //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
-                        tsq = TimeSeriesQuery::Grouped(GroupedTimeSeriesQuery {
+                        tsq = TimeseriesQuery::Grouped(GroupedTimeseriesQuery {
                             context: context.clone(),
                             tsq: Box::new(tsq),
                             by: keep_by,
@@ -122,7 +122,7 @@ impl TimeSeriesQueryPrepper {
 }
 
 fn check_aggregations_are_in_scope(
-    tsq: &TimeSeriesQuery,
+    tsq: &TimeseriesQuery,
     context: &Context,
     aggregations: &Vec<(Variable, AggregateExpression)>,
 ) -> bool {
@@ -144,12 +144,12 @@ fn check_aggregations_are_in_scope(
 }
 
 fn add_basic_groupby_mapping_values(
-    tsq: TimeSeriesQuery,
+    tsq: TimeseriesQuery,
     solution_mappings: &mut SolutionMappings,
     grouping_col: &str,
-) -> TimeSeriesQuery {
+) -> TimeseriesQuery {
     match tsq {
-        TimeSeriesQuery::Basic(b) => {
+        TimeseriesQuery::Basic(b) => {
             let by_vec = vec![
                 grouping_col,
                 b.identifier_variable.as_ref().unwrap().as_str(),
@@ -163,9 +163,9 @@ fn add_basic_groupby_mapping_values(
                 .unwrap()
                 .select(by_vec)
                 .unwrap();
-            TimeSeriesQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
+            TimeseriesQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
         }
-        TimeSeriesQuery::Filtered(tsq, f) => TimeSeriesQuery::Filtered(
+        TimeseriesQuery::Filtered(tsq, f) => TimeseriesQuery::Filtered(
             Box::new(add_basic_groupby_mapping_values(
                 *tsq,
                 solution_mappings,
@@ -173,7 +173,7 @@ fn add_basic_groupby_mapping_values(
             )),
             f,
         ),
-        TimeSeriesQuery::InnerSynchronized(inners, syncs) => {
+        TimeseriesQuery::InnerSynchronized(inners, syncs) => {
             let mut tsq_added = vec![];
             for tsq in inners {
                 tsq_added.push(Box::new(add_basic_groupby_mapping_values(
@@ -182,9 +182,9 @@ fn add_basic_groupby_mapping_values(
                     grouping_col,
                 )))
             }
-            TimeSeriesQuery::InnerSynchronized(tsq_added, syncs)
+            TimeseriesQuery::InnerSynchronized(tsq_added, syncs)
         }
-        TimeSeriesQuery::ExpressionAs(tsq, v, e) => TimeSeriesQuery::ExpressionAs(
+        TimeseriesQuery::ExpressionAs(tsq, v, e) => TimeseriesQuery::ExpressionAs(
             Box::new(add_basic_groupby_mapping_values(
                 *tsq,
                 solution_mappings,
@@ -193,10 +193,10 @@ fn add_basic_groupby_mapping_values(
             v,
             e,
         ),
-        TimeSeriesQuery::Grouped(_) => {
+        TimeseriesQuery::Grouped(_) => {
             panic!("Should never happen")
         }
-        TimeSeriesQuery::GroupedBasic(_, _, _) => {
+        TimeseriesQuery::GroupedBasic(_, _, _) => {
             panic!("Should never happen")
         }
     }

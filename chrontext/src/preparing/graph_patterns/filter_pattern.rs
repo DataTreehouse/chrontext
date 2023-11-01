@@ -1,14 +1,14 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::change_types::ChangeType;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::graph_patterns::filter_expression_rewrites::rewrite_filter_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashMap;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_filter(
         &mut self,
         expression: &Expression,
@@ -58,7 +58,7 @@ impl TimeSeriesQueryPrepper {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }
                 if let Some(expr) = time_series_condition {
-                    out_tsq_vec.push(TimeSeriesQuery::Filtered(Box::new(t), expr));
+                    out_tsq_vec.push(TimeseriesQuery::Filtered(Box::new(t), expr));
                 } else {
                     out_tsq_vec.push(t);
                 }

@@ -13,7 +13,7 @@ use crate::query_context::{Context, PathEntry};
 use crate::sparql_result_to_polars::{
     sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
@@ -35,7 +35,7 @@ impl Combiner {
         expr: &Expression,
         mut solution_mappings: SolutionMappings,
         mut static_query_map: Option<HashMap<Context, Query>>,
-        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         let output_solution_mappings = match expr {

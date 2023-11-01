@@ -25,10 +25,10 @@ Query execution is then interleaved and results are combined to produce the answ
 We can make queries in Python. The code assumes that we have a SPARQL-endpoint and an Arrow Flight SQL-endpoint (Dremio) set up. 
 ```python
 import pathlib
-from chrontext import Engine, TimeseriesDremioDatabase, TimeSeriesTable
+from chrontext import Engine, TimeseriesDremioDatabase, TimeseriesTable
 
 tables = [
-    TimeSeriesTable(
+    TimeseriesTable(
         resource_name="my_resource",
         schema="my_nas",
         time_series_table="ts.parquet",

@@ -1,4 +1,4 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
@@ -9,7 +9,7 @@ pub enum UnaryOrdinaryOperator {
     UnaryMinus,
 }
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_unary_ordinary_expression(
         &mut self,
         wrapped: &Expression,

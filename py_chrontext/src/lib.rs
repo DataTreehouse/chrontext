@@ -54,8 +54,8 @@ use chrontext::sparql_database::SparqlQueryable;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
 use chrontext::timeseries_database::bigquery_database::BigQueryDatabase as RustBigQueryDatabase;
 use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead as RustOPCUAHistoryRead;
-use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable as RustTimeSeriesTable;
-use chrontext::timeseries_database::TimeSeriesQueryable;
+use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable as RustTimeseriesTable;
+use chrontext::timeseries_database::TimeseriesQueryable;
 use log::debug;
 use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
@@ -103,10 +103,10 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
         }
 
         if num_ts == 0 {
-            return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
+            return Err(PyQueryError::MissingTimeseriesDatabaseError.into());
         }
         if num_ts > 1 {
-            return Err(PyQueryError::MultipleTimeSeriesDatabases.into());
+            return Err(PyQueryError::MultipleTimeseriesDatabases.into());
         }
 
         let mut engine = Engine {
@@ -117,12 +117,10 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             timeseries_bigquery_db,
             timeseries_opcua_db,
         };
-
-        engine.init_engine()?;
         Ok(engine)
     }
 
-    pub fn init_engine(&mut self) -> PyResult<()> {
+    pub fn init(&mut self) -> PyResult<()> {
         let (pushdown_settings, time_series_db) = if let Some(db) = &self.timeseries_opcua_db {
             create_opcua_history_read(&db.clone())?
         } else if let Some(db) = &self.timeseries_bigquery_db {
@@ -130,7 +128,7 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
         } else if let Some(db) = &self.timeseries_dremio_db {
             create_arrow_flight_sql(&db.clone())?
         } else {
-            return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
+            return Err(PyQueryError::MissingTimeseriesDatabaseError.into());
         };
 
         let sparql_db = if self.engine.is_some() {
@@ -164,10 +162,8 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             || !self.engine.as_ref().unwrap().has_time_series_db()
             || !self.engine.as_ref().unwrap().has_sparql_db()
         {
-            self.init_engine()?;
+            self.init()?;
         }
-        //Logic to recover from crash
-        if !self.engine.as_ref().unwrap().has_time_series_db() {}
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
@@ -218,7 +214,7 @@ pub struct TimeseriesDremioDatabase {
     port: u16,
     username: String,
     password: String,
-    tables: Vec<TimeSeriesTable>,
+    tables: Vec<TimeseriesTable>,
 }
 
 #[pymethods]
@@ -229,7 +225,7 @@ impl TimeseriesDremioDatabase {
         port: u16,
         username: String,
         password: String,
-        tables: Vec<TimeSeriesTable>,
+        tables: Vec<TimeseriesTable>,
     ) -> TimeseriesDremioDatabase {
         TimeseriesDremioDatabase {
             username,
@@ -244,14 +240,14 @@ impl TimeseriesDremioDatabase {
 #[pyclass]
 #[derive(Clone)]
 pub struct TimeseriesBigQueryDatabase {
-    tables: Vec<TimeSeriesTable>,
+    tables: Vec<TimeseriesTable>,
     key: String,
 }
 
 #[pymethods]
 impl TimeseriesBigQueryDatabase {
     #[new]
-    pub fn new(tables: Vec<TimeSeriesTable>, key: String) -> TimeseriesBigQueryDatabase {
+    pub fn new(tables: Vec<TimeseriesTable>, key: String) -> TimeseriesBigQueryDatabase {
         TimeseriesBigQueryDatabase { tables, key }
     }
 }
@@ -276,7 +272,7 @@ impl TimeseriesOPCUADatabase {
 
 pub fn create_arrow_flight_sql(
     db: &TimeseriesDremioDatabase,
-) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
+) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeseriesQueryable>)> {
     let endpoint = format!("http://{}:{}", &db.host, &db.port);
     let mut new_tables = vec![];
     for t in &db.tables {
@@ -297,7 +293,7 @@ pub fn create_arrow_flight_sql(
 
 pub fn create_bigquery_database(
     db: &TimeseriesBigQueryDatabase,
-) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
+) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeseriesQueryable>)> {
     let mut new_tables = vec![];
     for t in &db.tables {
         new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
@@ -312,7 +308,7 @@ pub fn create_bigquery_database(
 
 fn create_opcua_history_read(
     db: &TimeseriesOPCUADatabase,
-) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeSeriesQueryable>)> {
+) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeseriesQueryable>)> {
     let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
     Ok(([PushdownSetting::GroupBy].into(), Box::new(actual_db)))
 }
@@ -353,7 +349,7 @@ fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQuerya
         if let Some(p) = &db.path {
             let mut pb = Path::new(p).to_path_buf();
             pb.push(TTL_FILE_METADATA);
-            let mut f = File::open(pb).unwrap();
+            let mut f = File::create(pb).unwrap();
             write!(f, "{}", ntriples_file_metadata)?;
         }
     }
@@ -364,7 +360,7 @@ fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQuerya
 
 #[pyclass]
 #[derive(Clone)]
-pub struct TimeSeriesTable {
+pub struct TimeseriesTable {
     pub resource_name: String,
     pub schema: Option<String>,
     pub time_series_table: String,
@@ -378,7 +374,7 @@ pub struct TimeSeriesTable {
 }
 
 #[pymethods]
-impl TimeSeriesTable {
+impl TimeseriesTable {
     #[new]
     pub fn new(
         resource_name: String,
@@ -391,8 +387,8 @@ impl TimeSeriesTable {
         year_column: Option<String>,
         month_column: Option<String>,
         day_column: Option<String>,
-    ) -> TimeSeriesTable {
-        TimeSeriesTable {
+    ) -> TimeseriesTable {
+        TimeseriesTable {
             resource_name,
             schema,
             time_series_table,
@@ -407,9 +403,9 @@ impl TimeSeriesTable {
     }
 }
 
-impl TimeSeriesTable {
-    fn to_rust_table(&self) -> Result<RustTimeSeriesTable, IriParseError> {
-        Ok(RustTimeSeriesTable {
+impl TimeseriesTable {
+    fn to_rust_table(&self) -> Result<RustTimeseriesTable, IriParseError> {
+        Ok(RustTimeseriesTable {
             resource_name: self.resource_name.clone(),
             schema: self.schema.clone(),
             time_series_table: self.time_series_table.clone(),
@@ -441,7 +437,7 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     }
 
     m.add_class::<Engine>()?;
-    m.add_class::<TimeSeriesTable>()?;
+    m.add_class::<TimeseriesTable>()?;
     m.add_class::<TimeseriesDremioDatabase>()?;
     m.add_class::<TimeseriesBigQueryDatabase>()?;
     m.add_class::<TimeseriesOPCUADatabase>()?;

@@ -1,4 +1,4 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use log::debug;
 
 use crate::combiner::solution_mapping::SolutionMappings;
@@ -6,7 +6,7 @@ use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_distinct(
         &mut self,
         inner: &GraphPattern,

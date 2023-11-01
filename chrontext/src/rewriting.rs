@@ -8,7 +8,7 @@ mod subqueries;
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::Context;
 use crate::rewriting::expressions::ExReturn;
-use crate::timeseries_query::BasicTimeSeriesQuery;
+use crate::timeseries_query::BasicTimeseriesQuery;
 use spargebra::algebra::Expression;
 use spargebra::term::Variable;
 use spargebra::Query;
@@ -19,7 +19,7 @@ pub struct StaticQueryRewriter {
     variable_counter: u16,
     additional_projections: HashSet<Variable>,
     variable_constraints: VariableConstraints,
-    basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+    basic_time_series_queries: Vec<BasicTimeseriesQuery>,
     static_subqueries: HashMap<Context, Query>,
     rewritten_filters: HashMap<Context, Expression>,
     is_hybrid: bool,
@@ -43,7 +43,7 @@ impl StaticQueryRewriter {
         query: Query,
     ) -> (
         HashMap<Context, Query>,
-        Vec<BasicTimeSeriesQuery>,
+        Vec<BasicTimeseriesQuery>,
         HashMap<Context, Expression>,
     ) {
         if !self.is_hybrid {

@@ -5,7 +5,7 @@ use crate::constants::{
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::query_context::{Context, PathEntry, VariableInContext};
 use crate::rewriting::graph_patterns::GPReturn;
-use crate::timeseries_query::BasicTimeSeriesQuery;
+use crate::timeseries_query::BasicTimeseriesQuery;
 use oxrdf::{NamedNode, Variable};
 use spargebra::algebra::GraphPattern;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
@@ -177,8 +177,8 @@ impl StaticQueryRewriter {
         datatype_variable: &Variable,
         resource_variable: &Variable,
         context: &Context,
-    ) -> BasicTimeSeriesQuery {
-        let mut ts_query = BasicTimeSeriesQuery::new_empty();
+    ) -> BasicTimeseriesQuery {
+        let mut ts_query = BasicTimeseriesQuery::new_empty();
         ts_query.identifier_variable = Some(time_series_id_variable.clone());
         ts_query.datatype_variable = Some(datatype_variable.clone());
         ts_query.resource_variable = Some(resource_variable.clone());
@@ -191,7 +191,7 @@ impl StaticQueryRewriter {
 }
 
 fn process_dynamic_triples(
-    local_basic_tsqs: &mut Vec<BasicTimeSeriesQuery>,
+    local_basic_tsqs: &mut Vec<BasicTimeseriesQuery>,
     dynamic_triples: Vec<&TriplePattern>,
     context: &Context,
 ) {

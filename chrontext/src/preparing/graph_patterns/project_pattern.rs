@@ -1,4 +1,4 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
@@ -6,7 +6,7 @@ use log::debug;
 use oxrdf::Variable;
 use spargebra::algebra::GraphPattern;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_project(
         &mut self,
         inner: &GraphPattern,

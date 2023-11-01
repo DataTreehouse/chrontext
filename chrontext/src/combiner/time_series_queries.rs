@@ -2,7 +2,7 @@ use super::Combiner;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::query_context::Context;
-use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesQuery};
+use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 impl Combiner {
     pub async fn execute_attach_time_series_query(
         &mut self,
-        tsq: &TimeSeriesQuery,
+        tsq: &TimeseriesQuery,
         mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Executing time series query: {:?}", tsq);
@@ -23,10 +23,10 @@ impl Combiner {
             .time_series_database
             .execute(tsq)
             .await
-            .map_err(|x| CombinerError::TimeSeriesQueryError(x))?;
+            .map_err(|x| CombinerError::TimeseriesQueryError(x))?;
         debug!("Time series query results: \n{}", ts_df);
         tsq.validate(&ts_df)
-            .map_err(|x| CombinerError::TimeSeriesValidationError(x))?;
+            .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
 
         let mut on: Vec<String>;
         let mut drop_cols: Vec<String>;
@@ -112,9 +112,9 @@ impl Combiner {
 }
 
 pub(crate) fn split_time_series_queries(
-    time_series_queries: &mut Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
+    time_series_queries: &mut Option<HashMap<Context, Vec<TimeseriesQuery>>>,
     context: &Context,
-) -> Option<HashMap<Context, Vec<TimeSeriesQuery>>> {
+) -> Option<HashMap<Context, Vec<TimeseriesQuery>>> {
     if let Some(tsqs) = time_series_queries {
         let mut split_keys = vec![];
         for k in tsqs.keys() {
@@ -135,7 +135,7 @@ pub(crate) fn split_time_series_queries(
 
 pub(crate) fn complete_basic_time_series_queries(
     static_query_solutions: &Vec<QuerySolution>,
-    basic_time_series_queries: &mut Vec<BasicTimeSeriesQuery>,
+    basic_time_series_queries: &mut Vec<BasicTimeseriesQuery>,
 ) -> Result<(), CombinerError> {
     for basic_query in basic_time_series_queries {
         let mut ids = HashSet::new();
@@ -174,7 +174,7 @@ pub(crate) fn complete_basic_time_series_queries(
             }
         }
 
-        let get_basic_query_value_var_name = |x: &BasicTimeSeriesQuery| {
+        let get_basic_query_value_var_name = |x: &BasicTimeseriesQuery| {
             if let Some(vv) = &x.value_variable {
                 vv.variable.as_str().to_string()
             } else {

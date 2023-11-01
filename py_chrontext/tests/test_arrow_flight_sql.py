@@ -3,7 +3,7 @@ import pathlib
 import pytest
 from SPARQLWrapper import SPARQLWrapper, POST, JSON
 
-from chrontext import Engine, TimeseriesDremioDatabase, TimeSeriesTable, SparqlEmbeddedOxigraph
+from chrontext import Engine, TimeseriesDremioDatabase, TimeseriesTable, SparqlEmbeddedOxigraph
 import polars as pl
 from polars.testing import assert_frame_equal
 
@@ -32,7 +32,7 @@ def oxigraph_embedded(oxigraph_db):
 
 def test_simple_query(dremio_testdata, oxigraph_testdata):
     tables = [
-        TimeSeriesTable(
+        TimeseriesTable(
             resource_name="my_resource",
             schema="my_nas",
             time_series_table="ts.parquet",
@@ -64,7 +64,7 @@ def test_simple_query(dremio_testdata, oxigraph_testdata):
 
 def test_simple_query_embedded_oxigraph(dremio_testdata, oxigraph_embedded):
     tables = [
-        TimeSeriesTable(
+        TimeseriesTable(
             resource_name="my_resource",
             schema="my_nas",
             time_series_table="ts.parquet",
@@ -97,7 +97,7 @@ def test_simple_query_embedded_oxigraph(dremio_testdata, oxigraph_embedded):
 
 def test_simple_query_after_exception(dremio_testdata, oxigraph_testdata):
     tables = [
-        TimeSeriesTable(
+        TimeseriesTable(
             resource_name="my_resource",
             schema="my_nas",
             time_series_table="ts.parquet",
