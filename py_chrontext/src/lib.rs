@@ -1,10 +1,14 @@
 pub mod errors;
 
 use std::collections::HashSet;
-use std::fs::File;
+use std::fs::{File, read_to_string};
 use std::io::BufReader;
 use std::path::Path;
 use std::thread;
+use std::time::SystemTime;
+use filesize::PathExt;
+use std::io::Write;
+
 //The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
 //And has a MIT license:
 //Copyright (c) 2020 Ritchie Vink
@@ -57,6 +61,8 @@ use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
 use pyo3::prelude::*;
 use tokio::runtime::{Builder, Runtime};
+
+const TTL_FILE_METADATA:&str = "ttl_file_data.txt";
 
 #[pyclass(unsendable)]
 pub struct Engine {
@@ -127,7 +133,7 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         };
 
-        let mut sparql_db = if self.engine.is_some() {
+        let sparql_db = if self.engine.is_some() {
             self.engine.as_mut().unwrap().sparql_database.take()
         } else {
             None
@@ -191,13 +197,13 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
 #[derive(Clone)]
 pub struct SparqlEmbeddedOxigraph {
     path: Option<String>,
-    ntriples_file: Option<String>,
+    ntriples_file: String,
 }
 
 #[pymethods]
 impl SparqlEmbeddedOxigraph {
     #[new]
-    pub fn new(path: Option<String>, ntriples_file: Option<String>) -> SparqlEmbeddedOxigraph {
+    pub fn new(ntriples_file: String, path: Option<String>) -> SparqlEmbeddedOxigraph {
         SparqlEmbeddedOxigraph {
             path,
             ntriples_file,
@@ -312,22 +318,44 @@ fn create_opcua_history_read(
 }
 
 fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQueryable>> {
-    if db.ntriples_file.is_none() && db.path.is_none() {}
+    let ntriples_path = Path::new(&db.ntriples_file);
+    let ntriples_file_metadata = file_metadata_string(ntriples_path)?;
 
     let store = if let Some(p) = &db.path {
         oxigraph::store::Store::open(Path::new(p))
             .map_err(|x| PyQueryError::OxigraphStorageError(x))?
+
     } else {
         oxigraph::store::Store::new().unwrap()
     };
 
-    if let Some(f) = &db.ntriples_file {
-        let file = File::open(f).map_err(|x| PyQueryError::ReadNTriplesFileError(x))?;
+    let need_read_file = if let Some(p) =  &db.path {
+        let mut pb = Path::new(p).to_path_buf();
+        pb.push(Path::new(TTL_FILE_METADATA));
+        let dbdata_path = pb.as_path();
+        if dbdata_path.exists() {
+            let existing_db_ntriples_metadata = read_to_string(dbdata_path)?;
+            existing_db_ntriples_metadata != ntriples_file_metadata
+        } else {
+            true
+        }
+    } else {
+        true
+    };
+
+    if need_read_file {
+        let file = File::open(&db.ntriples_file).map_err(|x| PyQueryError::ReadNTriplesFileError(x))?;
         let reader = BufReader::new(file);
         store
             .bulk_loader()
             .load_dataset(reader, DatasetFormat::NQuads, None)
             .map_err(|x| PyQueryError::OxigraphLoaderError(x))?;
+        if let Some(p) = &db.path {
+            let mut pb = Path::new(p).to_path_buf();
+            pb.push(TTL_FILE_METADATA);
+            let mut f = File::open(pb).unwrap();
+            write!(f, "{}", ntriples_file_metadata)?;
+        }
     }
     let oxi = EmbeddedOxigraph { store };
 
@@ -394,6 +422,12 @@ impl TimeSeriesTable {
             day_column: self.day_column.clone(),
         })
     }
+}
+
+fn file_metadata_string(p:&Path) -> Result<String, std::io::Error>{
+    let size = p.size_on_disk()?;
+    let changed = p.metadata()?.created()?.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+    Ok(format!("{}_{}", size, changed))
 }
 
 #[pymodule]
