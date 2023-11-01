@@ -2,7 +2,7 @@ use chrontext::preprocessing::Preprocessor;
 use chrontext::query_context::{Context, PathEntry, VariableInContext};
 use chrontext::rewriting::StaticQueryRewriter;
 use chrontext::splitter::parse_sparql_select_query;
-use chrontext::timeseries_query::BasicTimeSeriesQuery;
+use chrontext::timeseries_query::BasicTimeseriesQuery;
 use spargebra::term::Variable;
 use spargebra::Query;
 
@@ -369,7 +369,7 @@ fn test_fix_dropped_triple() {
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
 
-    let expected_time_series_queries = vec![BasicTimeSeriesQuery {
+    let expected_time_series_queries = vec![BasicTimeseriesQuery {
         identifier_variable: Some(Variable::new_unchecked("ts_external_id_0")),
         timeseries_variable: Some(VariableInContext::new(
             Variable::new_unchecked("ts"),
@@ -451,7 +451,7 @@ fn test_property_path_expression() {
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     let expected_time_series_queries = vec![
-        BasicTimeSeriesQuery {
+        BasicTimeseriesQuery {
             identifier_variable: Some(Variable::new_unchecked("ts_external_id_0")),
             timeseries_variable: Some(VariableInContext::new(
                 Variable::new_unchecked("blank_replacement_0"),
@@ -491,7 +491,7 @@ fn test_property_path_expression() {
             )),
             ids: None,
         },
-        BasicTimeSeriesQuery {
+        BasicTimeseriesQuery {
             identifier_variable: Some(Variable::new_unchecked("ts_external_id_1")),
             timeseries_variable: Some(VariableInContext::new(
                 Variable::new_unchecked("blank_replacement_1"),

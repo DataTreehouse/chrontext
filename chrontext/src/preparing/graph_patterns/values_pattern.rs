@@ -1,11 +1,11 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use std::collections::HashMap;
 
 use crate::preparing::graph_patterns::GPPrepReturn;
 use oxrdf::Variable;
 use spargebra::term::GroundTerm;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_values(
         &mut self,
         _variables: &Vec<Variable>,

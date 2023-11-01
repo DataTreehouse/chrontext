@@ -4,9 +4,9 @@ use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
 use crate::query_context::{Context, PathEntry};
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
-use crate::timeseries_database::TimeSeriesQueryable;
+use crate::timeseries_database::TimeseriesQueryable;
 use crate::timeseries_query::{
-    BasicTimeSeriesQuery, GroupedTimeSeriesQuery, Synchronizer, TimeSeriesQuery,
+    BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
 };
 use async_recursion::async_recursion;
 use async_trait::async_trait;
@@ -23,8 +23,8 @@ pub struct InMemoryTimeseriesDatabase {
 }
 
 #[async_trait]
-impl TimeSeriesQueryable for InMemoryTimeseriesDatabase {
-    async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+impl TimeseriesQueryable for InMemoryTimeseriesDatabase {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         self.execute_query(tsq).await
     }
 
@@ -35,15 +35,15 @@ impl TimeSeriesQueryable for InMemoryTimeseriesDatabase {
 
 impl InMemoryTimeseriesDatabase {
     #[async_recursion]
-    async fn execute_query(&self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    async fn execute_query(&self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         match tsq {
-            TimeSeriesQuery::Basic(b) => self.execute_basic(b),
-            TimeSeriesQuery::Filtered(inner, filter) => self.execute_filtered(inner, filter).await,
-            TimeSeriesQuery::InnerSynchronized(inners, synchronizers) => {
+            TimeseriesQuery::Basic(b) => self.execute_basic(b),
+            TimeseriesQuery::Filtered(inner, filter) => self.execute_filtered(inner, filter).await,
+            TimeseriesQuery::InnerSynchronized(inners, synchronizers) => {
                 self.execute_inner_synchronized(inners, synchronizers).await
             }
-            TimeSeriesQuery::Grouped(grouped) => self.execute_grouped(grouped).await,
-            TimeSeriesQuery::GroupedBasic(btsq, df, ..) => {
+            TimeseriesQuery::Grouped(grouped) => self.execute_grouped(grouped).await,
+            TimeseriesQuery::GroupedBasic(btsq, df, ..) => {
                 let mut basic_df = self.execute_basic(btsq)?;
                 basic_df = basic_df
                     .join(
@@ -58,7 +58,7 @@ impl InMemoryTimeseriesDatabase {
                     .unwrap();
                 Ok(basic_df)
             }
-            TimeSeriesQuery::ExpressionAs(tsq, v, e) => {
+            TimeseriesQuery::ExpressionAs(tsq, v, e) => {
                 let mut df = self.execute_query(tsq).await?;
                 let tmp_context = Context::from_path(vec![PathEntry::Coalesce(13)]);
                 let columns = df
@@ -88,7 +88,7 @@ impl InMemoryTimeseriesDatabase {
         }
     }
 
-    fn execute_basic(&self, btsq: &BasicTimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    fn execute_basic(&self, btsq: &BasicTimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let mut lfs = vec![];
         for id in btsq.ids.as_ref().unwrap() {
             if let Some(df) = self.frames.get(id) {
@@ -124,7 +124,7 @@ impl InMemoryTimeseriesDatabase {
     #[async_recursion]
     async fn execute_filtered(
         &self,
-        tsq: &TimeSeriesQuery,
+        tsq: &TimeseriesQuery,
         filter: &Expression,
     ) -> Result<DataFrame, Box<dyn Error>> {
         let df = self.execute_query(tsq).await?;
@@ -158,7 +158,7 @@ impl InMemoryTimeseriesDatabase {
 
     async fn execute_grouped(
         &self,
-        grouped: &GroupedTimeSeriesQuery,
+        grouped: &GroupedTimeseriesQuery,
     ) -> Result<DataFrame, Box<dyn Error>> {
         let df = self.execute_query(&grouped.tsq).await?;
         let columns = df
@@ -216,7 +216,7 @@ impl InMemoryTimeseriesDatabase {
 
     async fn execute_inner_synchronized(
         &self,
-        inners: &Vec<Box<TimeSeriesQuery>>,
+        inners: &Vec<Box<TimeseriesQuery>>,
         synchronizers: &Vec<Synchronizer>,
     ) -> Result<DataFrame, Box<dyn Error>> {
         assert_eq!(synchronizers.len(), 1);

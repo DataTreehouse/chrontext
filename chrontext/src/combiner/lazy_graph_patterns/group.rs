@@ -4,7 +4,7 @@ use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use oxrdf::Variable;
 use polars::prelude::{col, Expr};
@@ -20,7 +20,7 @@ impl Combiner {
         aggregates: &Vec<(Variable, AggregateExpression)>,
         solution_mapping: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
+        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing group graph pattern");

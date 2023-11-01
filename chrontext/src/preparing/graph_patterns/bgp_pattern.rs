@@ -1,11 +1,11 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::synchronization::create_identity_synchronized_queries;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use std::collections::HashMap;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub(crate) fn prepare_bgp(
         &mut self,
         try_groupby_complex_query: bool,
@@ -16,7 +16,7 @@ impl TimeSeriesQueryPrepper {
         for tsq in &self.basic_time_series_queries {
             if let Some(dp_ctx) = &tsq.data_point_variable {
                 if &dp_ctx.context == &bgp_context {
-                    local_tsqs.push(TimeSeriesQuery::Basic(tsq.clone()));
+                    local_tsqs.push(TimeseriesQuery::Basic(tsq.clone()));
                 }
             }
         }

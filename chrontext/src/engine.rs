@@ -4,7 +4,7 @@ use crate::pushdown_setting::PushdownSetting;
 use crate::rewriting::StaticQueryRewriter;
 use crate::sparql_database::SparqlQueryable;
 use crate::splitter::parse_sparql_select_query;
-use crate::timeseries_database::TimeSeriesQueryable;
+use crate::timeseries_database::TimeseriesQueryable;
 use log::debug;
 use polars::frame::DataFrame;
 use std::collections::HashSet;
@@ -12,14 +12,14 @@ use std::error::Error;
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
-    time_series_database: Option<Box<dyn TimeSeriesQueryable>>,
+    time_series_database: Option<Box<dyn TimeseriesQueryable>>,
     pub sparql_database: Option<Box<dyn SparqlQueryable>>,
 }
 
 impl Engine {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
-        time_series_database: Box<dyn TimeSeriesQueryable>,
+        time_series_database: Box<dyn TimeseriesQueryable>,
         sparql_database: Box<dyn SparqlQueryable>,
     ) -> Engine {
         Engine {

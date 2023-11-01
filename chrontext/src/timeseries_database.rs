@@ -5,9 +5,9 @@ pub mod simple_in_memory_timeseries;
 pub mod timeseries_sql_rewrite;
 
 use crate::timeseries_database::timeseries_sql_rewrite::{
-    TimeSeriesQueryToSQLError, TimeSeriesQueryToSQLTransformer, TimeSeriesTable,
+    TimeseriesQueryToSQLError, TimeseriesQueryToSQLTransformer, TimeseriesTable,
 };
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
 use polars::frame::DataFrame;
@@ -15,8 +15,8 @@ use sea_query::{BigQueryQueryBuilder, PostgresQueryBuilder};
 use std::error::Error;
 
 #[async_trait]
-pub trait TimeSeriesQueryable: Send {
-    async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>>;
+pub trait TimeseriesQueryable: Send {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>>;
     fn allow_compound_timeseries_queries(&self) -> bool;
 }
 
@@ -26,15 +26,15 @@ pub enum DatabaseType {
     Dremio,
 }
 
-pub trait TimeSeriesSQLQueryable {
+pub trait TimeseriesSQLQueryable {
     fn get_sql_string(
         &self,
-        tsq: &TimeSeriesQuery,
+        tsq: &TimeseriesQuery,
         database_type: DatabaseType,
-    ) -> Result<String, TimeSeriesQueryToSQLError> {
+    ) -> Result<String, TimeseriesQueryToSQLError> {
         let query_string;
         {
-            let transformer = TimeSeriesQueryToSQLTransformer::new(
+            let transformer = TimeseriesQueryToSQLTransformer::new(
                 &self.get_time_series_tables(),
                 database_type.clone(),
             );
@@ -49,5 +49,5 @@ pub trait TimeSeriesSQLQueryable {
         Ok(query_string)
     }
 
-    fn get_time_series_tables(&self) -> &Vec<TimeSeriesTable>;
+    fn get_time_series_tables(&self) -> &Vec<TimeseriesTable>;
 }

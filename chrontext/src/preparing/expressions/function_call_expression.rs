@@ -1,11 +1,11 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::EXPrepReturn;
 use crate::query_context::{Context, PathEntry};
 use spargebra::algebra::{Expression, Function};
 use std::collections::HashMap;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_function_call_expression(
         &mut self,
         _fun: &Function,

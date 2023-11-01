@@ -14,7 +14,7 @@ use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
 use spargebra::algebra::GraphPattern;
@@ -28,7 +28,7 @@ impl Combiner {
         graph_pattern: &GraphPattern,
         solution_mappings: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
+        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing graph pattern at context: {}", context.as_str());

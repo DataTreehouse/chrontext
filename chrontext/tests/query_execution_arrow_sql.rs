@@ -11,7 +11,7 @@ use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase;
-use chrontext::timeseries_database::timeseries_sql_rewrite::TimeSeriesTable;
+use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable;
 use futures_util::stream::StreamExt;
 use log::debug;
 use oxrdf::vocab::xsd;
@@ -190,8 +190,8 @@ async fn with_sparql_testdata(#[future] sparql_endpoint: (), mut shared_testdata
 }
 
 #[fixture]
-fn timeseries_table() -> TimeSeriesTable {
-    TimeSeriesTable {
+fn timeseries_table() -> TimeseriesTable {
+    TimeseriesTable {
         resource_name: "my_resource".into(),
         schema: Some("my_nas".to_string()),
         time_series_table: "ts.parquet".to_string(),
@@ -205,7 +205,7 @@ fn timeseries_table() -> TimeSeriesTable {
     }
 }
 
-async fn ts_sql_db(timeseries_table: TimeSeriesTable) -> ArrowFlightSQLDatabase {
+async fn ts_sql_db(timeseries_table: TimeseriesTable) -> ArrowFlightSQLDatabase {
     ArrowFlightSQLDatabase::new(
         ARROW_SQL_DATABASE_ENDPOINT,
         "dremio",
@@ -314,7 +314,7 @@ async fn with_timeseries_testdata(#[future] arrow_sql_endpoint: ()) {
 async fn test_simple_hybrid_query(
     #[future] with_sparql_testdata: (),
     #[future] with_timeseries_testdata: (),
-    timeseries_table: TimeSeriesTable,
+    timeseries_table: TimeseriesTable,
     shared_testdata_path: PathBuf,
     use_logger: (),
 ) {

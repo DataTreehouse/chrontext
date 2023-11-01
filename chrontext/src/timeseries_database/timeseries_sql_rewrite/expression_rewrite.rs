@@ -7,7 +7,7 @@ use sea_query::{Expr as SeaExpr, Func};
 use spargebra::algebra::Expression;
 
 use crate::constants::DATETIME_AS_SECONDS;
-use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeSeriesQueryToSQLError};
+use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeseriesQueryToSQLError};
 use crate::timeseries_database::DatabaseType;
 
 pub mod aggregate_expressions;
@@ -42,7 +42,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
     pub(crate) fn sparql_expression_to_sql_expression(
         &mut self,
         e: &Expression,
-    ) -> Result<SimpleExpr, TimeSeriesQueryToSQLError> {
+    ) -> Result<SimpleExpr, TimeseriesQueryToSQLError> {
         Ok(match e {
             Expression::Or(left, right) => self
                 .sparql_expression_to_sql_expression(left)?
@@ -70,7 +70,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                         }
                     }
                     _ => {
-                        return Err(TimeSeriesQueryToSQLError::UnknownDatatype(
+                        return Err(TimeseriesQueryToSQLError::UnknownDatatype(
                             l.datatype().as_str().to_string(),
                         ));
                     }
@@ -117,7 +117,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     } else if let Err(e) = v {
                         return Err(e);
                     } else {
-                        return Err(TimeSeriesQueryToSQLError::FoundNonValueInInExpression);
+                        return Err(TimeseriesQueryToSQLError::FoundNonValueInInExpression);
                     }
                 }
                 SeaExpr::expr(self.sparql_expression_to_sql_expression(left)?)

@@ -1,5 +1,5 @@
 use super::SPARQLToSQLExpressionTransformer;
-use crate::timeseries_database::timeseries_sql_rewrite::TimeSeriesQueryToSQLError;
+use crate::timeseries_database::timeseries_sql_rewrite::TimeseriesQueryToSQLError;
 use sea_query::{Func, SimpleExpr};
 use spargebra::algebra::AggregateExpression;
 
@@ -8,7 +8,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
     pub(crate) fn sparql_aggregate_expression_to_sql_expression(
         &mut self,
         agg: &AggregateExpression,
-    ) -> Result<SimpleExpr, TimeSeriesQueryToSQLError> {
+    ) -> Result<SimpleExpr, TimeseriesQueryToSQLError> {
         Ok(match agg {
             AggregateExpression::Count { expr, distinct: _ } => {
                 if let Some(some_expr) = expr {

@@ -1,14 +1,14 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::find_query_variables::find_all_used_variables_in_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Variable;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashSet;
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub(crate) fn prepare_extend(
         &mut self,
         inner: &GraphPattern,
@@ -66,7 +66,7 @@ impl TimeSeriesQueryPrepper {
                     inner_prepare.time_series_queries.remove(&c);
                 }
                 let new_tsq =
-                    TimeSeriesQuery::ExpressionAs(Box::new(inner_tsq), var.clone(), expr.clone());
+                    TimeseriesQuery::ExpressionAs(Box::new(inner_tsq), var.clone(), expr.clone());
                 if !inner_prepare.time_series_queries.contains_key(context) {
                     inner_prepare
                         .time_series_queries

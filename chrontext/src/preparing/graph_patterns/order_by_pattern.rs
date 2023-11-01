@@ -1,4 +1,4 @@
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 
 use crate::combiner::solution_mapping::SolutionMappings;
@@ -6,7 +6,7 @@ use crate::query_context::{Context, PathEntry};
 use log::debug;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_order_by(
         &mut self,
         inner: &GraphPattern,

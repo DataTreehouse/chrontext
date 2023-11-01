@@ -9,23 +9,23 @@ mod not_expression;
 mod or_expression;
 mod unary_ordinary_expression;
 
-use super::TimeSeriesQueryPrepper;
+use super::TimeseriesQueryPrepper;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::preparing::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
 use crate::query_context::Context;
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct EXPrepReturn {
     pub fail_groupby_complex_query: bool,
-    pub time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>,
+    pub time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>,
 }
 
 impl EXPrepReturn {
-    fn new(time_series_queries: HashMap<Context, Vec<TimeSeriesQuery>>) -> EXPrepReturn {
+    fn new(time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>) -> EXPrepReturn {
         EXPrepReturn {
             time_series_queries,
             fail_groupby_complex_query: false,
@@ -50,7 +50,7 @@ impl EXPrepReturn {
     }
 }
 
-impl TimeSeriesQueryPrepper {
+impl TimeseriesQueryPrepper {
     pub fn prepare_expression(
         &mut self,
         expression: &Expression,

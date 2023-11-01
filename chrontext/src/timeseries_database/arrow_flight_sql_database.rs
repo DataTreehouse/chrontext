@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::timeseries_database::{DatabaseType, TimeSeriesQueryable, TimeSeriesSQLQueryable};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_database::{DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable};
+use crate::timeseries_query::TimeseriesQuery;
 use arrow2::io::flight as flight2;
 use arrow_format::flight::data::{FlightDescriptor, FlightInfo, HandshakeRequest};
 use async_trait::async_trait;
@@ -22,7 +22,7 @@ use polars::frame::DataFrame;
 use polars_core::utils::accumulate_dataframes_vertical;
 
 use crate::timeseries_database::timeseries_sql_rewrite::{
-    TimeSeriesQueryToSQLError, TimeSeriesTable,
+    TimeseriesQueryToSQLError, TimeseriesTable,
 };
 use arrow_format::flight::service::flight_service_client::FlightServiceClient;
 use arrow_format::ipc::planus::ReadAsRoot;
@@ -44,7 +44,7 @@ use tonic::{IntoRequest, Request, Response, Status};
 pub enum ArrowFlightSQLError {
     TonicStatus(#[from] Status),
     TransportError(#[from] tonic::transport::Error),
-    TranslationError(#[from] TimeSeriesQueryToSQLError),
+    TranslationError(#[from] TimeseriesQueryToSQLError),
     ArrowError(#[from] ArrowError),
     PolarsError(#[from] PolarsError),
 }
@@ -77,7 +77,7 @@ pub struct ArrowFlightSQLDatabase {
     password: String,
     token: Option<String>,
     cookies: Option<Vec<String>>,
-    time_series_tables: Vec<TimeSeriesTable>,
+    time_series_tables: Vec<TimeseriesTable>,
 }
 
 impl ArrowFlightSQLDatabase {
@@ -85,7 +85,7 @@ impl ArrowFlightSQLDatabase {
         endpoint: &str,
         username: &str,
         password: &str,
-        time_series_tables: Vec<TimeSeriesTable>,
+        time_series_tables: Vec<TimeseriesTable>,
     ) -> Result<ArrowFlightSQLDatabase, ArrowFlightSQLError> {
         let mut db = ArrowFlightSQLDatabase {
             endpoint: endpoint.into(),
@@ -221,8 +221,8 @@ impl ArrowFlightSQLDatabase {
 }
 
 #[async_trait]
-impl TimeSeriesQueryable for ArrowFlightSQLDatabase {
-    async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+impl TimeseriesQueryable for ArrowFlightSQLDatabase {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::Dremio)?;
         Ok(self.execute_sql_query(query_string).await?)
     }
@@ -232,8 +232,8 @@ impl TimeSeriesQueryable for ArrowFlightSQLDatabase {
     }
 }
 
-impl TimeSeriesSQLQueryable for ArrowFlightSQLDatabase {
-    fn get_time_series_tables(&self) -> &Vec<TimeSeriesTable> {
+impl TimeseriesSQLQueryable for ArrowFlightSQLDatabase {
+    fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
         &self.time_series_tables
     }
 }

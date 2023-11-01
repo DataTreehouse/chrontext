@@ -1,7 +1,7 @@
 use crate::constants::DATETIME_AS_SECONDS;
 use crate::query_context::Context;
-use crate::timeseries_database::TimeSeriesQueryable;
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_database::TimeseriesQueryable;
+use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use opcua::client::prelude::{
     AggregateConfiguration, AttributeService, ByteString, Client, ClientBuilder, DateTime,
@@ -41,7 +41,7 @@ pub struct OPCUAHistoryRead {
 #[derive(Debug)]
 pub enum OPCUAHistoryReadError {
     InvalidNodeIdError(String),
-    TimeSeriesQueryTypeNotSupported,
+    TimeseriesQueryTypeNotSupported,
 }
 
 impl Display for OPCUAHistoryReadError {
@@ -50,7 +50,7 @@ impl Display for OPCUAHistoryReadError {
             OPCUAHistoryReadError::InvalidNodeIdError(s) => {
                 write!(f, "Invalid NodeId {}", s)
             }
-            OPCUAHistoryReadError::TimeSeriesQueryTypeNotSupported => {
+            OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported => {
                 write!(f, "Only grouped and basic query types are supported")
             }
         }
@@ -92,8 +92,8 @@ impl OPCUAHistoryRead {
 }
 
 #[async_trait]
-impl TimeSeriesQueryable for OPCUAHistoryRead {
-    async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+impl TimeseriesQueryable for OPCUAHistoryRead {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         validate_tsq(tsq, true, false)?;
         let session = self.session.write();
         let start_time = find_time(tsq, &FindTime::Start);
@@ -106,7 +106,7 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
         let mut colnames_identifiers = vec![];
         let mut grouping_col_lookup = HashMap::new();
         let mut grouping_col_name = None;
-        if let TimeSeriesQuery::Grouped(grouped) = tsq {
+        if let TimeseriesQuery::Grouped(grouped) = tsq {
             let (colname, processed_details_some) =
                 create_read_processed_details(tsq, start_time, end_time, &grouped.context);
             processed_details = Some(processed_details_some);
@@ -285,31 +285,31 @@ impl TimeSeriesQueryable for OPCUAHistoryRead {
 }
 
 fn validate_tsq(
-    tsq: &TimeSeriesQuery,
+    tsq: &TimeseriesQuery,
     toplevel: bool,
     inside_grouping: bool,
 ) -> Result<(), OPCUAHistoryReadError> {
     match tsq {
-        TimeSeriesQuery::Basic(_) => Ok(()),
-        TimeSeriesQuery::Filtered(f, _) => validate_tsq(f, false, inside_grouping),
-        TimeSeriesQuery::Grouped(g) => {
+        TimeseriesQuery::Basic(_) => Ok(()),
+        TimeseriesQuery::Filtered(f, _) => validate_tsq(f, false, inside_grouping),
+        TimeseriesQuery::Grouped(g) => {
             if !toplevel {
-                Err(OPCUAHistoryReadError::TimeSeriesQueryTypeNotSupported)
+                Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
             } else {
                 validate_tsq(&g.tsq, false, true)
             }
         }
-        TimeSeriesQuery::GroupedBasic(_, _, _) => {
+        TimeseriesQuery::GroupedBasic(_, _, _) => {
             if inside_grouping {
                 Ok(())
             } else {
-                Err(OPCUAHistoryReadError::TimeSeriesQueryTypeNotSupported)
+                Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
             }
         }
-        TimeSeriesQuery::InnerSynchronized(_, _) => {
-            Err(OPCUAHistoryReadError::TimeSeriesQueryTypeNotSupported)
+        TimeseriesQuery::InnerSynchronized(_, _) => {
+            Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
         }
-        TimeSeriesQuery::ExpressionAs(t, _, _) => validate_tsq(t, false, inside_grouping),
+        TimeseriesQuery::ExpressionAs(t, _, _) => validate_tsq(t, false, inside_grouping),
     }
 }
 
@@ -324,7 +324,7 @@ fn create_raw_details(start_time: DateTime, end_time: DateTime) -> ReadRawModifi
 }
 
 fn create_read_processed_details(
-    tsq: &TimeSeriesQuery,
+    tsq: &TimeseriesQuery,
     start_time: DateTime,
     end_time: DateTime,
     context: &Context,
@@ -381,8 +381,8 @@ fn history_data_to_series_tuple(hd: HistoryData) -> (Series, Series) {
     (timestamps, values)
 }
 
-fn find_aggregate_types(tsq: &TimeSeriesQuery) -> Option<Vec<NodeId>> {
-    if let TimeSeriesQuery::Grouped(grouped) = tsq {
+fn find_aggregate_types(tsq: &TimeseriesQuery) -> Option<Vec<NodeId>> {
+    if let TimeseriesQuery::Grouped(grouped) = tsq {
         let mut nodes = vec![];
         for (_, agg) in &grouped.aggregations {
             let value_var_str = tsq.get_value_variables().get(0).unwrap().variable.as_str();
@@ -457,15 +457,15 @@ enum FindTime {
     End,
 }
 
-fn find_time(tsq: &TimeSeriesQuery, find_time: &FindTime) -> DateTime {
+fn find_time(tsq: &TimeseriesQuery, find_time: &FindTime) -> DateTime {
     let mut found_time = None;
-    let filter = if let TimeSeriesQuery::Grouped(gr) = tsq {
-        if let TimeSeriesQuery::Filtered(_, filter) = gr.tsq.as_ref() {
+    let filter = if let TimeseriesQuery::Grouped(gr) = tsq {
+        if let TimeseriesQuery::Filtered(_, filter) = gr.tsq.as_ref() {
             Some(filter)
         } else {
             None
         }
-    } else if let TimeSeriesQuery::Filtered(_, filter) = tsq {
+    } else if let TimeseriesQuery::Filtered(_, filter) = tsq {
         Some(filter)
     } else {
         None
@@ -686,8 +686,8 @@ fn datetime_from_expression(
     }
 }
 
-fn find_grouping_interval(tsq: &TimeSeriesQuery, context: &Context) -> Option<(String, f64)> {
-    if let TimeSeriesQuery::Grouped(grouped) = tsq {
+fn find_grouping_interval(tsq: &TimeseriesQuery, context: &Context) -> Option<(String, f64)> {
+    if let TimeseriesQuery::Grouped(grouped) = tsq {
         let mut tsf = None;
         let mut grvar = None;
         for v in &grouped.by {

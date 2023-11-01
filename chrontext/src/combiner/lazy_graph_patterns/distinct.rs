@@ -2,7 +2,7 @@ use super::Combiner;
 use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::query_context::{Context, PathEntry};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
 use polars_core::frame::UniqueKeepStrategy;
@@ -17,7 +17,7 @@ impl Combiner {
         inner: &GraphPattern,
         solution_mappings: Option<SolutionMappings>,
         static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeSeriesQuery>>>,
+        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing distinct graph pattern");

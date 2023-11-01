@@ -1,8 +1,8 @@
 use crate::timeseries_database::timeseries_sql_rewrite::{
-    TimeSeriesQueryToSQLError, TimeSeriesTable,
+    TimeseriesQueryToSQLError, TimeseriesTable,
 };
-use crate::timeseries_database::{DatabaseType, TimeSeriesQueryable, TimeSeriesSQLQueryable};
-use crate::timeseries_query::TimeSeriesQuery;
+use crate::timeseries_database::{DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable};
+use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use bigquery_polars::{BigQueryExecutor, Client};
 use polars::prelude::PolarsError;
@@ -18,7 +18,7 @@ use tonic::Status;
 pub enum BigQueryError {
     TonicStatus(#[from] Status),
     TransportError(#[from] tonic::transport::Error),
-    TranslationError(#[from] TimeSeriesQueryToSQLError),
+    TranslationError(#[from] TimeseriesQueryToSQLError),
     ArrowError(#[from] ArrowError),
     PolarsError(#[from] PolarsError),
 }
@@ -46,11 +46,11 @@ impl Display for BigQueryError {
 }
 pub struct BigQueryDatabase {
     gcp_sa_key: String,
-    time_series_tables: Vec<TimeSeriesTable>,
+    time_series_tables: Vec<TimeseriesTable>,
 }
 
 impl BigQueryDatabase {
-    pub fn new(gcp_sa_key: String, time_series_tables: Vec<TimeSeriesTable>) -> BigQueryDatabase {
+    pub fn new(gcp_sa_key: String, time_series_tables: Vec<TimeseriesTable>) -> BigQueryDatabase {
         BigQueryDatabase {
             gcp_sa_key,
             time_series_tables,
@@ -59,8 +59,8 @@ impl BigQueryDatabase {
 }
 
 #[async_trait]
-impl TimeSeriesQueryable for BigQueryDatabase {
-    async fn execute(&mut self, tsq: &TimeSeriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+impl TimeseriesQueryable for BigQueryDatabase {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
 
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
@@ -113,8 +113,8 @@ impl TimeSeriesQueryable for BigQueryDatabase {
     }
 }
 
-impl TimeSeriesSQLQueryable for BigQueryDatabase {
-    fn get_time_series_tables(&self) -> &Vec<TimeSeriesTable> {
+impl TimeseriesSQLQueryable for BigQueryDatabase {
+    fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
         &self.time_series_tables
     }
 }

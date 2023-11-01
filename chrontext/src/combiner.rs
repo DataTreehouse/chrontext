@@ -9,11 +9,11 @@ pub(crate) mod time_series_queries;
 use crate::query_context::Context;
 
 use crate::combiner::solution_mapping::SolutionMappings;
-use crate::preparing::TimeSeriesQueryPrepper;
+use crate::preparing::TimeseriesQueryPrepper;
 use crate::pushdown_setting::PushdownSetting;
 use crate::sparql_database::SparqlQueryable;
-use crate::timeseries_database::TimeSeriesQueryable;
-use crate::timeseries_query::{BasicTimeSeriesQuery, TimeSeriesValidationError};
+use crate::timeseries_database::TimeseriesQueryable;
+use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesValidationError};
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
@@ -22,10 +22,10 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub enum CombinerError {
-    TimeSeriesQueryError(Box<dyn Error>),
+    TimeseriesQueryError(Box<dyn Error>),
     StaticQueryExecutionError(Box<dyn Error>),
     InconsistentDatatype(String, String, String),
-    TimeSeriesValidationError(TimeSeriesValidationError),
+    TimeseriesValidationError(TimeseriesValidationError),
     ResourceIsNotString(String, String),
     InconsistentResourceName(String, String, String),
 }
@@ -40,13 +40,13 @@ impl Display for CombinerError {
                     s1, s2, s3
                 )
             }
-            CombinerError::TimeSeriesQueryError(tsqe) => {
+            CombinerError::TimeseriesQueryError(tsqe) => {
                 write!(f, "Time series query error {}", tsqe)
             }
             CombinerError::StaticQueryExecutionError(sqee) => {
                 write!(f, "Static query execution error {}", sqee)
             }
-            CombinerError::TimeSeriesValidationError(v) => {
+            CombinerError::TimeseriesValidationError(v) => {
                 write!(f, "Time series validation error {}", v)
             }
             CombinerError::ResourceIsNotString(value_var, actual_datatype) => {
@@ -70,19 +70,19 @@ impl Error for CombinerError {}
 pub struct Combiner {
     counter: u16,
     pub sparql_database: Box<dyn SparqlQueryable>,
-    pub time_series_database: Box<dyn TimeSeriesQueryable>,
-    prepper: TimeSeriesQueryPrepper,
+    pub time_series_database: Box<dyn TimeseriesQueryable>,
+    prepper: TimeseriesQueryPrepper,
 }
 
 impl Combiner {
     pub fn new(
         sparql_database: Box<dyn SparqlQueryable>,
         pushdown_settings: HashSet<PushdownSetting>,
-        time_series_database: Box<dyn TimeSeriesQueryable>,
-        basic_time_series_queries: Vec<BasicTimeSeriesQuery>,
+        time_series_database: Box<dyn TimeseriesQueryable>,
+        basic_time_series_queries: Vec<BasicTimeseriesQuery>,
         rewritten_filters: HashMap<Context, Expression>,
     ) -> Combiner {
-        let prepper = TimeSeriesQueryPrepper::new(
+        let prepper = TimeseriesQueryPrepper::new(
             pushdown_settings,
             basic_time_series_queries,
             rewritten_filters,
