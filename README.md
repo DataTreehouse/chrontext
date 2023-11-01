@@ -40,6 +40,7 @@ tables = [
 arrow_flight_sql_db = TimeseriesDremioDatabase(host=DREMIO_HOST, port=DREMIO_PORT, username="dremio",
                                                    password="dremio123", tables=tables)
 engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, timeseries_dremio_db=timeseries_dremio_db)
+engine.init()
 
 df = engine.query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
