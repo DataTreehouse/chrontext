@@ -13,7 +13,7 @@ use std::error::Error;
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
     time_series_database: Option<Box<dyn TimeSeriesQueryable>>,
-    sparql_database: Option<Box<dyn SparqlQueryable>>,
+    pub sparql_database: Option<Box<dyn SparqlQueryable>>,
 }
 
 impl Engine {

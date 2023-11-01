@@ -83,7 +83,8 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
         timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
         timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
     ) -> PyResult<Engine> {
-        let num_sparql = sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
+        let num_sparql =
+            sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
         let num_ts = timeseries_dremio_db.is_some() as usize
             + timeseries_bigquery_db.is_some() as usize
             + timeseries_opcua_db.is_some() as usize;
@@ -102,14 +103,17 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             return Err(PyQueryError::MultipleTimeSeriesDatabases.into());
         }
 
-        Ok(Engine {
+        let mut engine = Engine {
             engine: None,
             sparql_endpoint,
             sparql_embedded_oxigraph,
             timeseries_dremio_db,
             timeseries_bigquery_db,
             timeseries_opcua_db,
-        })
+        };
+
+        engine.init_engine()?;
+        Ok(engine)
     }
 
     pub fn init_engine(&mut self) -> PyResult<()> {
@@ -123,7 +127,15 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             return Err(PyQueryError::MissingTimeSeriesDatabaseError.into());
         };
 
-        let sparql_db = if let Some(endpoint) = &self.sparql_endpoint {
+        let mut sparql_db = if self.engine.is_some() {
+            self.engine.as_mut().unwrap().sparql_database.take()
+        } else {
+            None
+        };
+
+        let sparql_db = if let Some(sparql_db) = sparql_db {
+            sparql_db
+        } else if let Some(endpoint) = &self.sparql_endpoint {
             Box::new(SparqlEndpoint {
                 endpoint: endpoint.to_string(),
             })
@@ -185,13 +197,10 @@ pub struct SparqlEmbeddedOxigraph {
 #[pymethods]
 impl SparqlEmbeddedOxigraph {
     #[new]
-    pub fn new(
-        path: Option<String>,
-        ntriples_file: Option<String>,
-    ) -> SparqlEmbeddedOxigraph {
+    pub fn new(path: Option<String>, ntriples_file: Option<String>) -> SparqlEmbeddedOxigraph {
         SparqlEmbeddedOxigraph {
             path,
-            ntriples_file
+            ntriples_file,
         }
     }
 }
