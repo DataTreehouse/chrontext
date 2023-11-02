@@ -71,7 +71,7 @@ impl Display for ArrowFlightSQLError {
     }
 }
 
-pub struct ArrowFlightSQLDatabase {
+pub struct TimeseriesDremioDatabase {
     endpoint: String,
     username: String,
     password: String,
@@ -80,14 +80,14 @@ pub struct ArrowFlightSQLDatabase {
     time_series_tables: Vec<TimeseriesTable>,
 }
 
-impl ArrowFlightSQLDatabase {
+impl TimeseriesDremioDatabase {
     pub async fn new(
         endpoint: &str,
         username: &str,
         password: &str,
         time_series_tables: Vec<TimeseriesTable>,
-    ) -> Result<ArrowFlightSQLDatabase, ArrowFlightSQLError> {
-        let mut db = ArrowFlightSQLDatabase {
+    ) -> Result<TimeseriesDremioDatabase, ArrowFlightSQLError> {
+        let mut db = TimeseriesDremioDatabase {
             endpoint: endpoint.into(),
             username: username.into(),
             password: password.into(),
@@ -221,7 +221,7 @@ impl ArrowFlightSQLDatabase {
 }
 
 #[async_trait]
-impl TimeseriesQueryable for ArrowFlightSQLDatabase {
+impl TimeseriesQueryable for TimeseriesDremioDatabase {
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::Dremio)?;
         Ok(self.execute_sql_query(query_string).await?)
@@ -232,7 +232,7 @@ impl TimeseriesQueryable for ArrowFlightSQLDatabase {
     }
 }
 
-impl TimeseriesSQLQueryable for ArrowFlightSQLDatabase {
+impl TimeseriesSQLQueryable for TimeseriesDremioDatabase {
     fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
         &self.time_series_tables
     }
