@@ -4,7 +4,7 @@ mod opcua_data_provider;
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::PushdownSetting;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead;
+use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADatabase;
 use log::debug;
 use opcua::server::prelude::*;
 use polars::io::SerReader;
@@ -133,7 +133,7 @@ fn engine() -> Engine {
     let port = 1234;
     let path = "/";
     let endpoint = format!("opc.tcp://{}:{}{}", hostname().unwrap(), port, path);
-    let opcua_tsdb = OPCUAHistoryRead::new(&endpoint, 1);
+    let opcua_tsdb = TimeseriesOPCUADatabase::new(&endpoint, 1);
 
     Engine::new(
         [PushdownSetting::GroupBy].into(),

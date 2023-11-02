@@ -32,7 +32,7 @@ const OPCUA_AGG_FUNC_MAXIMUM: u32 = 2347;
 const OPCUA_AGG_FUNC_TOTAL: u32 = 2344;
 
 #[allow(dead_code)]
-pub struct OPCUAHistoryRead {
+pub struct TimeseriesOPCUADatabase {
     client: Client,
     session: Arc<RwLock<Session>>,
     namespace: u16,
@@ -59,8 +59,8 @@ impl Display for OPCUAHistoryReadError {
 
 impl Error for OPCUAHistoryReadError {}
 
-impl OPCUAHistoryRead {
-    pub fn new(endpoint: &str, namespace: u16) -> OPCUAHistoryRead {
+impl TimeseriesOPCUADatabase {
+    pub fn new(endpoint: &str, namespace: u16) -> TimeseriesOPCUADatabase {
         //From: https://github.com/locka99/opcua/blob/master/docs/client.md
         let mut client = ClientBuilder::new()
             .application_name("My First Client")
@@ -83,7 +83,7 @@ impl OPCUAHistoryRead {
             .connect_to_endpoint(endpoint, IdentityToken::Anonymous)
             .unwrap();
 
-        OPCUAHistoryRead {
+        TimeseriesOPCUADatabase {
             client,
             session,
             namespace,
@@ -92,7 +92,7 @@ impl OPCUAHistoryRead {
 }
 
 #[async_trait]
-impl TimeseriesQueryable for OPCUAHistoryRead {
+impl TimeseriesQueryable for TimeseriesOPCUADatabase {
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         validate_tsq(tsq, true, false)?;
         let session = self.session.write();

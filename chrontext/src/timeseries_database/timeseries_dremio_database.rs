@@ -41,7 +41,7 @@ use tonic::transport::Channel;
 use tonic::{IntoRequest, Request, Response, Status};
 
 #[derive(Error, Debug)]
-pub enum ArrowFlightSQLError {
+pub enum DremioError {
     TonicStatus(#[from] Status),
     TransportError(#[from] tonic::transport::Error),
     TranslationError(#[from] TimeseriesQueryToSQLError),
@@ -49,22 +49,22 @@ pub enum ArrowFlightSQLError {
     PolarsError(#[from] PolarsError),
 }
 
-impl Display for ArrowFlightSQLError {
+impl Display for DremioError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ArrowFlightSQLError::TonicStatus(status) => {
+            DremioError::TonicStatus(status) => {
                 write!(f, "Error with status: {}", status)
             }
-            ArrowFlightSQLError::TransportError(err) => {
+            DremioError::TransportError(err) => {
                 write!(f, "Error during transport: {}", err)
             }
-            ArrowFlightSQLError::TranslationError(s) => {
+            DremioError::TranslationError(s) => {
                 write!(f, "Error during query translation: {}", s)
             }
-            ArrowFlightSQLError::ArrowError(err) => {
+            DremioError::ArrowError(err) => {
                 write!(f, "Problem deserializing arrow: {}", err)
             }
-            ArrowFlightSQLError::PolarsError(err) => {
+            DremioError::PolarsError(err) => {
                 write!(f, "Problem creating dataframe from arrow: {:?}", err)
             }
         }
@@ -86,7 +86,7 @@ impl TimeseriesDremioDatabase {
         username: &str,
         password: &str,
         time_series_tables: Vec<TimeseriesTable>,
-    ) -> Result<TimeseriesDremioDatabase, ArrowFlightSQLError> {
+    ) -> Result<TimeseriesDremioDatabase, DremioError> {
         let mut db = TimeseriesDremioDatabase {
             endpoint: endpoint.into(),
             username: username.into(),
@@ -99,19 +99,19 @@ impl TimeseriesDremioDatabase {
         Ok(db)
     }
 
-    async fn init(&mut self) -> Result<(), ArrowFlightSQLError> {
+    async fn init(&mut self) -> Result<(), DremioError> {
         let token = self.get_token().await?;
         self.token = Some(token);
         Ok(())
     }
 
-    async fn get_token(&self) -> Result<String, ArrowFlightSQLError> {
+    async fn get_token(&self) -> Result<String, DremioError> {
         let channel = self.get_channel().await?;
         let token = authenticate(channel, &self.username, &self.password).await?;
         Ok(token)
     }
 
-    async fn get_channel(&self) -> Result<Channel, ArrowFlightSQLError> {
+    async fn get_channel(&self) -> Result<Channel, DremioError> {
         let channel = tonic::transport::Endpoint::new(self.endpoint.clone())?
             .connect()
             .await?;
@@ -121,7 +121,7 @@ impl TimeseriesDremioDatabase {
     pub async fn execute_sql_query(
         &mut self,
         query: String,
-    ) -> Result<DataFrame, ArrowFlightSQLError> {
+    ) -> Result<DataFrame, DremioError> {
         let instant = Instant::now();
         let channel = self.get_channel().await?;
         let elapsed = instant.elapsed();
@@ -153,7 +153,7 @@ impl TimeseriesDremioDatabase {
                 let stream = client
                     .do_get(ticket)
                     .await
-                    .map_err(ArrowFlightSQLError::from)?;
+                    .map_err(DremioError::from)?;
                 let mut streaming_flight_data = stream.into_inner();
                 while let Some(flight_data_result) = streaming_flight_data.next().await {
                     if let Ok(flight_data) = flight_data_result {
@@ -182,13 +182,13 @@ impl TimeseriesDremioDatabase {
                                     &ipc_schema_opt.as_ref().unwrap(),
                                     &Default::default(),
                                 )
-                                .map_err(ArrowFlightSQLError::from)?;
+                                .map_err(DremioError::from)?;
 
                                 let df = DataFrame::try_from((
                                     chunk,
                                     schema_opt.as_ref().unwrap().fields.as_slice(),
                                 ))
-                                .map_err(ArrowFlightSQLError::from)?;
+                                .map_err(DremioError::from)?;
                                 dfs.push(df);
                             }
                             MessageHeaderRef::Tensor(_) => {
@@ -260,7 +260,7 @@ async fn authenticate(
     conn: Channel,
     username: &str,
     password: &str,
-) -> Result<String, ArrowFlightSQLError> {
+) -> Result<String, DremioError> {
     let handshake_request = HandshakeRequest {
         protocol_version: 2,
         payload: vec![],

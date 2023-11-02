@@ -48,12 +48,12 @@ use crate::errors::PyQueryError;
 use arrow_python_utils::to_python::to_py_df;
 use chrontext::engine::Engine as RustEngine;
 use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
-use chrontext::sparql_database::embedded_oxigraph::EmbeddedOxigraph;
+use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraph;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::sparql_database::SparqlQueryable;
-use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase as RustArrowFlightSQLDatabase;
-use chrontext::timeseries_database::bigquery_database::BigQueryDatabase as RustBigQueryDatabase;
-use chrontext::timeseries_database::opcua_history_read::OPCUAHistoryRead as RustOPCUAHistoryRead;
+use chrontext::timeseries_database::timeseries_dremio_database::TimeseriesDremioDatabase as RustTimeseriesDremioDatabase;
+use chrontext::timeseries_database::timeseries_bigquery_database::TimeseriesBigQueryDatabase as RustBigQueryDatabase;
+use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADatabase as RustOPCUAHistoryRead;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable as RustTimeseriesTable;
 use chrontext::timeseries_database::TimeseriesQueryable;
 use log::debug;
@@ -281,7 +281,7 @@ pub fn create_arrow_flight_sql(
 
     let afsqldb_result = Runtime::new()
         .unwrap()
-        .block_on(RustArrowFlightSQLDatabase::new(
+        .block_on(RustTimeseriesDremioDatabase::new(
             &endpoint,
             &db.username,
             &db.password,

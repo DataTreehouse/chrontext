@@ -10,7 +10,7 @@ use bollard::Docker;
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLDatabase;
+use chrontext::timeseries_database::timeseries_dremio_database::TimeseriesDremioDatabase;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable;
 use futures_util::stream::StreamExt;
 use log::debug;
@@ -205,8 +205,8 @@ fn timeseries_table() -> TimeseriesTable {
     }
 }
 
-async fn ts_sql_db(timeseries_table: TimeseriesTable) -> ArrowFlightSQLDatabase {
-    ArrowFlightSQLDatabase::new(
+async fn ts_sql_db(timeseries_table: TimeseriesTable) -> TimeseriesDremioDatabase {
+    TimeseriesDremioDatabase::new(
         ARROW_SQL_DATABASE_ENDPOINT,
         "dremio",
         "dremio123",

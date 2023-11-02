@@ -1,4 +1,4 @@
-pub mod embedded_oxigraph;
+pub mod sparql_embedded_oxigraph;
 pub mod sparql_endpoint;
 
 use async_trait::async_trait;

@@ -3,7 +3,7 @@ mod common;
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
+use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use polars::prelude::{CsvReader, SerReader};
 use rstest::*;
@@ -49,7 +49,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
 }
 
 #[fixture]
-fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatabase {
+fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
     let mut frames = HashMap::new();
     for t in [
         "ep1", "ep2", "ep3", "ep4", "ep5", "ep6", "ep7", "ep8", "wsp1", "wsp2", "wsp3", "wsp4",
@@ -68,11 +68,11 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatab
             .expect("DF read error");
         frames.insert(t.to_string(), df);
     }
-    InMemoryTimeseriesDatabase { frames }
+    TimeseriesInMemoryDatabase { frames }
 }
 
 #[fixture]
-fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
+fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
         Box::new(inmem_time_series_database),

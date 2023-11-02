@@ -1,7 +1,7 @@
-pub mod arrow_flight_sql_database;
-pub mod bigquery_database;
-pub mod opcua_history_read;
-pub mod simple_in_memory_timeseries;
+pub mod timeseries_dremio_database;
+pub mod timeseries_bigquery_database;
+pub mod timeseries_opcua_database;
+pub mod timeseries_in_memory_database;
 pub mod timeseries_sql_rewrite;
 
 use crate::timeseries_database::timeseries_sql_rewrite::{

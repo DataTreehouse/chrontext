@@ -18,12 +18,12 @@ use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
 
-pub struct InMemoryTimeseriesDatabase {
+pub struct TimeseriesInMemoryDatabase {
     pub frames: HashMap<String, DataFrame>,
 }
 
 #[async_trait]
-impl TimeseriesQueryable for InMemoryTimeseriesDatabase {
+impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         self.execute_query(tsq).await
     }
@@ -33,7 +33,7 @@ impl TimeseriesQueryable for InMemoryTimeseriesDatabase {
     }
 }
 
-impl InMemoryTimeseriesDatabase {
+impl TimeseriesInMemoryDatabase {
     #[async_recursion]
     async fn execute_query(&self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         match tsq {
@@ -72,7 +72,7 @@ impl InMemoryTimeseriesDatabase {
                         endpoint: "".to_string(),
                     }),
                     all_pushdowns(),
-                    Box::new(InMemoryTimeseriesDatabase {
+                    Box::new(TimeseriesInMemoryDatabase {
                         frames: Default::default(),
                     }),
                     vec![],
@@ -140,7 +140,7 @@ impl InMemoryTimeseriesDatabase {
                 endpoint: "".to_string(),
             }),
             all_pushdowns(),
-            Box::new(InMemoryTimeseriesDatabase {
+            Box::new(TimeseriesInMemoryDatabase {
                 frames: Default::default(),
             }),
             vec![],
@@ -174,7 +174,7 @@ impl InMemoryTimeseriesDatabase {
                 endpoint: "".to_string(),
             }),
             all_pushdowns(),
-            Box::new(InMemoryTimeseriesDatabase {
+            Box::new(TimeseriesInMemoryDatabase {
                 frames: Default::default(),
             }),
             vec![],

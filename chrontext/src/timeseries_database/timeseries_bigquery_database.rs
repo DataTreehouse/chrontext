@@ -44,14 +44,14 @@ impl Display for BigQueryError {
         }
     }
 }
-pub struct BigQueryDatabase {
+pub struct TimeseriesBigQueryDatabase {
     gcp_sa_key: String,
     time_series_tables: Vec<TimeseriesTable>,
 }
 
-impl BigQueryDatabase {
-    pub fn new(gcp_sa_key: String, time_series_tables: Vec<TimeseriesTable>) -> BigQueryDatabase {
-        BigQueryDatabase {
+impl TimeseriesBigQueryDatabase {
+    pub fn new(gcp_sa_key: String, time_series_tables: Vec<TimeseriesTable>) -> TimeseriesBigQueryDatabase {
+        TimeseriesBigQueryDatabase {
             gcp_sa_key,
             time_series_tables,
         }
@@ -59,7 +59,7 @@ impl BigQueryDatabase {
 }
 
 #[async_trait]
-impl TimeseriesQueryable for BigQueryDatabase {
+impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
 
@@ -113,7 +113,7 @@ impl TimeseriesQueryable for BigQueryDatabase {
     }
 }
 
-impl TimeseriesSQLQueryable for BigQueryDatabase {
+impl TimeseriesSQLQueryable for TimeseriesBigQueryDatabase {
     fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
         &self.time_series_tables
     }

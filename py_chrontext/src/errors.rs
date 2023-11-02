@@ -2,14 +2,14 @@ use oxrdf::IriParseError;
 use std::io;
 use thiserror::Error;
 
-use chrontext::timeseries_database::arrow_flight_sql_database::ArrowFlightSQLError as RustArrowFlightSQLError;
+use chrontext::timeseries_database::timeseries_dremio_database::DremioError as RustDremioError;
 use oxigraph::store::{LoaderError, StorageError};
 use pyo3::{create_exception, exceptions::PyException, prelude::*};
 
 #[derive(Error, Debug)]
 pub enum PyQueryError {
     #[error(transparent)]
-    ArrowFlightSQLError(#[from] RustArrowFlightSQLError),
+    DremioError(#[from] RustDremioError),
     #[error(transparent)]
     DatatypeIRIParseError(#[from] IriParseError),
     #[error(transparent)]
@@ -33,8 +33,8 @@ pub enum PyQueryError {
 impl std::convert::From<PyQueryError> for PyErr {
     fn from(pqe: PyQueryError) -> Self {
         match pqe {
-            PyQueryError::ArrowFlightSQLError(err) => {
-                ArrowFlightSQLError::new_err(format!("{}", err))
+            PyQueryError::DremioError(err) => {
+                DremioError::new_err(format!("{}", err))
             }
             PyQueryError::DatatypeIRIParseError(err) => {
                 DatatypeIRIParseError::new_err(format!("{}", err))
@@ -59,7 +59,7 @@ impl std::convert::From<PyQueryError> for PyErr {
     }
 }
 
-create_exception!(exceptions, ArrowFlightSQLError, PyException);
+create_exception!(exceptions, DremioError, PyException);
 create_exception!(exceptions, DatatypeIRIParseError, PyException);
 create_exception!(exceptions, QueryExecutionError, PyException);
 create_exception!(exceptions, MissingTimeseriesDatabaseError, PyException);

@@ -5,7 +5,7 @@ use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::sparql_database::SparqlQueryable;
 use chrontext::splitter::parse_sparql_select_query;
-use chrontext::timeseries_database::simple_in_memory_timeseries::InMemoryTimeseriesDatabase;
+use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
 use polars::prelude::{CsvReader, SerReader};
@@ -55,7 +55,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
 }
 
 #[fixture]
-fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatabase {
+fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
     let mut frames = HashMap::new();
     for t in ["ts1", "ts2"] {
         let mut file_path = testdata_path.clone();
@@ -70,11 +70,11 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> InMemoryTimeseriesDatab
             .expect("DF read error");
         frames.insert(t.to_string(), df);
     }
-    InMemoryTimeseriesDatabase { frames }
+    TimeseriesInMemoryDatabase { frames }
 }
 
 #[fixture]
-fn engine(inmem_time_series_database: InMemoryTimeseriesDatabase) -> Engine {
+fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
         Box::new(inmem_time_series_database),
