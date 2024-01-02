@@ -173,9 +173,7 @@ impl TimeseriesQueryPrepper {
                 context,
             ),
             GraphPattern::Service { .. } => self.prepare_service(),
-            GraphPattern::Lateral { .. } => {
-                todo!("Lateral not yet implemented")
-            }
+            GraphPattern::DT { .. } => panic!("Should never happen")
         }
     }
 }

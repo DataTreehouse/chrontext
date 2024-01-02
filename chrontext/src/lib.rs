@@ -14,3 +14,4 @@ mod sparql_result_to_polars;
 pub mod splitter;
 pub mod timeseries_database;
 pub mod timeseries_query;
+mod remove_sugar;

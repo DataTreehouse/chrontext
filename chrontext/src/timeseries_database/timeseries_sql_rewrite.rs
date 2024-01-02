@@ -358,6 +358,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                     Alias::new(column_name),
                 );
             }
+            _ => {panic!("Should never happen")}
         }
 
         let static_alias = "static_query";

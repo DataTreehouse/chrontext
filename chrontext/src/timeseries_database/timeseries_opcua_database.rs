@@ -1,6 +1,6 @@
 use crate::constants::DATETIME_AS_SECONDS;
 use crate::query_context::Context;
-use crate::timeseries_database::TimeseriesQueryable;
+use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use opcua::client::prelude::{
@@ -93,6 +93,10 @@ impl TimeseriesOPCUADatabase {
 
 #[async_trait]
 impl TimeseriesQueryable for TimeseriesOPCUADatabase {
+    fn get_database_type(&self) -> DatabaseType {
+        DatabaseType::OPCUA
+    }
+
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         validate_tsq(tsq, true, false)?;
         let session = self.session.write();

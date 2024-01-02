@@ -9,5 +9,12 @@ pub const DATETIME_AS_NANOS: &str = "https://github.com/magbak/chrontext#DateTim
 pub const NANOS_AS_DATETIME: &str = "https://github.com/magbak/chrontext#NanosAsDateTime";
 pub const DATETIME_AS_SECONDS: &str = "https://github.com/magbak/chrontext#DateTimeAsSeconds";
 pub const SECONDS_AS_DATETIME: &str = "https://github.com/magbak/chrontext#SecondsAsDateTime";
+
+pub const MODULUS: &str = "https://github.com/magbak/chrontext#modulus";
+
 pub const NEST: &str = "https://github.com/magbak/chrontext#nestAggregation";
 pub const GROUPING_COL: &str = "grouping_col";
+
+pub const VALUE_SUFFIX: &str = "value";
+pub const DATA_POINT_SUFFIX: &str = "datapoint";
+pub const TIMESTAMP_VARIABLE_NAME: &str = "timestamp";

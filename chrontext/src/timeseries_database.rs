@@ -16,6 +16,8 @@ use std::error::Error;
 
 #[async_trait]
 pub trait TimeseriesQueryable: Send {
+    fn get_database_type(&self) -> DatabaseType;
+
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>>;
     fn allow_compound_timeseries_queries(&self) -> bool;
 }
@@ -24,6 +26,8 @@ pub trait TimeseriesQueryable: Send {
 pub enum DatabaseType {
     BigQuery,
     Dremio,
+    InMemory,
+    OPCUA
 }
 
 pub trait TimeseriesSQLQueryable {
@@ -42,6 +46,7 @@ pub trait TimeseriesSQLQueryable {
             query_string = match database_type {
                 DatabaseType::BigQuery => query.to_string(BigQueryQueryBuilder),
                 DatabaseType::Dremio => query.to_string(PostgresQueryBuilder),
+                _ => {panic!("Should never happen!")}
             };
 
             debug!("SQL: {}", query_string);

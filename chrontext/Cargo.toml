@@ -7,10 +7,10 @@ edition = "2021"
 polars = {version="0.32.1", features=["lazy", "concat_str", "random", "unique_counts", "groupby_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
 tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
 log = "0.4.17"
-spargebra = {version="0.2.8"}
+spargebra = {path="../../spargebra", features = ["rdf-star"]} #Due to
 sparesults = {version="0.1.8"}
 oxrdf = {version="0.1.7"}
-reqwest= {version="0.11.10", features=["stream"]}
+reqwest= {version="0.11.23", features=["stream"]}
 env_logger = "0.10.0"
 tonic = "0.8.3"
 prost = "0.10.4"
@@ -27,7 +27,8 @@ async-recursion = "1.0.4"
 bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars"}
 crossbeam = {version = "0.8.2"}
 serde_json = "1.0.105"
-oxigraph = "0.3.20"
+oxigraph = "0.3.22"
+chrono = {version = "0.4.31", features = ["clock"]}
 
 [dev-dependencies]
 bollard = "0.14.0"

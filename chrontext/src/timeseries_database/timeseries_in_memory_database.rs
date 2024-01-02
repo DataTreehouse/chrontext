@@ -4,7 +4,7 @@ use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
 use crate::query_context::{Context, PathEntry};
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
-use crate::timeseries_database::TimeseriesQueryable;
+use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::{
     BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
 };
@@ -24,6 +24,10 @@ pub struct TimeseriesInMemoryDatabase {
 
 #[async_trait]
 impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
+    fn get_database_type(&self) -> DatabaseType {
+        DatabaseType::InMemory
+    }
+
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         self.execute_query(tsq).await
     }

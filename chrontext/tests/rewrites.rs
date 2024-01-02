@@ -5,6 +5,7 @@ use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_query::BasicTimeseriesQuery;
 use spargebra::term::Variable;
 use spargebra::Query;
+use chrontext::timeseries_database::DatabaseType;
 
 #[test]
 fn test_simple_query() {
@@ -18,7 +19,7 @@ fn test_simple_query() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -51,7 +52,7 @@ fn test_filtered_query() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -86,7 +87,7 @@ fn test_complex_expression_filter() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -122,7 +123,7 @@ fn test_complex_expression_filter_projection() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -158,7 +159,7 @@ fn test_complex_nested_expression_filter() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -196,7 +197,7 @@ fn test_option_expression_filter_projection() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -251,7 +252,7 @@ fn test_union_expression() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -310,7 +311,7 @@ fn test_bind_expression() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -348,7 +349,7 @@ fn test_fix_dropped_triple() {
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 50) .
     }"#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
@@ -430,7 +431,7 @@ fn test_property_path_expression() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
@@ -559,7 +560,7 @@ fn test_having_query() {
     HAVING (SUM(?v) > 1000)
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -595,7 +596,7 @@ fn test_exists_query() {
     }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -649,7 +650,7 @@ fn test_filter_lost_bug() {
     FILTER(?wtur_label = "A1" && ?t > "2022-06-17T08:46:53"^^xsd:dateTime) .
 }"#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new();
+    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);

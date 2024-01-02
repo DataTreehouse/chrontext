@@ -60,6 +60,9 @@ impl TimeseriesBigQueryDatabase {
 
 #[async_trait]
 impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
+    fn get_database_type(&self) -> DatabaseType {
+        DatabaseType::BigQuery
+    }
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
 
@@ -114,6 +117,7 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
 }
 
 impl TimeseriesSQLQueryable for TimeseriesBigQueryDatabase {
+
     fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
         &self.time_series_tables
     }

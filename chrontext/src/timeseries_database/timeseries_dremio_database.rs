@@ -222,6 +222,10 @@ impl TimeseriesDremioDatabase {
 
 #[async_trait]
 impl TimeseriesQueryable for TimeseriesDremioDatabase {
+    fn get_database_type(&self) -> DatabaseType {
+        DatabaseType::Dremio
+    }
+
     async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::Dremio)?;
         Ok(self.execute_sql_query(query_string).await?)

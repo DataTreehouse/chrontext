@@ -6,7 +6,7 @@ use sea_query::{BinOper, ColumnRef, SimpleExpr, UnOper, Value};
 use sea_query::{Expr as SeaExpr, Func};
 use spargebra::algebra::Expression;
 
-use crate::constants::DATETIME_AS_SECONDS;
+use crate::constants::{DATETIME_AS_SECONDS, SECONDS_AS_DATETIME};
 use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeseriesQueryToSQLError};
 use crate::timeseries_database::DatabaseType;
 
@@ -218,6 +218,9 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                                         mapped_e,
                                     ])
                             }
+                            _ => {
+                                panic!("Should never happen")
+                            }
                         })
                     }
                 }
@@ -225,15 +228,36 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     let e = expressions.first().unwrap();
                     let mapped_e = self.sparql_expression_to_sql_expression(e)?;
                     if c.as_str() == DATETIME_AS_SECONDS {
-                        SimpleExpr::FunctionCall(
-                            Func::cust(Name::Function("UNIX_TIMESTAMP".to_string()).into_iden())
+                        match self.database_type {
+                            DatabaseType::Dremio => SimpleExpr::FunctionCall(
+                                Func::cust(
+                                    Name::Function("UNIX_TIMESTAMP".to_string()).into_iden(),
+                                )
                                 .args(vec![
                                     mapped_e,
                                     SimpleExpr::Value(Value::String(Some(Box::new(
                                         "YYYY-MM-DD HH:MI:SS.FFF".to_string(),
                                     )))),
                                 ]),
-                        )
+                            ),
+                            DatabaseType::BigQuery => SimpleExpr::FunctionCall(
+                                Func::cust(Name::Function("UNIX_SECONDS".to_string()).into_iden())
+                                    .args(vec![mapped_e]),
+                            ),
+                            _ => {
+                                panic!("Should never happen")
+                            }
+                        }
+                    } else if c.as_str() == SECONDS_AS_DATETIME {
+                        match self.database_type {
+                            DatabaseType::BigQuery => SimpleExpr::FunctionCall(
+                                Func::cust(Name::Function("TIMESTAMP_SECONDS".to_string()).into_iden())
+                                    .args(vec![mapped_e]),
+                            ),
+                            _ => {
+                                unimplemented!()
+                            }
+                        }
                     } else if c.as_str() == xsd::INTEGER.as_str() {
                         SimpleExpr::AsEnum(
                             Name::Table("INTEGER".to_string()).into_iden(),
