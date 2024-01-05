@@ -165,7 +165,7 @@ impl StaticQueryRewriter {
                 inner,
                 silent,
             } => self.rewrite_service(name, inner, silent, context),
-            GraphPattern::DT {..} => {
+            GraphPattern::DT { .. } => {
                 panic!("Should never happen")
             }
         }

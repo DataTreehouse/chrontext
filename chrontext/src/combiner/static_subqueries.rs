@@ -7,9 +7,9 @@ use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, NamedNode, NamedNodeRef, Variable};
-use polars::prelude::{col, Expr, IntoLazy};
+use polars::prelude::{JoinType, col, Expr, IntoLazy, JoinArgs};
 use polars_core::datatypes::AnyValue;
-use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
+use polars_core::prelude::{UniqueKeepStrategy};
 use polars_core::series::SeriesIter;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::GroundTerm;
@@ -233,7 +233,7 @@ fn any_to_ground_term(
     match any {
         AnyValue::Null => None,
         AnyValue::Boolean(b) => Some(GroundTerm::Literal(Literal::from(b))),
-        AnyValue::Utf8(s) => {
+        AnyValue::String(s) => {
             if datatype_nnref == &xsd::STRING {
                 Some(GroundTerm::Literal(Literal::new_simple_literal(s)))
             } else {
@@ -274,7 +274,7 @@ fn any_to_ground_term(
         AnyValue::List(_) => {
             todo!("No support for list yet")
         }
-        AnyValue::Utf8Owned(s) => {
+        AnyValue::StringOwned(s) => {
             if datatype_nnref == &xsd::STRING {
                 Some(GroundTerm::Literal(Literal::new_simple_literal(s)))
             } else {

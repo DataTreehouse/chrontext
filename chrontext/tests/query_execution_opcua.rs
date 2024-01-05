@@ -159,7 +159,7 @@ fn test_basic_query(
 
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
@@ -221,7 +221,7 @@ fn test_basic_no_end_time_query(
 
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
@@ -283,7 +283,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
 
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?datetime_seconds (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
@@ -362,7 +362,7 @@ fn test_no_pushdown_because_of_filter_query(
 
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?datetime_seconds (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .

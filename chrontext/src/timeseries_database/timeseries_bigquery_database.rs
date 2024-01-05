@@ -6,7 +6,6 @@ use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use bigquery_polars::{BigQueryExecutor, Client};
 use polars::prelude::PolarsError;
-use polars_core::error::ArrowError;
 use polars_core::prelude::DataFrame;
 use reqwest::Url;
 use std::error::Error;
@@ -19,7 +18,6 @@ pub enum BigQueryError {
     TonicStatus(#[from] Status),
     TransportError(#[from] tonic::transport::Error),
     TranslationError(#[from] TimeseriesQueryToSQLError),
-    ArrowError(#[from] ArrowError),
     PolarsError(#[from] PolarsError),
 }
 
@@ -35,9 +33,6 @@ impl Display for BigQueryError {
             BigQueryError::TranslationError(s) => {
                 write!(f, "Error during query translation: {}", s)
             }
-            BigQueryError::ArrowError(err) => {
-                write!(f, "Problem deserializing arrow: {}", err)
-            }
             BigQueryError::PolarsError(err) => {
                 write!(f, "Problem creating dataframe from arrow: {:?}", err)
             }
@@ -50,7 +45,10 @@ pub struct TimeseriesBigQueryDatabase {
 }
 
 impl TimeseriesBigQueryDatabase {
-    pub fn new(gcp_sa_key: String, time_series_tables: Vec<TimeseriesTable>) -> TimeseriesBigQueryDatabase {
+    pub fn new(
+        gcp_sa_key: String,
+        time_series_tables: Vec<TimeseriesTable>,
+    ) -> TimeseriesBigQueryDatabase {
         TimeseriesBigQueryDatabase {
             gcp_sa_key,
             time_series_tables,
@@ -117,7 +115,6 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
 }
 
 impl TimeseriesSQLQueryable for TimeseriesBigQueryDatabase {
-
     fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
         &self.time_series_tables
     }

@@ -173,7 +173,7 @@ impl TimeseriesQueryPrepper {
                 context,
             ),
             GraphPattern::Service { .. } => self.prepare_service(),
-            GraphPattern::DT { .. } => panic!("Should never happen")
+            GraphPattern::DT { .. } => panic!("Should never happen"),
         }
     }
 }

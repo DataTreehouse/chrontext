@@ -135,7 +135,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
                 .iter();
             for _ in 0..mapping_df.height() {
                 let id_value = match id_iter.next().unwrap() {
-                    AnyValue::Utf8(id_value) => id_value,
+                    AnyValue::String(id_value) => id_value,
                     _ => {
                         panic!("Should never happen")
                     }
@@ -255,7 +255,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
                 } else {
                     Series::new_empty(
                         tsq.get_identifier_variables().get(0).unwrap().as_str(),
-                        &DataType::Utf8,
+                        &DataType::String,
                     )
                 };
                 identifier_series = if let Some(_) = grouping_col_name {
@@ -267,7 +267,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
                         .unwrap()
                 } else {
                     identifier_series
-                        .extend_constant(AnyValue::Utf8(&k), first_ts.as_ref().unwrap().len())
+                        .extend_constant(AnyValue::String(&k), first_ts.as_ref().unwrap().len())
                         .unwrap()
                 };
                 value_vec.push(identifier_series);

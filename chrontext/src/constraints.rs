@@ -23,7 +23,10 @@ impl VariableConstraints {
                 if constraint.is_none() {
                     constraint = Some(c);
                 } else if constraint.unwrap() != c {
-                    panic!("There should be only one type of constraint per variable");
+                    panic!(
+                        "There should be only one type of constraint per variable {:?}, {:?}, {:?}",
+                        v, constraint, c
+                    );
                 }
             }
         }

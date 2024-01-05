@@ -84,14 +84,14 @@ pub(crate) fn sparql_term_to_polars_literal_value(term: &Term) -> polars::prelud
 }
 
 pub(crate) fn sparql_named_node_to_polars_literal_value(named_node: &NamedNode) -> LiteralValue {
-    LiteralValue::Utf8(named_node.as_str().to_string())
+    LiteralValue::String(named_node.as_str().to_string())
 }
 
 pub(crate) fn sparql_literal_to_polars_literal_value(lit: &Literal) -> LiteralValue {
     let datatype = lit.datatype();
     let value = lit.value();
     let literal_value = if datatype == xsd::STRING {
-        LiteralValue::Utf8(value.to_string())
+        LiteralValue::String(value.to_string())
     } else if datatype == xsd::UNSIGNED_INT {
         let u = u32::from_str(value).expect("Integer parsing error");
         LiteralValue::UInt32(u)

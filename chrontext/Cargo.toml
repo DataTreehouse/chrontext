@@ -4,7 +4,7 @@ version = "0.4.0"
 edition = "2021"
 
 [dependencies]
-polars = {version="0.32.1", features=["lazy", "concat_str", "random", "unique_counts", "groupby_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
+polars = {version="0.36.2", features=["lazy", "concat_str", "random", "unique_counts", "group_by_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
 tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
 log = "0.4.17"
 spargebra = {path="../../spargebra", features = ["rdf-star"]} #Due to
@@ -16,24 +16,23 @@ tonic = "0.8.3"
 prost = "0.10.4"
 thiserror = "1.0.31"
 tokio-stream = "0.1.14"
-arrow2 = {version="0.17.3", features=["io_flight"]}
-arrow-format = {version="0.8.1", features=["flight-data", "flight-service"]}
-polars-core = "0.32.1"
+polars-core = "0.36.2"
 sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
 async-trait = "0.1.68"
 base64 = "0.21.3"
 opcua = {version="0.12.0", features = ["vendored-openssl"]}
 async-recursion = "1.0.4"
-bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars"}
+bigquery-polars = {path="../../bigquery-polars/bigquery-polars"}
+#bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars"}
 crossbeam = {version = "0.8.2"}
 serde_json = "1.0.105"
 oxigraph = "0.3.22"
 chrono = {version = "0.4.31", features = ["clock"]}
 
 [dev-dependencies]
-bollard = "0.14.0"
+bollard = "0.15.0"
 rstest = "0.18.2"
-polars = {version="0.32.1", features=["lazy", "random", "unique_counts", "groupby_list"]}
+polars = {version="0.36.2", features=["lazy", "random", "unique_counts", "group_by_list"]}
 tokio = {version="1.18.2", features=["rt-multi-thread"]}
 serial_test = "2.0.0"
 futures-util = "0.3.21"

@@ -7,7 +7,7 @@ use crate::combiner::static_subqueries::split_static_queries_opt;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
 use crate::constants::{
-    DATETIME_AS_NANOS, DATETIME_AS_SECONDS, NANOS_AS_DATETIME, SECONDS_AS_DATETIME,
+    DATETIME_AS_NANOS, DATETIME_AS_SECONDS, MODULUS, NANOS_AS_DATETIME, SECONDS_AS_DATETIME, FLOOR_DATETIME_TO_SECONDS_INTERVAL
 };
 use crate::query_context::{Context, PathEntry};
 use crate::sparql_result_to_polars::{
@@ -17,12 +17,10 @@ use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use oxrdf::vocab::xsd;
 use polars::datatypes::DataType;
-use polars::functions::concat_str;
 use polars::lazy::dsl::is_not_null;
 use polars::prelude::{
-    col, lit, Expr, IntoLazy, LiteralValue, Operator, Series, TimeUnit, UniqueKeepStrategy,
+    col, lit, Expr, IntoLazy, LiteralValue, Operator, Series, TimeUnit, UniqueKeepStrategy, concat_str, is_in
 };
-use polars_core::prelude::IntoSeries;
 use spargebra::algebra::{Expression, Function};
 use spargebra::Query;
 use std::collections::HashMap;
@@ -663,7 +661,7 @@ impl Combiner {
                     .with_column(
                         Expr::Literal(LiteralValue::Int64(1)).alias(&exists_context.as_str()),
                     )
-                    .with_column(col(&exists_context.as_str()).cumsum(false).keep_name());
+                    .with_column(col(&exists_context.as_str()).cum_sum(false).alias(&exists_context.as_str()));
 
                 let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());
                 let SolutionMappings {
@@ -690,9 +688,9 @@ impl Combiner {
                     .collect()
                     .expect("Collect lazy exists error");
                 let mut ser = Series::from(
-                    df.column(&exists_context.as_str())
-                        .unwrap()
-                        .is_in(exists_df.column(&exists_context.as_str()).unwrap())
+                    is_in(df.column(&exists_context.as_str())
+                        .unwrap(),
+                        exists_df.column(&exists_context.as_str()).unwrap())
                         .unwrap(),
                 );
                 ser.rename(context.as_str());
@@ -928,22 +926,11 @@ impl Combiner {
                     }
                     Function::Concat => {
                         assert!(args.len() > 1);
-                        let SolutionMappings {
-                            mappings,
-                            columns,
-                            datatypes,
-                        } = output_solution_mappings;
-                        let mut inner_df = mappings.collect().unwrap();
-                        let series = args_contexts
-                            .iter()
-                            .map(|c| inner_df.column(c.as_str()).unwrap().clone())
-                            .collect::<Vec<Series>>();
-                        let mut concat_series =
-                            concat_str(series.as_slice(), "").unwrap().into_series();
-                        concat_series.rename(context.as_str());
-                        inner_df.with_column(concat_series).unwrap();
-                        output_solution_mappings =
-                            SolutionMappings::new(inner_df.lazy(), columns, datatypes)
+                        let cols: Vec<_> = args_contexts.iter().map(|x|col(x.as_str())).collect();
+                        output_solution_mappings.mappings =
+                            output_solution_mappings.mappings.with_column(
+                                concat_str(cols, "").alias(context.as_str()),
+                            );
                     }
                     Function::Round => {
                         assert_eq!(args.len(), 1);
@@ -972,7 +959,7 @@ impl Combiner {
                             output_solution_mappings.mappings =
                                 output_solution_mappings.mappings.with_column(
                                     col(&first_context.as_str())
-                                        .cast(DataType::Utf8)
+                                        .cast(DataType::String)
                                         .alias(context.as_str()),
                                 );
                         } else if iri == DATETIME_AS_NANOS {
@@ -1014,6 +1001,34 @@ impl Combiner {
                                         .mul(Expr::Literal(LiteralValue::UInt64(1000)))
                                         .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
                                         .alias(context.as_str()),
+                                );
+                        } else if iri == MODULUS {
+                            assert_eq!(args.len(), 2);
+                            let first_context = args_contexts.get(0).unwrap();
+                            let second_context = args_contexts.get(1).unwrap();
+
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    (col(&first_context.as_str()) % col(&second_context.as_str()))
+                                        .alias(context.as_str()),
+                                );
+                        } else if iri == FLOOR_DATETIME_TO_SECONDS_INTERVAL {
+                            assert_eq!(args.len(), 2);
+                            let first_context = args_contexts.get(0).unwrap();
+                            let second_context = args_contexts.get(1).unwrap();
+
+                            let first_as_seconds = col(&first_context.as_str())
+                                .cast(DataType::Datetime(TimeUnit::Milliseconds, None))
+                                .cast(DataType::UInt64)
+                                .div(lit(1000));
+
+                            output_solution_mappings.mappings =
+                                output_solution_mappings.mappings.with_column(
+                                    ((first_as_seconds.clone()
+                                        - (first_as_seconds % col(&second_context.as_str())))
+                                    .mul(Expr::Literal(LiteralValue::UInt64(1000)))
+                                    .cast(DataType::Datetime(TimeUnit::Milliseconds, None)))
+                                    .alias(context.as_str()),
                                 );
                         } else {
                             todo!("{:?}", nn)

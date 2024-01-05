@@ -9,7 +9,6 @@ use log::debug;
 use polars::frame::DataFrame;
 use std::collections::HashSet;
 use std::error::Error;
-use crate::remove_sugar::SyntacticSugarRemover;
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
@@ -39,11 +38,8 @@ impl Engine {
     }
 
     pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<DataFrame, Box<dyn Error>> {
-        let mut parsed_query = parse_sparql_select_query(query)?;
+        let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {:?}", &parsed_query);
-        let mut syntactic_sugar_remover = SyntacticSugarRemover::new(self.time_series_database.as_ref().unwrap().get_database_type());
-        parsed_query = syntactic_sugar_remover.remove_sugar(parsed_query);
-        println!("Query: {}", parsed_query.to_string());
         let mut preprocessor = Preprocessor::new();
         let (preprocessed_query, variable_constraints) = preprocessor.preprocess(&parsed_query);
         debug!("Constraints: {:?}", variable_constraints);

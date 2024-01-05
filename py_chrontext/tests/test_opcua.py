@@ -95,7 +95,7 @@ def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
     print("defined engine")
     df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-        PREFIX chrontext:<https://github.com/magbak/chrontext#>
+        PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
         PREFIX types:<http://example.org/types#>
         SELECT ?w ?s ?mytype ?t ?v WHERE {
             ?w a ?mytype .

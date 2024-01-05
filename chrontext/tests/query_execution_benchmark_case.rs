@@ -94,11 +94,11 @@ async fn test_should_pushdown_query(
     use_logger;
     let _ = with_testdata.await;
     let query = r#"PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX ct:<https://github.com/magbak/chrontext#>
-PREFIX wp:<https://github.com/magbak/chrontext/windpower_example#>
+PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+PREFIX wp:<https://github.com/DataTreehouse/chrontext/windpower_example#>
 PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rds:<https://github.com/magbak/chrontext/rds_power#>
+PREFIX rds:<https://github.com/DataTreehouse/chrontext/rds_power#>
 SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val) as ?avg_val) WHERE {
     ?site a rds:Site .
     ?site rdfs:label ?site_label .
@@ -188,11 +188,11 @@ async fn test_multi_should_pushdown_query(
     use_logger;
     let _ = with_testdata.await;
     let query = r#"PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX ct:<https://github.com/magbak/chrontext#>
-PREFIX wp:<https://github.com/magbak/chrontext/windpower_example#>
+PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+PREFIX wp:<https://github.com/DataTreehouse/chrontext/windpower_example#>
 PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rds:<https://github.com/magbak/chrontext/rds_power#>
+PREFIX rds:<https://github.com/DataTreehouse/chrontext/rds_power#>
 SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val_prod) as ?val_prod_avg) (AVG(?val_dir) as ?val_dir_avg) (AVG(?val_speed) as ?val_speed_avg) WHERE {
     ?site a rds:Site .
     ?site rdfs:label ?site_label .

@@ -9,9 +9,8 @@ use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
-use polars::prelude::{col, Expr, IntoLazy};
+use polars::prelude::{col, Expr, IntoLazy, JoinType, JoinArgs};
 use polars_core::datatypes::DataType;
-use polars_core::prelude::{JoinArgs, JoinType};
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
@@ -110,10 +109,10 @@ impl Combiner {
             for c in join_on {
                 if is_string_col(right_datatypes.get(c).unwrap()) {
                     right_mappings =
-                        right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
+                        right_mappings.with_column(col(c).cast(DataType::Categorical(None, Default::default())));
                     left_solution_mappings.mappings = left_solution_mappings
                         .mappings
-                        .with_column(col(c).cast(DataType::Categorical(None)));
+                        .with_column(col(c).cast(DataType::Categorical(None, Default::default())));
                 }
             }
             let all_false = [false].repeat(join_on_cols.len());

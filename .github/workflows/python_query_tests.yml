@@ -12,6 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_LOG: debug
   MATURIN_VERSION: '1.2.3'
+  RUST_TOOLCHAIN: nightly-2024-01-01
 
 jobs:
   build_and_test:
@@ -37,8 +38,8 @@ jobs:
 
     - name: Set up nightly rust
       run: |
-        rustup toolchain install nightly-2023-08-01
-        rustup default nightly-2023-08-01
+        rustup toolchain install ${{ env.RUST_TOOLCHAIN }}
+        rustup default ${{ env.RUST_TOOLCHAIN }}
 
     - name: Build install package
       run: |

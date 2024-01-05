@@ -7,8 +7,8 @@ use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::enable_string_cache;
-use polars::prelude::{col, Expr, IntoLazy};
-use polars_core::prelude::{DataType, JoinArgs, JoinType};
+use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
+use polars_core::prelude::{DataType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
 
@@ -75,14 +75,14 @@ impl Combiner {
             }
         }
 
-        enable_string_cache(true);
+        enable_string_cache();
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {
-            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None)));
+            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None, Default::default())));
             solution_mappings.mappings = solution_mappings
                 .mappings
-                .with_column(col(cat_col).cast(DataType::Categorical(None)));
+                .with_column(col(cat_col).cast(DataType::Categorical(None, Default::default())));
         }
 
         let on_reverse_false = vec![false].repeat(on_cols.len());

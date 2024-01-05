@@ -12,8 +12,7 @@ use async_recursion::async_recursion;
 use async_trait::async_trait;
 use polars::frame::DataFrame;
 use polars::prelude::DataFrameJoinOps;
-use polars::prelude::{col, concat, lit, IntoLazy, UnionArgs};
-use polars_core::prelude::{JoinArgs, JoinType};
+use polars::prelude::{col, concat, lit, IntoLazy, UnionArgs, JoinArgs, JoinType};
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
@@ -211,7 +210,7 @@ impl TimeseriesInMemoryDatabase {
             }
         }
 
-        let grouped_lf = solution_mappings.mappings.groupby(groupby);
+        let grouped_lf = solution_mappings.mappings.group_by(groupby);
         out_lf = grouped_lf.agg(aggregation_exprs.as_slice());
 
         let collected = out_lf.collect()?;

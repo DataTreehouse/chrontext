@@ -251,7 +251,7 @@ impl Combiner {
                 .await
             }
             GraphPattern::Service { .. } => Ok(updated_solution_mappings.unwrap()),
-            GraphPattern::DT {..} => {
+            GraphPattern::DT { .. } => {
                 panic!("Should never happen!")
             }
         }

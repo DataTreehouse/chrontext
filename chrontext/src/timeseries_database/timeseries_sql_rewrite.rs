@@ -302,7 +302,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         for _ in 0..df.height() {
             let id = identifier_iter.next().unwrap();
             let grp = groupcol_iter.next().unwrap();
-            let id_value = if let AnyValue::Utf8(id_value) = id {
+            let id_value = if let AnyValue::String(id_value) = id {
                 id_value.to_string()
             } else {
                 panic!("Should never happen");
@@ -341,24 +341,9 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                     Name::Table("values".to_string()).into_iden(),
                 ));
             }
-            DatabaseType::Dremio => {
-                static_select.from_values(value_tuples, Alias::new(mapping_values_alias));
-                static_select.expr_as(
-                    SimpleExpr::Column(ColumnRef::TableColumn(
-                        Name::Table(mapping_values_alias.to_string()).into_iden(),
-                        Name::Column("EXPR$0".to_string()).into_iden(),
-                    )),
-                    Alias::new(identifier_colname),
-                );
-                static_select.expr_as(
-                    SimpleExpr::Column(ColumnRef::TableColumn(
-                        Name::Table(mapping_values_alias.to_string()).into_iden(),
-                        Name::Column("EXPR$1".to_string()).into_iden(),
-                    )),
-                    Alias::new(column_name),
-                );
+            _ => {
+                panic!("Should never happen")
             }
-            _ => {panic!("Should never happen")}
         }
 
         let static_alias = "static_query";

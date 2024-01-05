@@ -1,7 +1,6 @@
-pub mod timeseries_dremio_database;
 pub mod timeseries_bigquery_database;
-pub mod timeseries_opcua_database;
 pub mod timeseries_in_memory_database;
+pub mod timeseries_opcua_database;
 pub mod timeseries_sql_rewrite;
 
 use crate::timeseries_database::timeseries_sql_rewrite::{
@@ -11,7 +10,7 @@ use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
 use polars::frame::DataFrame;
-use sea_query::{BigQueryQueryBuilder, PostgresQueryBuilder};
+use sea_query::{BigQueryQueryBuilder};
 use std::error::Error;
 
 #[async_trait]
@@ -25,9 +24,8 @@ pub trait TimeseriesQueryable: Send {
 #[derive(Clone)]
 pub enum DatabaseType {
     BigQuery,
-    Dremio,
     InMemory,
-    OPCUA
+    OPCUA,
 }
 
 pub trait TimeseriesSQLQueryable {
@@ -45,8 +43,9 @@ pub trait TimeseriesSQLQueryable {
             let (query, _) = transformer.create_query(tsq, false)?;
             query_string = match database_type {
                 DatabaseType::BigQuery => query.to_string(BigQueryQueryBuilder),
-                DatabaseType::Dremio => query.to_string(PostgresQueryBuilder),
-                _ => {panic!("Should never happen!")}
+                _ => {
+                    panic!("Should never happen!")
+                }
             };
 
             debug!("SQL: {}", query_string);

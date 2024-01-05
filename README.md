@@ -44,7 +44,7 @@ engine.init()
 
 df = engine.query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX chrontext:<https://github.com/magbak/chrontext#>
+PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
 PREFIX types:<http://example.org/types#>
 SELECT ?w ?s ?t ?v WHERE {
     ?w a types:BigWidget .
@@ -67,4 +67,4 @@ pip install chrontext
 ## License
 All code produced since August 1st. 2023 is copyrighted to [Data Treehouse AS](https://www.data-treehouse.com/) with an Apache 2.0 license unless otherwise noted. 
 
-All code which was produced before August 1st. 2023 copyrighted to [Prediktor AS](https://www.prediktor.com/) with an Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree. The code at this state is archived in the repository at [https://github.com/magbak/chrontext](https://github.com/magbak/chrontext).
+All code which was produced before August 1st. 2023 copyrighted to [Prediktor AS](https://www.prediktor.com/) with an Apache 2.0 license unless otherwise noted, and has been financed by [The Research Council of Norway](https://www.forskningsradet.no/en/) (grant no. 316656) and [Prediktor AS](https://www.prediktor.com/) as part of a PhD Degree. The code at this state is archived in the repository at [https://github.com/DataTreehouse/chrontext](https://github.com/DataTreehouse/chrontext).

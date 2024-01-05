@@ -198,26 +198,6 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                                 };
                                 BqFunc::extract(datetime_part, mapped_e)
                             }
-                            DatabaseType::Dremio => {
-                                let date_part_name = match f {
-                                    spargebra::algebra::Function::Year => "year",
-                                    spargebra::algebra::Function::Month => "month",
-                                    spargebra::algebra::Function::Day => "day",
-                                    spargebra::algebra::Function::Hours => "hour",
-                                    spargebra::algebra::Function::Minutes => "minute",
-                                    spargebra::algebra::Function::Seconds => "second",
-                                    _ => {
-                                        panic!("Cannot happen")
-                                    }
-                                };
-                                Func::cust(Name::Function("date_part".to_string()).into_iden())
-                                    .args(vec![
-                                        SimpleExpr::Value(Value::String(Some(Box::new(
-                                            date_part_name.to_string(),
-                                        )))),
-                                        mapped_e,
-                                    ])
-                            }
                             _ => {
                                 panic!("Should never happen")
                             }
@@ -229,17 +209,6 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     let mapped_e = self.sparql_expression_to_sql_expression(e)?;
                     if c.as_str() == DATETIME_AS_SECONDS {
                         match self.database_type {
-                            DatabaseType::Dremio => SimpleExpr::FunctionCall(
-                                Func::cust(
-                                    Name::Function("UNIX_TIMESTAMP".to_string()).into_iden(),
-                                )
-                                .args(vec![
-                                    mapped_e,
-                                    SimpleExpr::Value(Value::String(Some(Box::new(
-                                        "YYYY-MM-DD HH:MI:SS.FFF".to_string(),
-                                    )))),
-                                ]),
-                            ),
                             DatabaseType::BigQuery => SimpleExpr::FunctionCall(
                                 Func::cust(Name::Function("UNIX_SECONDS".to_string()).into_iden())
                                     .args(vec![mapped_e]),
@@ -251,8 +220,10 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     } else if c.as_str() == SECONDS_AS_DATETIME {
                         match self.database_type {
                             DatabaseType::BigQuery => SimpleExpr::FunctionCall(
-                                Func::cust(Name::Function("TIMESTAMP_SECONDS".to_string()).into_iden())
-                                    .args(vec![mapped_e]),
+                                Func::cust(
+                                    Name::Function("TIMESTAMP_SECONDS".to_string()).into_iden(),
+                                )
+                                .args(vec![mapped_e]),
                             ),
                             _ => {
                                 unimplemented!()

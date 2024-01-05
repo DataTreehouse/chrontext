@@ -7,7 +7,7 @@ use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
-use polars::prelude::{col, Expr, IntoLazy, LiteralValue};
+use polars::prelude::{col, Expr, IntoLazy, LiteralValue, is_in};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
@@ -54,7 +54,7 @@ impl Combiner {
         let mut left_df = left_solution_mappings
             .mappings
             .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&minus_column))
-            .with_column(col(&minus_column).cumsum(false).keep_name())
+            .with_column(col(&minus_column).cum_sum(false).alias(&minus_column))
             .collect()
             .expect("Minus collect left problem");
         left_solution_mappings.mappings = left_df.clone().lazy();
@@ -83,12 +83,12 @@ impl Combiner {
             .expect("Minus right df collect problem");
         left_df = left_df
             .filter(
-                &left_df
+                &is_in(&left_df
                     .column(&minus_column)
+                    .unwrap(),
+                    right_df.column(&minus_column).unwrap())
                     .unwrap()
-                    .is_in(right_df.column(&minus_column).unwrap())
-                    .unwrap()
-                    .not(),
+                    .not()
             )
             .expect("Filter minus left hand side problem");
         left_df = left_df.drop(&minus_column).unwrap();

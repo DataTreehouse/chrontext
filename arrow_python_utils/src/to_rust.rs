@@ -98,7 +98,7 @@ pub fn array_to_rust_df(rb: &[&PyAny]) -> PyResult<DataFrame> {
                     let arr = array_to_rust(array)?;
                     run_parallel |= matches!(
                         arr.data_type(),
-                        ArrowDataType::Utf8 | ArrowDataType::Dictionary(_, _, _)
+                        ArrowDataType::String | ArrowDataType::Dictionary(_, _, _)
                     );
                     Ok(arr)
                 })

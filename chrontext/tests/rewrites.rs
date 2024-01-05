@@ -2,15 +2,15 @@ use chrontext::preprocessing::Preprocessor;
 use chrontext::query_context::{Context, PathEntry, VariableInContext};
 use chrontext::rewriting::StaticQueryRewriter;
 use chrontext::splitter::parse_sparql_select_query;
+use chrontext::timeseries_database::DatabaseType;
 use chrontext::timeseries_query::BasicTimeseriesQuery;
 use spargebra::term::Variable;
 use spargebra::Query;
-use chrontext::timeseries_database::DatabaseType;
 
 #[test]
 fn test_simple_query() {
     let sparql = r#"
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
         ?var2 qry:hasTimeseries ?ts .
@@ -19,7 +19,7 @@ fn test_simple_query() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -28,10 +28,10 @@ fn test_simple_query() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-     ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-     ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-     ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
+     ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+     ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+     ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -41,7 +41,7 @@ fn test_simple_query() {
 fn test_filtered_query() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
         ?var2 qry:hasTimeseries ?ts .
@@ -52,7 +52,7 @@ fn test_filtered_query() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -61,10 +61,10 @@ fn test_filtered_query() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-     ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-     ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-     ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
+     ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+     ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+     ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -74,7 +74,7 @@ fn test_filtered_query() {
 fn test_complex_expression_filter() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
@@ -87,7 +87,7 @@ fn test_complex_expression_filter() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -97,10 +97,10 @@ fn test_complex_expression_filter() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
     FILTER(?pv) }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -110,7 +110,7 @@ fn test_complex_expression_filter() {
 fn test_complex_expression_filter_projection() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
@@ -123,7 +123,7 @@ fn test_complex_expression_filter_projection() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -133,10 +133,10 @@ fn test_complex_expression_filter_projection() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }
+    ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -146,7 +146,7 @@ fn test_complex_expression_filter_projection() {
 fn test_complex_nested_expression_filter() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 WHERE {
         ?var1 a ?var2 .
@@ -159,7 +159,7 @@ fn test_complex_nested_expression_filter() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -169,10 +169,10 @@ fn test_complex_nested_expression_filter() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
-    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
      }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -182,7 +182,7 @@ fn test_complex_nested_expression_filter() {
 fn test_option_expression_filter_projection() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?pv ?t ?val WHERE {
         ?var1 a ?var2 .
@@ -197,7 +197,7 @@ fn test_option_expression_filter_projection() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -216,7 +216,7 @@ fn test_option_expression_filter_projection() {
         .unwrap();
 
     let expected_left_str = r#"SELECT ?var1 ?var2 WHERE { ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 . }"#;
-    let expected_right_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_right_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }"#;
 
     let expected_left_query = Query::parse(expected_left_str, None).unwrap();
     assert_eq!(static_rewrite_left, &expected_left_query);
@@ -228,7 +228,7 @@ fn test_option_expression_filter_projection() {
 fn test_union_expression() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?pv WHERE {
         ?var1 a ?var2 .
@@ -252,7 +252,7 @@ fn test_union_expression() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -265,7 +265,7 @@ fn test_union_expression() {
             PathEntry::UnionLeftSide,
         ]))
         .unwrap();
-    let expected_union_left_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . FILTER(!?pv) }"#;
+    let expected_union_left_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . FILTER(!?pv) }"#;
     let expected_union_left_query = Query::parse(expected_union_left_str, None).unwrap();
     assert_eq!(static_union_left_rewrite, &expected_union_left_query);
 
@@ -276,7 +276,7 @@ fn test_union_expression() {
             PathEntry::UnionRightSide,
         ]))
         .unwrap();
-    let expected_union_right_str = r#"SELECT ?pv ?ts ?ts_datatype_1 ?ts_external_id_1 ?ts_resource_1 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 . ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_1 .?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts . FILTER(?pv) }"#;
+    let expected_union_right_str = r#"SELECT ?pv ?ts ?ts_datatype_1 ?ts_external_id_1 ?ts_resource_1 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . FILTER(?pv) }"#;
     let expected_union_right_query = Query::parse(expected_union_right_str, None).unwrap();
     assert_eq!(static_union_right_rewrite, &expected_union_right_query);
 
@@ -295,7 +295,7 @@ fn test_union_expression() {
 fn test_bind_expression() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?val3 WHERE {
         ?var1 a ?var2 .
@@ -311,7 +311,7 @@ fn test_bind_expression() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -320,14 +320,14 @@ fn test_bind_expression() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_resource_0 ?ts_resource_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-    ?ts1 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts1 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?ts1 <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-    ?var1 <https://github.com/magbak/chrontext#hasTimeseries> ?ts1 .
-    ?ts2 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
-    ?ts2 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
-    ?ts2 <https://github.com/magbak/chrontext#hasResource> ?ts_resource_1 .
-    ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?ts2 . }
+    ?ts1 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts1 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?ts1 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+    ?var1 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts1 .
+    ?ts2 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .
+    ?ts2 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 .
+    ?ts2 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts2 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -337,7 +337,7 @@ fn test_bind_expression() {
 fn test_fix_dropped_triple() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
@@ -349,7 +349,7 @@ fn test_fix_dropped_triple() {
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 50) .
     }"#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
@@ -357,14 +357,14 @@ fn test_fix_dropped_triple() {
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
         ?w a types:BigWidget .
         ?w types:hasSensor ?s .
         ?ts chrontext:hasExternalId ?ts_external_id_0 .
         ?ts chrontext:hasDatatype ?ts_datatype_0 .
-        ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
+        ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
         ?s chrontext:hasTimeseries ?ts .
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
@@ -417,7 +417,7 @@ fn test_fix_dropped_triple() {
 fn test_property_path_expression() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX qry:<https://github.com/magbak/chrontext#>
+    PREFIX qry:<https://github.com/DataTreehouse/chrontext#>
     PREFIX ex:<https://example.com/>
     SELECT ?var1 ?var2 ?val3 WHERE {
         ?var1 a ?var2 .
@@ -431,7 +431,7 @@ fn test_property_path_expression() {
         }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
@@ -441,14 +441,14 @@ fn test_property_path_expression() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_resource_0 ?ts_resource_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
-     ?blank_replacement_0 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-     ?blank_replacement_0 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-     ?blank_replacement_0 <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-     ?var1 <https://github.com/magbak/chrontext#hasTimeseries> ?blank_replacement_0 .
-     ?blank_replacement_1 <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_1 .
-     ?blank_replacement_1 <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_1 .
-     ?blank_replacement_1 <https://github.com/magbak/chrontext#hasResource> ?ts_resource_1 .
-     ?var2 <https://github.com/magbak/chrontext#hasTimeseries> ?blank_replacement_1 . }
+     ?blank_replacement_0 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+     ?blank_replacement_0 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+     ?blank_replacement_0 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+     ?var1 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?blank_replacement_0 .
+     ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .
+     ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 .
+     ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 .
+     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?blank_replacement_1 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     let expected_time_series_queries = vec![
@@ -541,7 +541,7 @@ fn test_property_path_expression() {
 fn test_having_query() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
@@ -560,7 +560,7 @@ fn test_having_query() {
     HAVING (SUM(?v) > 1000)
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -573,7 +573,7 @@ fn test_having_query() {
             PathEntry::GroupInner,
         ]))
         .unwrap();
-    let expected_groupby_str = r#"SELECT ?s ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?w WHERE { ?w <http://example.org/types#hasSensor> ?s .?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0. ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_groupby_str = r#"SELECT ?s ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?w WHERE { ?w <http://example.org/types#hasSensor> ?s .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0. ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .?s <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }"#;
     let expected_groupby_query = Query::parse(expected_groupby_str, None).unwrap();
     assert_eq!(static_groupby_rewrite, &expected_groupby_query);
     //println!("{}", static_rewrite);
@@ -583,7 +583,7 @@ fn test_having_query() {
 fn test_exists_query() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
@@ -596,7 +596,7 @@ fn test_exists_query() {
     }
     "#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -619,7 +619,7 @@ fn test_exists_query() {
             PathEntry::Exists,
         ]))
         .unwrap();
-    let expected_expr_str = r#"SELECT ?s ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE { ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 . ?s <https://github.com/magbak/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_expr_str = r#"SELECT ?s ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE { ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . ?s <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }"#;
     let expected_expr_query = Query::parse(expected_expr_str, None).unwrap();
     assert_eq!(static_expr_rewrite, &expected_expr_query);
     //println!("{}", static_rewrite);
@@ -629,11 +629,11 @@ fn test_exists_query() {
 fn test_filter_lost_bug() {
     let sparql = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX ct:<https://github.com/magbak/chrontext#>
-    PREFIX wp:<https://github.com/magbak/chrontext/windpower_example#>
+    PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX wp:<https://github.com/DataTreehouse/chrontext/windpower_example#>
     PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
     PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rds:<https://github.com/magbak/chrontext/rds_power#>
+    PREFIX rds:<https://github.com/DataTreehouse/chrontext/rds_power#>
     SELECT ?site_label ?wtur_label ?ts ?val ?t WHERE {
     ?site a rds:Site .
     ?site rdfs:label ?site_label .
@@ -650,7 +650,7 @@ fn test_filter_lost_bug() {
     FILTER(?wtur_label = "A1" && ?t > "2022-06-17T08:46:53"^^xsd:dateTime) .
 }"#;
     let parsed = parse_sparql_select_query(sparql).unwrap();
-    let mut preprocessor = Preprocessor::new(DatabaseType::InMemory);
+    let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
     let (static_rewrites_map, _, _) = rewriter.rewrite_query(preprocessed_query);
@@ -658,17 +658,17 @@ fn test_filter_lost_bug() {
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
     SELECT ?site_label ?wtur_label ?ts ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
-    ?site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://github.com/magbak/chrontext/rds_power#Site> .
+    ?site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://github.com/DataTreehouse/chrontext/rds_power#Site> .
     ?site <http://www.w3.org/2000/01/rdf-schema#label> ?site_label .
-    ?site <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspect> ?wtur_asp .
+    ?site <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspect> ?wtur_asp .
     ?wtur_asp <http://www.w3.org/2000/01/rdf-schema#label> ?wtur_label .
-    ?wtur <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspectNode> ?wtur_asp .
-    ?wtur <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspect> ?gensys_asp .
-    ?gensys <https://github.com/magbak/chrontext/rds_power#hasFunctionalAspectNode> ?gensys_asp .
-    ?ts <https://github.com/magbak/chrontext#hasExternalId> ?ts_external_id_0 .
-    ?ts <https://github.com/magbak/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?ts <https://github.com/magbak/chrontext#hasResource> ?ts_resource_0 .
-    ?gensys <https://github.com/magbak/chrontext#hasTimeseries> ?ts .
+    ?wtur <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspectNode> ?wtur_asp .
+    ?wtur <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspect> ?gensys_asp .
+    ?gensys <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspectNode> ?gensys_asp .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
+    ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
+    ?gensys <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
     ?ts <http://www.w3.org/2000/01/rdf-schema#label> "Production" .
     FILTER((?wtur_label = "A1"))
     }"#;

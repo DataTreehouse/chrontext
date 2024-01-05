@@ -1,6 +1,6 @@
 PREFIX case: <http://example.org/case#>
 PREFIX types: <http://example.org/types#>
-PREFIX chrontext: <https://github.com/magbak/chrontext#>
+PREFIX chrontext: <https://github.com/DataTreehouse/chrontext#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 INSERT DATA {

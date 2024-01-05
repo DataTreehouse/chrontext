@@ -4,7 +4,7 @@ use crate::combiner::CombinerError;
 use crate::constants::NEST;
 use crate::query_context::{Context, PathEntry};
 use oxrdf::Variable;
-use polars::prelude::{col, DataType, Expr, GetOutput, IntoSeries};
+use polars::prelude::{col, DataType, Expr, GetOutput, IntoSeries, str_concat};
 use spargebra::algebra::AggregateExpression;
 
 impl Combiner {
@@ -147,29 +147,30 @@ impl Combiner {
                 };
                 if *distinct {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8)
+                        .cast(DataType::String)
                         .list()
                         .0
                         .apply(
                             move |s| {
                                 Ok(Some(
+                                    str_concat(
                                     s.unique_stable()
-                                        .expect("Unique stable error")
-                                        .str_concat(use_sep.as_str())
-                                        .into_series(),
+                                        .expect("Unique stable error").str().unwrap(),
+                                        use_sep.as_str(),
+                                        false).into(),
                                 ))
                             },
-                            GetOutput::from_type(DataType::Utf8),
+                            GetOutput::from_type(DataType::String),
                         )
                         .first();
                 } else {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8)
+                        .cast(DataType::String)
                         .list()
                         .0
                         .apply(
-                            move |s| Ok(Some(s.str_concat(use_sep.as_str()).into_series())),
-                            GetOutput::from_type(DataType::Utf8),
+                            move |s| Ok(Some(str_concat(&s.str().unwrap(), use_sep.as_str(), false).into_series())),
+                            GetOutput::from_type(DataType::String),
                         )
                         .first();
                 }

@@ -10,9 +10,8 @@ use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
 use oxrdf::Variable;
-use polars::prelude::DataFrameJoinOps;
-use polars::prelude::IntoLazy;
-use polars_core::prelude::{JoinArgs, JoinType, UniqueKeepStrategy};
+use polars::prelude::{DataFrameJoinOps, JoinArgs, JoinType, IntoLazy};
+use polars_core::prelude::{UniqueKeepStrategy};
 use polars_core::series::Series;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 

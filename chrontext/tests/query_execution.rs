@@ -37,7 +37,7 @@ fn testdata_path() -> PathBuf {
     let mut testdata_path = PathBuf::new();
     testdata_path.push(manidir);
     testdata_path.push("tests");
-    testdata_path.push("query_execution_testdata");
+    testdata_path.push("query_execution");
     testdata_path
 }
 
@@ -92,7 +92,7 @@ async fn test_static_query(#[future] with_testdata: (), use_logger: ()) {
     let _ = with_testdata.await;
     let query = parse_sparql_select_query(
         r#"
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     SELECT * WHERE {?a chrontext:hasTimeseries ?b }
     "#,
     )
@@ -141,7 +141,7 @@ async fn test_simple_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s ?t ?v WHERE {
         ?w a types:BigWidget .
@@ -187,7 +187,7 @@ async fn test_complex_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w1 ?w2 ?t ?v1 ?v2 WHERE {
         ?w1 a types:BigWidget .
@@ -239,7 +239,7 @@ async fn test_pushdown_group_by_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
@@ -288,7 +288,7 @@ async fn test_pushdown_group_by_second_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
@@ -343,7 +343,7 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (CONCAT(?year, "-", ?month, "-", ?day, "-", ?hour, "-", ?minute, "-", (?second_5*5)) as ?period) (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
@@ -399,7 +399,7 @@ async fn test_union_of_two_groupby_queries(
     let _ = with_testdata.await;
     let query = r#"
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-PREFIX chrontext:<https://github.com/magbak/chrontext#>
+PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
 PREFIX types:<http://example.org/types#>
 SELECT ?w ?second_5 ?kind ?sum_v WHERE {
   {
@@ -473,7 +473,7 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?seconds_5 (GROUP_CONCAT(?v ; separator="-") as ?cc) WHERE {
         ?w types:hasSensor ?s .
@@ -523,7 +523,7 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?seconds_3 (AVG(?v) as ?mean) WHERE {
         ?w types:hasSensor ?s .
@@ -573,7 +573,7 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
@@ -623,7 +623,7 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
@@ -676,7 +676,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?s WHERE {
         ?w types:hasSensor ?s .
@@ -729,7 +729,7 @@ async fn test_path_group_by_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (MAX(?v) as ?max_v) WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint/chrontext:hasValue ?v .}
@@ -770,7 +770,7 @@ async fn test_optional_clause_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v ?greater WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
@@ -819,7 +819,7 @@ async fn test_minus_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
@@ -868,7 +868,7 @@ async fn test_in_expression_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
@@ -910,7 +910,7 @@ async fn test_values_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
@@ -958,7 +958,7 @@ async fn test_if_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w (IF(?v>300,?v,300) as ?v_with_min) WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
@@ -1004,7 +1004,7 @@ async fn test_distinct_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT DISTINCT ?w (IF(?v>300,?v,300) as ?v_with_min) WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
@@ -1049,7 +1049,7 @@ async fn test_union_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
         { ?w a types:BigWidget .
@@ -1104,7 +1104,7 @@ async fn test_coalesce_query(
     let _ = with_testdata.await;
     let query = r#"
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX chrontext:<https://github.com/magbak/chrontext#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?s1 ?t1 ?v1 ?v2 (COALESCE(?v2, ?v1) as ?c) WHERE {
         ?s1 chrontext:hasTimeseries/chrontext:hasDataPoint ?dp1 .
