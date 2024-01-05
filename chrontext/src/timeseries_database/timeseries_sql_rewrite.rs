@@ -316,7 +316,6 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         }
 
         let mut static_select = Query::select();
-        let mapping_values_alias = "mapping";
         match &self.database_type {
             DatabaseType::BigQuery => {
                 static_select.columns([
