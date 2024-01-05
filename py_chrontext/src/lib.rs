@@ -51,7 +51,6 @@ use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraph;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::sparql_database::SparqlQueryable;
-use chrontext::timeseries_database::timeseries_dremio_database::TimeseriesDremioDatabase as RustTimeseriesDremioDatabase;
 use chrontext::timeseries_database::timeseries_bigquery_database::TimeseriesBigQueryDatabase as RustBigQueryDatabase;
 use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADatabase as RustOPCUAHistoryRead;
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable as RustTimeseriesTable;
@@ -60,7 +59,7 @@ use log::debug;
 use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
 use pyo3::prelude::*;
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::{Builder};
 
 const TTL_FILE_METADATA:&str = "ttl_file_data.txt";
 
@@ -68,7 +67,6 @@ const TTL_FILE_METADATA:&str = "ttl_file_data.txt";
 pub struct Engine {
     timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
     timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
-    timeseries_dremio_db: Option<TimeseriesDremioDatabase>,
     engine: Option<RustEngine>,
     sparql_endpoint: Option<String>,
     sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
@@ -85,14 +83,12 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
     pub fn new(
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
-        timeseries_dremio_db: Option<TimeseriesDremioDatabase>,
         timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
         timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
     ) -> PyResult<Engine> {
         let num_sparql =
             sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
-        let num_ts = timeseries_dremio_db.is_some() as usize
-            + timeseries_bigquery_db.is_some() as usize
+        let num_ts = timeseries_bigquery_db.is_some() as usize
             + timeseries_opcua_db.is_some() as usize;
 
         if num_sparql == 0 {
@@ -109,11 +105,10 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             return Err(PyQueryError::MultipleTimeseriesDatabases.into());
         }
 
-        let mut engine = Engine {
+        let engine = Engine {
             engine: None,
             sparql_endpoint,
             sparql_embedded_oxigraph,
-            timeseries_dremio_db,
             timeseries_bigquery_db,
             timeseries_opcua_db,
         };
@@ -125,8 +120,6 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
             create_opcua_history_read(&db.clone())?
         } else if let Some(db) = &self.timeseries_bigquery_db {
             create_bigquery_database(&db.clone())?
-        } else if let Some(db) = &self.timeseries_dremio_db {
-            create_arrow_flight_sql(&db.clone())?
         } else {
             return Err(PyQueryError::MissingTimeseriesDatabaseError.into());
         };
@@ -209,36 +202,6 @@ impl SparqlEmbeddedOxigraph {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct TimeseriesDremioDatabase {
-    host: String,
-    port: u16,
-    username: String,
-    password: String,
-    tables: Vec<TimeseriesTable>,
-}
-
-#[pymethods]
-impl TimeseriesDremioDatabase {
-    #[new]
-    pub fn new(
-        host: String,
-        port: u16,
-        username: String,
-        password: String,
-        tables: Vec<TimeseriesTable>,
-    ) -> TimeseriesDremioDatabase {
-        TimeseriesDremioDatabase {
-            username,
-            password,
-            host,
-            port,
-            tables,
-        }
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
 pub struct TimeseriesBigQueryDatabase {
     tables: Vec<TimeseriesTable>,
     key: String,
@@ -268,27 +231,6 @@ impl TimeseriesOPCUADatabase {
             endpoint,
         }
     }
-}
-
-pub fn create_arrow_flight_sql(
-    db: &TimeseriesDremioDatabase,
-) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeseriesQueryable>)> {
-    let endpoint = format!("http://{}:{}", &db.host, &db.port);
-    let mut new_tables = vec![];
-    for t in &db.tables {
-        new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
-    }
-
-    let afsqldb_result = Runtime::new()
-        .unwrap()
-        .block_on(RustTimeseriesDremioDatabase::new(
-            &endpoint,
-            &db.username,
-            &db.password,
-            new_tables,
-        ));
-    let db = afsqldb_result.map_err(PyQueryError::from)?;
-    Ok((all_pushdowns(), Box::new(db)))
 }
 
 pub fn create_bigquery_database(
@@ -438,7 +380,6 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<Engine>()?;
     m.add_class::<TimeseriesTable>()?;
-    m.add_class::<TimeseriesDremioDatabase>()?;
     m.add_class::<TimeseriesBigQueryDatabase>()?;
     m.add_class::<TimeseriesOPCUADatabase>()?;
     m.add_class::<SparqlEmbeddedOxigraph>()?;

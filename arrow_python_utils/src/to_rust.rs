@@ -22,7 +22,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use polars_core::error::{ArrowError, PolarsError};
+use polars_core::error::{PolarsError};
 use polars_core::prelude::{ArrayRef, ArrowDataType, DataFrame, Series};
 use polars_core::utils::accumulate_dataframes_vertical;
 use polars_core::utils::arrow::ffi;
@@ -30,8 +30,6 @@ use polars_core::utils::rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, ParallelIterator,
 };
 use polars_core::POOL;
-use pyo3::create_exception;
-use pyo3::exceptions::PyException;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::ffi::Py_uintptr_t;
 use pyo3::prelude::*;
@@ -40,8 +38,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ToRustError {
-    #[error(transparent)]
-    Arrow(#[from] ArrowError),
     #[error(transparent)]
     Other(SimpleError),
     #[error(transparent)]
@@ -98,7 +94,7 @@ pub fn array_to_rust_df(rb: &[&PyAny]) -> PyResult<DataFrame> {
                     let arr = array_to_rust(array)?;
                     run_parallel |= matches!(
                         arr.data_type(),
-                        ArrowDataType::String | ArrowDataType::Dictionary(_, _, _)
+                        ArrowDataType::Utf8 | ArrowDataType::Dictionary(_, _, _)
                     );
                     Ok(arr)
                 })
@@ -143,10 +139,14 @@ impl std::convert::From<ToRustError> for PyErr {
         let default = || PyRuntimeError::new_err(format!("{:?}", &err));
 
         match &err {
-            ToRustError::Arrow(err) => ArrowErrorException::new_err(format!("{:?}", err)),
+            //ToRustError::Arrow(err) => ArrowErrorException::new_err(format!("{:?}", err)),
             _ => default(),
         }
     }
 }
 
-create_exception!(exceptions, ArrowErrorException, PyException);
+//create_exception!(exceptions, ArrowErrorException, PyException);
+
+//
+//#[error(transparent)]
+//Arrow(#[from] ArrowError),
