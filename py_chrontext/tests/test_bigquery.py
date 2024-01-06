@@ -10,6 +10,7 @@ dotenv.load_dotenv("bq.env")
 SCHEMA = os.getenv("SCHEMA")
 BIGQUERY_CONN = os.getenv("BIGQUERY_CONN")
 print(BIGQUERY_CONN)
+skip = SCHEMA is None
 
 
 @pytest.fixture(scope="function")
@@ -46,6 +47,7 @@ def engine(tables):
     return engine
 
 
+@pytest.mark.skipif(skip)
 @pytest.mark.order(1)
 def test_all_timeseries(engine):
     res = engine.query("""
@@ -66,6 +68,7 @@ def test_all_timeseries(engine):
     assert res.df.height == 25
 
 
+@pytest.mark.skipif(skip)
 @pytest.mark.order(2)
 def test_get_all_inverters(engine):
     res = engine.query("""
@@ -85,6 +88,7 @@ def test_get_all_inverters(engine):
     assert res.df.height == 50
 
 
+@pytest.mark.skipif(skip)
 @pytest.mark.order(3)
 def test_get_inverter_dckw(engine):
     res = engine.query("""
@@ -124,6 +128,7 @@ def test_get_inverter_dckw(engine):
     assert res.df.height == 51900
 
 
+@pytest.mark.skipif(skip)
 @pytest.mark.order(4)
 def test_get_inverter_dckw_sugar(engine):
     res = engine.query("""
