@@ -79,10 +79,10 @@ impl Combiner {
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {
-            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None, Default::default())));
+            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None)));
             solution_mappings.mappings = solution_mappings
                 .mappings
-                .with_column(col(cat_col).cast(DataType::Categorical(None, Default::default())));
+                .with_column(col(cat_col).cast(DataType::Categorical(None)));
         }
 
         let on_reverse_false = vec![false].repeat(on_cols.len());

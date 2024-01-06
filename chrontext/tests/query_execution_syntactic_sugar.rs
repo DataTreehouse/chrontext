@@ -4,20 +4,17 @@ use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::sparql_database::SparqlQueryable;
-use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
-use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{CsvReader, CsvWriter, SerReader, SerWriter};
+use polars::prelude::{CsvReader, SerReader, SerWriter};
 use rstest::*;
 use serial_test::serial;
-use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
 use crate::common::{
-    add_sparql_testdata, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
+    add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT,
 };
 
 #[fixture]

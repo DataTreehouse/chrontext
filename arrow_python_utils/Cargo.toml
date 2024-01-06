@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 pyo3 = {version = "0.19.2", features = ["extension-module"]}
-polars-core = {version="0.36.2"}
+polars-core = {version="0.35.4"}
 thiserror="1.0.31"
 simple-error = "0.3.0"

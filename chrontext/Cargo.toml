@@ -4,7 +4,7 @@ version = "0.4.0"
 edition = "2021"
 
 [dependencies]
-polars = {version="0.36.2", features=["lazy", "concat_str", "random", "unique_counts", "group_by_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
+polars = {version="0.35.4", features=["lazy", "concat_str", "unique_counts", "group_by_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
 tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
 log = "0.4.17"
 spargebra = { git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"]}
@@ -14,7 +14,7 @@ reqwest= {version="0.11.23", features=["stream"]}
 env_logger = "0.10.0"
 tonic = "0.10.2"
 thiserror = "1.0.31"
-polars-core = "0.36.2"
+polars-core = "0.35.4"
 sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
 async-trait = "0.1.68"
 base64 = "0.21.3"
@@ -29,7 +29,7 @@ chrono = {version = "0.4.31", features = ["clock"]}
 [dev-dependencies]
 bollard = "0.15.0"
 rstest = "0.18.2"
-polars = {version="0.36.2", features=["lazy", "random", "unique_counts", "group_by_list"]}
+polars = {version="0.35.4", features=["lazy", "unique_counts", "group_by_list"]}
 tokio = {version="1.18.2", features=["rt-multi-thread"]}
 serial_test = "2.0.0"
 futures-util = "0.3.21"

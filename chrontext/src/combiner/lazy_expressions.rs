@@ -959,7 +959,7 @@ impl Combiner {
                             output_solution_mappings.mappings =
                                 output_solution_mappings.mappings.with_column(
                                     col(&first_context.as_str())
-                                        .cast(DataType::String)
+                                        .cast(DataType::Utf8)
                                         .alias(context.as_str()),
                                 );
                         } else if iri == DATETIME_AS_NANOS {

@@ -233,7 +233,7 @@ fn any_to_ground_term(
     match any {
         AnyValue::Null => None,
         AnyValue::Boolean(b) => Some(GroundTerm::Literal(Literal::from(b))),
-        AnyValue::String(s) => {
+        AnyValue::Utf8(s) => {
             if datatype_nnref == &xsd::STRING {
                 Some(GroundTerm::Literal(Literal::new_simple_literal(s)))
             } else {
@@ -274,7 +274,7 @@ fn any_to_ground_term(
         AnyValue::List(_) => {
             todo!("No support for list yet")
         }
-        AnyValue::StringOwned(s) => {
+        AnyValue::Utf8Owned(s) => {
             if datatype_nnref == &xsd::STRING {
                 Some(GroundTerm::Literal(Literal::new_simple_literal(s)))
             } else {

@@ -109,10 +109,10 @@ impl Combiner {
             for c in join_on {
                 if is_string_col(right_datatypes.get(c).unwrap()) {
                     right_mappings =
-                        right_mappings.with_column(col(c).cast(DataType::Categorical(None, Default::default())));
+                        right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
                     left_solution_mappings.mappings = left_solution_mappings
                         .mappings
-                        .with_column(col(c).cast(DataType::Categorical(None, Default::default())));
+                        .with_column(col(c).cast(DataType::Categorical(None)));
                 }
             }
             let all_false = [false].repeat(join_on_cols.len());

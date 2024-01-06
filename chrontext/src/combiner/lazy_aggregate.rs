@@ -147,7 +147,7 @@ impl Combiner {
                 };
                 if *distinct {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::String)
+                        .cast(DataType::Utf8)
                         .list()
                         .0
                         .apply(
@@ -155,22 +155,22 @@ impl Combiner {
                                 Ok(Some(
                                     str_concat(
                                     s.unique_stable()
-                                        .expect("Unique stable error").str().unwrap(),
+                                        .expect("Unique stable error").utf8().unwrap(),
                                         use_sep.as_str(),
                                         false).into(),
                                 ))
                             },
-                            GetOutput::from_type(DataType::String),
+                            GetOutput::from_type(DataType::Utf8),
                         )
                         .first();
                 } else {
                     out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::String)
+                        .cast(DataType::Utf8)
                         .list()
                         .0
                         .apply(
-                            move |s| Ok(Some(str_concat(&s.str().unwrap(), use_sep.as_str(), false).into_series())),
-                            GetOutput::from_type(DataType::String),
+                            move |s| Ok(Some(str_concat(&s.utf8().unwrap(), use_sep.as_str(), false).into_series())),
+                            GetOutput::from_type(DataType::Utf8),
                         )
                         .first();
                 }

@@ -6,7 +6,9 @@ use sea_query::{BinOper, ColumnRef, SimpleExpr, UnOper, Value};
 use sea_query::{Expr as SeaExpr, Func};
 use spargebra::algebra::Expression;
 
-use crate::constants::{DATETIME_AS_SECONDS, SECONDS_AS_DATETIME};
+use crate::constants::{
+    DATETIME_AS_SECONDS, FLOOR_DATETIME_TO_SECONDS_INTERVAL, SECONDS_AS_DATETIME,
+};
 use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeseriesQueryToSQLError};
 use crate::timeseries_database::DatabaseType;
 
@@ -205,13 +207,13 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     }
                 }
                 spargebra::algebra::Function::Custom(c) => {
-                    let e = expressions.first().unwrap();
-                    let mapped_e = self.sparql_expression_to_sql_expression(e)?;
+                    let e1 = expressions.first().unwrap();
+                    let mapped_e1 = self.sparql_expression_to_sql_expression(e1)?;
                     if c.as_str() == DATETIME_AS_SECONDS {
                         match self.database_type {
                             DatabaseType::BigQuery => SimpleExpr::FunctionCall(
                                 Func::cust(Name::Function("UNIX_SECONDS".to_string()).into_iden())
-                                    .args(vec![mapped_e]),
+                                    .args(vec![mapped_e1]),
                             ),
                             _ => {
                                 panic!("Should never happen")
@@ -223,8 +225,41 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                                 Func::cust(
                                     Name::Function("TIMESTAMP_SECONDS".to_string()).into_iden(),
                                 )
-                                .args(vec![mapped_e]),
+                                .args(vec![mapped_e1]),
                             ),
+                            _ => {
+                                unimplemented!()
+                            }
+                        }
+                    } else if c.as_str() == FLOOR_DATETIME_TO_SECONDS_INTERVAL {
+                        match self.database_type {
+                            DatabaseType::BigQuery => {
+                                let first_as_seconds = SimpleExpr::FunctionCall(
+                                    Func::cust(
+                                        Name::Function("UNIX_SECONDS".to_string()).into_iden(),
+                                    )
+                                    .args(vec![mapped_e1]),
+                                );
+                                let e2 = expressions.first().unwrap();
+                                let mapped_e2 = self.sparql_expression_to_sql_expression(e2)?;
+                                let first_as_seconds_modulus = SimpleExpr::Binary(
+                                    Box::new(first_as_seconds.clone()),
+                                    BinOper::Mod,
+                                    Box::new(mapped_e2),
+                                );
+                                SimpleExpr::FunctionCall(
+                                    Func::cust(
+                                        Name::Function("TIMESTAMP_SECONDS".to_string()).into_iden(),
+                                    )
+                                    .args(vec![
+                                        SimpleExpr::Binary(
+                                            Box::new(first_as_seconds.clone()),
+                                            BinOper::Sub,
+                                            Box::new(first_as_seconds_modulus),
+                                        ),
+                                    ]),
+                                )
+                            }
                             _ => {
                                 unimplemented!()
                             }
@@ -232,7 +267,7 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                     } else if c.as_str() == xsd::INTEGER.as_str() {
                         SimpleExpr::AsEnum(
                             Name::Table("INTEGER".to_string()).into_iden(),
-                            Box::new(mapped_e),
+                            Box::new(mapped_e1),
                         )
                     } else {
                         todo!("Fix custom {}", c)
