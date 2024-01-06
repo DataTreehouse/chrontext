@@ -14,24 +14,31 @@ impl TimeseriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        if try_groupby_complex_query {
-            debug!("Encountered graph inside join, not supported for complex groupby pushdown");
-            return GPPrepReturn::fail_groupby_complex_query();
-        } else {
-            let mut left_prepare = self.prepare_graph_pattern(
+        let mut left_prepare = self.prepare_graph_pattern(
                 left,
                 try_groupby_complex_query,
                 solution_mappings,
                 &context.extension_with(PathEntry::JoinLeftSide),
             );
-            let right_prepare = self.prepare_graph_pattern(
-                right,
-                try_groupby_complex_query,
-                solution_mappings,
-                &context.extension_with(PathEntry::JoinRightSide),
-            );
-            left_prepare.with_time_series_queries_from(right_prepare);
-            left_prepare
+        if left_prepare.fail_groupby_complex_query {
+            return left_prepare
         }
+
+        let right_prepare = self.prepare_graph_pattern(
+            right,
+            try_groupby_complex_query,
+            solution_mappings,
+            &context.extension_with(PathEntry::JoinRightSide),
+        );
+        if right_prepare.fail_groupby_complex_query {
+            return right_prepare
+        }
+
+        left_prepare.with_time_series_queries_from(right_prepare);
+        if try_groupby_complex_query && left_prepare.time_series_queries.len() > 1 {
+            return GPPrepReturn::fail_groupby_complex_query()
+            //TODO: Fix synchronized queries
+        }
+        left_prepare
     }
 }

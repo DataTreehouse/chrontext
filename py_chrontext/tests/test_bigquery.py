@@ -47,7 +47,7 @@ def engine(tables):
     return engine
 
 
-@pytest.mark.skipif(skip)
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(1)
 def test_all_timeseries(engine):
     res = engine.query("""
@@ -68,7 +68,7 @@ def test_all_timeseries(engine):
     assert res.df.height == 25
 
 
-@pytest.mark.skipif(skip)
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(2)
 def test_get_all_inverters(engine):
     res = engine.query("""
@@ -88,7 +88,7 @@ def test_get_all_inverters(engine):
     assert res.df.height == 50
 
 
-@pytest.mark.skipif(skip)
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(3)
 def test_get_inverter_dckw(engine):
     res = engine.query("""
@@ -128,7 +128,7 @@ def test_get_inverter_dckw(engine):
     assert res.df.height == 51900
 
 
-@pytest.mark.skipif(skip)
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(4)
 def test_get_inverter_dckw_sugar(engine):
     res = engine.query("""
@@ -157,6 +157,33 @@ def test_get_inverter_dckw_sugar(engine):
                 aggregation = "avg" }
             }
         ORDER BY ?block_code ?gen_code ?inv_code ?t
+        """)
+    print(res.df)
+    assert res.df.height == 51900
+
+@pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(4)
+def test_get_inverter_dckw_sugar_path(engine):
+    res = engine.query("""
+        PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+        PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+        PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+        SELECT ?path WHERE {
+            ?site a rds:Site .
+            ?site rdfs:label "Metropolis" .
+            ?site rds:functionalAspect+ ?inv .
+            ?inv a rds:TBB .
+            ?inv rds:path ?path .
+            ?inv ct:hasTimeseries ?ts_pow .
+            DT {
+                timestamp= ?t,
+                labels= (?ts_pow:"InvPDC_kW"),
+                interval= "10m",
+                from= "2018-12-25T00:00:00Z",
+                aggregation = "avg" }
+            }
+        ORDER BY ?path ?t
         """)
     print(res.df)
     assert res.df.height == 51900

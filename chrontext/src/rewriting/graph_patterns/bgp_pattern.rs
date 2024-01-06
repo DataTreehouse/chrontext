@@ -25,20 +25,15 @@ impl StaticQueryRewriter {
         let mut external_ids_in_scope = HashMap::new();
         let mut new_basic_tsqs = vec![];
         for t in patterns {
-            //If the object is an external timeseries, we need to do get the external id
-            if let TermPattern::Variable(object_var) = &t.object {
-                let obj_constr_opt = self
-                    .variable_constraints
-                    .get_constraint(object_var, &context)
-                    .cloned();
-                if let Some(obj_constr) = &obj_constr_opt {
-                    if obj_constr == &Constraint::ExternalTimeseries {
-                        if !external_ids_in_scope.contains_key(object_var) {
+            if let NamedNodePattern::NamedNode(nn) = &t.predicate {
+                if nn.as_str() == HAS_DATA_POINT {
+                    if let TermPattern::Variable(ts_var) = &t.subject {
+                        if !external_ids_in_scope.contains_key(ts_var) {
                             let external_id_var = Variable::new(
                                 "ts_external_id_".to_string()
                                     + self.variable_counter.to_string().as_str(),
                             )
-                            .unwrap();
+                                .unwrap();
 
                             let datatype_var = Variable::new_unchecked(format!(
                                 "ts_datatype_{}",
@@ -52,7 +47,7 @@ impl StaticQueryRewriter {
                             self.variable_counter += 1;
 
                             let btsq = self.create_basic_time_series_query(
-                                &object_var,
+                                &ts_var,
                                 &external_id_var,
                                 &datatype_var,
                                 &resource_var,
@@ -60,21 +55,21 @@ impl StaticQueryRewriter {
                             );
                             new_basic_tsqs.push(btsq);
                             let new_external_id_triple = TriplePattern {
-                                subject: t.object.clone(),
+                                subject: TermPattern::Variable(ts_var.clone()),
                                 predicate: NamedNodePattern::NamedNode(
                                     NamedNode::new(HAS_EXTERNAL_ID).unwrap(),
                                 ),
                                 object: TermPattern::Variable(external_id_var.clone()),
                             };
                             let new_datatype_triple = TriplePattern {
-                                subject: t.object.clone(),
+                                subject: TermPattern::Variable(ts_var.clone()),
                                 predicate: NamedNodePattern::NamedNode(
                                     NamedNode::new(HAS_DATATYPE).unwrap(),
                                 ),
                                 object: TermPattern::Variable(datatype_var.clone()),
                             };
                             let new_resource_triple = TriplePattern {
-                                subject: t.object.clone(),
+                                subject: TermPattern::Variable(ts_var.clone()),
                                 predicate: NamedNodePattern::NamedNode(NamedNode::new_unchecked(
                                     HAS_RESOURCE,
                                 )),
@@ -84,32 +79,14 @@ impl StaticQueryRewriter {
                             new_triples.push(new_datatype_triple);
                             new_triples.push(new_resource_triple);
                             external_ids_in_scope
-                                .insert(object_var.clone(), vec![external_id_var.clone()]);
+                                .insert(ts_var.clone(), vec![external_id_var.clone()]);
                             datatypes_in_scope
-                                .insert(object_var.clone(), vec![datatype_var.clone()]);
+                                .insert(ts_var.clone(), vec![datatype_var.clone()]);
                             resources_in_scope
-                                .insert(object_var.clone(), vec![resource_var.clone()]);
+                                .insert(ts_var.clone(), vec![resource_var.clone()]);
                         }
                     }
                 }
-            }
-
-            fn is_external_variable(
-                term_pattern: &TermPattern,
-                context: &Context,
-                variable_constraints: &VariableConstraints,
-            ) -> bool {
-                if let TermPattern::Variable(var) = term_pattern {
-                    if let Some(ctr) = variable_constraints.get_constraint(var, context) {
-                        if ctr == &Constraint::ExternalDataPoint
-                            || ctr == &Constraint::ExternalTimestamp
-                            || ctr == &Constraint::ExternalDataValue
-                        {
-                            return true;
-                        }
-                    }
-                }
-                false
             }
 
             if !is_external_variable(&t.subject, &context, &self.variable_constraints)
@@ -257,4 +234,22 @@ fn process_dynamic_triples(
             }
         }
     }
+}
+
+fn is_external_variable(
+    term_pattern: &TermPattern,
+    context: &Context,
+    variable_constraints: &VariableConstraints,
+) -> bool {
+    if let TermPattern::Variable(var) = term_pattern {
+        if let Some(ctr) = variable_constraints.get_constraint(var, context) {
+            if ctr == &Constraint::ExternalDataPoint
+                || ctr == &Constraint::ExternalTimestamp
+                || ctr == &Constraint::ExternalDataValue
+            {
+                return true;
+            }
+        }
+    }
+    false
 }
