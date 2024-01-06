@@ -66,8 +66,9 @@ impl TimeseriesQueryPrepper {
         context: &Context,
     ) -> GPPrepReturn {
         debug!(
-            "Preparing TSQ for graph pattern at context {}",
-            context.as_str()
+            "Preparing TSQ for graph pattern at context {}, try group by complex query: {}",
+            context.as_str(),
+            try_groupby_complex_query
         );
         match graph_pattern {
             GraphPattern::Bgp { patterns: _ } => {

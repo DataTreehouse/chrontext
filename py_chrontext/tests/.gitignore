@@ -1,3 +1,6 @@
 history.db
 __pycache__
 pki
+bq.env
+solar.nt
+oxigraph_db

@@ -106,7 +106,7 @@ def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
             ?dp chrontext:hasValue ?v .
             FILTER(?t < "2022-08-17T16:46:53"^^xsd:dateTime && ?v > 150.0) .
         }
-        """)
+        """).df
     expected_csv = TESTDATA_PATH / "expected_simplified_opcua_case.csv"
     #df.write_csv(expected_csv)
     expected_df = pl.read_csv(expected_csv, try_parse_dates=True)

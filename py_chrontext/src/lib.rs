@@ -1,13 +1,13 @@
 pub mod errors;
 
-use std::collections::HashSet;
-use std::fs::{File, read_to_string};
+use filesize::PathExt;
+use std::collections::{HashMap, HashSet};
+use std::fs::{read_to_string, File};
 use std::io::BufReader;
+use std::io::Write;
 use std::path::Path;
 use std::thread;
 use std::time::SystemTime;
-use filesize::PathExt;
-use std::io::Write;
 
 //The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
 //And has a MIT license:
@@ -59,9 +59,18 @@ use log::debug;
 use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
 use pyo3::prelude::*;
-use tokio::runtime::{Builder};
+use tokio::runtime::Builder;
 
-const TTL_FILE_METADATA:&str = "ttl_file_data.txt";
+const TTL_FILE_METADATA: &str = "ttl_file_data.txt";
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct QueryResult {
+    #[pyo3(get)]
+    pub df: PyObject,
+    #[pyo3(get)]
+    pub types: HashMap<String, String>,
+}
 
 #[pyclass(unsendable)]
 pub struct Engine {
@@ -75,11 +84,6 @@ pub struct Engine {
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(text_signature = "(sparql_endpoint: Optional[String],
-sparql_embedded_oxigraph: Optional[SparqlEmbeddedOxigraph],
-timeseries_dremio_db: Optional[TimeseriesDremioDatabase],
-timeseries_bigquery_db: Optional[TimeseriesBigQueryDatabase],
-timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
     pub fn new(
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
@@ -88,8 +92,8 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
     ) -> PyResult<Engine> {
         let num_sparql =
             sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
-        let num_ts = timeseries_bigquery_db.is_some() as usize
-            + timeseries_opcua_db.is_some() as usize;
+        let num_ts =
+            timeseries_bigquery_db.is_some() as usize + timeseries_opcua_db.is_some() as usize;
 
         if num_sparql == 0 {
             return Err(PyQueryError::MissingSPARQLDatabaseError.into());
@@ -160,25 +164,27 @@ timeseries_opcua_db: Optional[TimeseriesOPCUADatabase])")]
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let df_result = builder
+        let (mut df, datatypes) = builder
             .build()
             .unwrap()
-            .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql));
-        match df_result {
-            Ok(mut df) => {
-                let names_vec: Vec<String> = df
-                    .get_column_names()
-                    .into_iter()
-                    .map(|x| x.to_string())
-                    .collect();
-                let names: Vec<&str> = names_vec.iter().map(|x| x.as_str()).collect();
-                let chunk = df.as_single_chunk().iter_chunks().next().unwrap();
-                let pyarrow = PyModule::import(py, "pyarrow")?;
-                let polars = PyModule::import(py, "polars")?;
-                to_py_df(&chunk, names.as_slice(), py, pyarrow, polars)
-            }
-            Err(err) => Err(PyErr::from(PyQueryError::QueryExecutionError(err))),
+            .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
+            .map_err(|err| PyQueryError::QueryExecutionError(err))?;
+
+        let names_vec: Vec<String> = df
+            .get_column_names()
+            .into_iter()
+            .map(|x| x.to_string())
+            .collect();
+        let names: Vec<&str> = names_vec.iter().map(|x| x.as_str()).collect();
+        let chunk = df.as_single_chunk().iter_chunks().next().unwrap();
+        let pyarrow = PyModule::import(py, "pyarrow")?;
+        let polars = PyModule::import(py, "polars")?;
+        let pydf = to_py_df(&chunk, names.as_slice(), py, pyarrow, polars)?;
+        Ok(QueryResult {
+            df: pydf,
+            types: dtypes_map(datatypes),
         }
+        .into_py(py))
     }
 }
 
@@ -262,12 +268,11 @@ fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQuerya
     let store = if let Some(p) = &db.path {
         oxigraph::store::Store::open(Path::new(p))
             .map_err(|x| PyQueryError::OxigraphStorageError(x))?
-
     } else {
         oxigraph::store::Store::new().unwrap()
     };
 
-    let need_read_file = if let Some(p) =  &db.path {
+    let need_read_file = if let Some(p) = &db.path {
         let mut pb = Path::new(p).to_path_buf();
         pb.push(Path::new(TTL_FILE_METADATA));
         let dbdata_path = pb.as_path();
@@ -282,7 +287,8 @@ fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQuerya
     };
 
     if need_read_file {
-        let file = File::open(&db.ntriples_file).map_err(|x| PyQueryError::ReadNTriplesFileError(x))?;
+        let file =
+            File::open(&db.ntriples_file).map_err(|x| PyQueryError::ReadNTriplesFileError(x))?;
         let reader = BufReader::new(file);
         store
             .bulk_loader()
@@ -362,9 +368,14 @@ impl TimeseriesTable {
     }
 }
 
-fn file_metadata_string(p:&Path) -> Result<String, std::io::Error>{
+fn file_metadata_string(p: &Path) -> Result<String, std::io::Error> {
     let size = p.size_on_disk()?;
-    let changed = p.metadata()?.created()?.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+    let changed = p
+        .metadata()?
+        .created()?
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     Ok(format!("{}_{}", size, changed))
 }
 
@@ -379,9 +390,14 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     }
 
     m.add_class::<Engine>()?;
+    m.add_class::<QueryResult>()?;
     m.add_class::<TimeseriesTable>()?;
     m.add_class::<TimeseriesBigQueryDatabase>()?;
     m.add_class::<TimeseriesOPCUADatabase>()?;
     m.add_class::<SparqlEmbeddedOxigraph>()?;
     Ok(())
+}
+
+fn dtypes_map(map: HashMap<String, NamedNode>) -> HashMap<String, String> {
+    map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
 }

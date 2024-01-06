@@ -7,6 +7,7 @@ use crate::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashMap;
+use log::debug;
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_filter(
@@ -23,6 +24,7 @@ impl TimeseriesQueryPrepper {
             solution_mappings,
             &context.extension_with(PathEntry::FilterExpression),
         );
+        debug!("Expression prepare: {:?}", expression_prepare);
         let inner_filter_context = context.extension_with(PathEntry::FilterInner);
         let inner_prepare = self.prepare_graph_pattern(
             inner,

@@ -240,12 +240,11 @@ impl SPARQLToSQLExpressionTransformer<'_> {
                                     )
                                     .args(vec![mapped_e1]),
                                 );
-                                let e2 = expressions.first().unwrap();
+                                let e2 = expressions.get(1).unwrap();
                                 let mapped_e2 = self.sparql_expression_to_sql_expression(e2)?;
-                                let first_as_seconds_modulus = SimpleExpr::Binary(
-                                    Box::new(first_as_seconds.clone()),
-                                    BinOper::Mod,
-                                    Box::new(mapped_e2),
+                                let first_as_seconds_modulus = SimpleExpr::FunctionCall(
+                                    Func::cust(Name::Function("MOD".to_string()).into_iden())
+                                        .args(vec![first_as_seconds.clone(), mapped_e2]),
                                 );
                                 SimpleExpr::FunctionCall(
                                     Func::cust(

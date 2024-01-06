@@ -7,8 +7,10 @@ use crate::splitter::parse_sparql_select_query;
 use crate::timeseries_database::TimeseriesQueryable;
 use log::debug;
 use polars::frame::DataFrame;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use oxrdf::NamedNode;
+use crate::combiner::solution_mapping::SolutionMappings;
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
@@ -37,9 +39,10 @@ impl Engine {
         self.sparql_database.is_some()
     }
 
-    pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<DataFrame, Box<dyn Error>> {
+    pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<(DataFrame, HashMap<String, NamedNode>), Box<dyn Error>> {
         let parsed_query = parse_sparql_select_query(query)?;
-        debug!("Parsed query: {:?}", &parsed_query);
+        debug!("Parsed query: {}", &parsed_query);
+        debug!("Parsed query algebra: {:?}", &parsed_query);
         let mut preprocessor = Preprocessor::new();
         let (preprocessed_query, variable_constraints) = preprocessor.preprocess(&parsed_query);
         debug!("Constraints: {:?}", variable_constraints);
@@ -72,6 +75,8 @@ impl Engine {
         };
         self.time_series_database = Some(combiner.time_series_database);
         self.sparql_database = Some(combiner.sparql_database);
-        Ok(solution_mappings.mappings.collect()?)
+        let SolutionMappings { mappings, columns, datatypes } = solution_mappings;
+
+        Ok((mappings.collect()?, datatypes))
     }
 }

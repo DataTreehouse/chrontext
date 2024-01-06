@@ -132,7 +132,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error")
+        .expect("Hybrid error").0
         .sort(
             vec![
                 "site_label",
@@ -237,7 +237,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error")
+        .expect("Hybrid error").0
         .sort(
             vec![
                 "site_label",

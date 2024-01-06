@@ -108,7 +108,7 @@ async fn test_simple_hybrid_query_sugar(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error");
+        .expect("Hybrid error").0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar.csv");
 
@@ -151,10 +151,10 @@ async fn test_simple_hybrid_query_sugar_timeseries_explicit_link(
         }
     }
     "#;
-    let mut df = engine
+    let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error");
+        .expect("Hybrid error").0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar.csv");
 
@@ -201,7 +201,7 @@ async fn test_simple_hybrid_query_sugar_agg_avg(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").sort(["w", "s", "timestamp"], false, false).unwrap();
+        .expect("Hybrid error").0.sort(["w", "s", "timestamp"], false, false).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar_agg_avg.csv");
 
