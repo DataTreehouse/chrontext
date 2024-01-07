@@ -193,7 +193,7 @@ async fn test_simple_hybrid_query_sugar_agg_avg(
         ?s chrontext:hasTimeseries ?ts .
         DT {
          from = "2022-06-01T08:46:53Z",
-         aggregation = avg,
+         aggregation = "avg",
          interval = "5s",
         }
     }
