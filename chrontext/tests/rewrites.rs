@@ -27,10 +27,10 @@ fn test_simple_query() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
+     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
      ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
      ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
      ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -60,10 +60,10 @@ fn test_filtered_query() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
+     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
      ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
      ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
      ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
       }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -96,10 +96,10 @@ fn test_complex_expression_filter() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
     ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
     FILTER(?pv) }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -132,10 +132,10 @@ fn test_complex_expression_filter_projection() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
     ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
-    ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }
+    ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -168,10 +168,10 @@ fn test_complex_nested_expression_filter() {
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 ?pv WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
     ?var2 <https://example.com/hasPropertyValue> ?pv .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
     ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
      }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -215,7 +215,7 @@ fn test_option_expression_filter_projection() {
         .unwrap();
 
     let expected_left_str = r#"SELECT ?var1 ?var2 WHERE { ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 . }"#;
-    let expected_right_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_right_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . }"#;
 
     let expected_left_query = Query::parse(expected_left_str, None).unwrap();
     assert_eq!(static_rewrite_left, &expected_left_query);
@@ -264,7 +264,7 @@ fn test_union_expression() {
             PathEntry::UnionLeftSide,
         ]))
         .unwrap();
-    let expected_union_left_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . FILTER(!?pv) }"#;
+    let expected_union_left_str = r#"SELECT ?pv ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . FILTER(!?pv) }"#;
     let expected_union_left_query = Query::parse(expected_union_left_str, None).unwrap();
     assert_eq!(static_union_left_rewrite, &expected_union_left_query);
 
@@ -275,7 +275,7 @@ fn test_union_expression() {
             PathEntry::UnionRightSide,
         ]))
         .unwrap();
-    let expected_union_right_str = r#"SELECT ?pv ?ts ?ts_datatype_1 ?ts_external_id_1 ?ts_resource_1 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . FILTER(?pv) }"#;
+    let expected_union_right_str = r#"SELECT ?pv ?ts ?ts_datatype_1 ?ts_external_id_1 ?ts_resource_1 ?var2 WHERE { ?var2 <https://example.com/hasPropertyValue> ?pv .?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 . FILTER(?pv) }"#;
     let expected_union_right_query = Query::parse(expected_union_right_str, None).unwrap();
     assert_eq!(static_union_right_rewrite, &expected_union_right_query);
 
@@ -319,14 +319,14 @@ fn test_bind_expression() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_resource_0 ?ts_resource_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
     ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
+    ?var1 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts1 .
     ?ts1 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
     ?ts1 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
     ?ts1 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-    ?var1 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts1 .
+    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts2 .
     ?ts2 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .
     ?ts2 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 .
-    ?ts2 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 .
-    ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts2 . }
+    ?ts2 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -361,10 +361,10 @@ fn test_fix_dropped_triple() {
     SELECT ?w ?s ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE {
         ?w a types:BigWidget .
         ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
         ?ts chrontext:hasExternalId ?ts_external_id_0 .
         ?ts chrontext:hasDatatype ?ts_datatype_0 .
         ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-        ?s chrontext:hasTimeseries ?ts .
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
@@ -440,14 +440,14 @@ fn test_property_path_expression() {
     let expected_str = r#"
     SELECT ?var1 ?var2 ?ts_datatype_0 ?ts_datatype_1 ?ts_resource_0 ?ts_resource_1 ?ts_external_id_0 ?ts_external_id_1 WHERE {
      ?var1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?var2 .
+     ?var1 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?blank_replacement_0 .
      ?blank_replacement_0 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
      ?blank_replacement_0 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
      ?blank_replacement_0 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-     ?var1 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?blank_replacement_0 .
+     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?blank_replacement_1 .
      ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_1 .
      ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_1 .
-     ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 .
-     ?var2 <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?blank_replacement_1 . }
+     ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
     let expected_time_series_queries = vec![
@@ -572,7 +572,7 @@ fn test_having_query() {
             PathEntry::GroupInner,
         ]))
         .unwrap();
-    let expected_groupby_str = r#"SELECT ?s ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?w WHERE { ?w <http://example.org/types#hasSensor> ?s .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0. ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .?s <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_groupby_str = r#"SELECT ?s ?ts ?ts_datatype_0 ?ts_external_id_0 ?ts_resource_0 ?w WHERE { ?w <http://example.org/types#hasSensor> ?s .?s <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0. ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . }"#;
     let expected_groupby_query = Query::parse(expected_groupby_str, None).unwrap();
     assert_eq!(static_groupby_rewrite, &expected_groupby_query);
     //println!("{}", static_rewrite);
@@ -618,7 +618,7 @@ fn test_exists_query() {
             PathEntry::Exists,
         ]))
         .unwrap();
-    let expected_expr_str = r#"SELECT ?s ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE { ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . ?s <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts . }"#;
+    let expected_expr_str = r#"SELECT ?s ?ts_datatype_0 ?ts_resource_0 ?ts_external_id_0 WHERE { ?s <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 . ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 . }"#;
     let expected_expr_query = Query::parse(expected_expr_str, None).unwrap();
     assert_eq!(static_expr_rewrite, &expected_expr_query);
     //println!("{}", static_rewrite);
@@ -664,11 +664,11 @@ fn test_filter_lost_bug() {
     ?wtur <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspectNode> ?wtur_asp .
     ?wtur <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspect> ?gensys_asp .
     ?gensys <https://github.com/DataTreehouse/chrontext/rds_power#hasFunctionalAspectNode> ?gensys_asp .
+    ?gensys <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
+    ?ts <http://www.w3.org/2000/01/rdf-schema#label> "Production" .
     ?ts <https://github.com/DataTreehouse/chrontext#hasExternalId> ?ts_external_id_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasDatatype> ?ts_datatype_0 .
     ?ts <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_0 .
-    ?gensys <https://github.com/DataTreehouse/chrontext#hasTimeseries> ?ts .
-    ?ts <http://www.w3.org/2000/01/rdf-schema#label> "Production" .
     FILTER((?wtur_label = "A1"))
     }"#;
     let expected_query = Query::parse(expected_str, None).unwrap();
