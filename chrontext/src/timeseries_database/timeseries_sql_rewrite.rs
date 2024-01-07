@@ -217,7 +217,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                 }) {
                     let mut selects = vec![];
                     for s in inner {
-                        selects.push(self.create_query_nested(s, true)?);
+                        selects.push(self.create_query_nested(s, self.partition_support)?);
                     }
                     let groupby_col = tsq.get_groupby_column().unwrap();
                     if let Some(Synchronizer::Identity(timestamp_col)) = &synchronizers.get(0) {
@@ -433,13 +433,16 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         for (i, (s, cols)) in selects_and_timestamp_cols.into_iter().enumerate() {
             let select_name = format!("other_{}", i);
             let mut conditions = vec![];
-            let col_conditions = [
+
+            let mut col_conditions = vec![
                 groupby_col.clone(),
                 timestamp_col.clone(),
-                YEAR_PARTITION_COLUMN_NAME.to_string(),
-                MONTH_PARTITION_COLUMN_NAME.to_string(),
-                DAY_PARTITION_COLUMN_NAME.to_string(),
             ];
+            if self.partition_support {
+                col_conditions.push(YEAR_PARTITION_COLUMN_NAME.to_string());
+                col_conditions.push(MONTH_PARTITION_COLUMN_NAME.to_string());
+                col_conditions.push(DAY_PARTITION_COLUMN_NAME.to_string());
+            }
             for c in col_conditions {
                 conditions.push(
                     SimpleExpr::Column(ColumnRef::TableColumn(

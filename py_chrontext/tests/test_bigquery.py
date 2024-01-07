@@ -187,3 +187,33 @@ def test_get_inverter_dckw_sugar_path(engine):
         """)
     print(res.df)
     assert res.df.height == 51900
+
+
+@pytest.mark.skipif(True, reason="Not working yet.. ")
+@pytest.mark.order(4)
+def test_get_inverter_dckw_sugar_path(engine):
+    res = engine.query("""
+PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+SELECT ?path WHERE {
+    ?site a rds:Site .
+    ?site rdfs:label "Jonathanland" .
+    ?site rds:functionalAspect ?block .
+    ?block a rds:A .
+    ?block ct:hasTimeseries ?ts_irr .
+    ?block rds:functionalAspect+ ?inv .
+    ?inv a rds:TBB .
+    ?inv rds:path ?path .
+    ?inv ct:hasTimeseries ?ts_pow .
+    DT {
+        timestamp= ?t,
+        labels= (?ts_pow:"InvPDC_kW"),(?ts_irr:"RefCell1_Wm2"),
+        interval= "10m",
+        from= "2018-12-25T00:00:00Z",
+        aggregation = "avg" }
+    }
+""")
+    print(res.df)
+    assert res.df.height == 51900
