@@ -63,15 +63,6 @@ use tokio::runtime::Builder;
 
 const TTL_FILE_METADATA: &str = "ttl_file_data.txt";
 
-#[pyclass]
-#[derive(Debug, Clone)]
-pub struct QueryResult {
-    #[pyo3(get)]
-    pub df: PyObject,
-    #[pyo3(get)]
-    pub types: HashMap<String, String>,
-}
-
 #[pyclass(unsendable)]
 pub struct Engine {
     timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
@@ -179,12 +170,8 @@ impl Engine {
         let chunk = df.as_single_chunk().iter_chunks().next().unwrap();
         let pyarrow = PyModule::import(py, "pyarrow")?;
         let polars = PyModule::import(py, "polars")?;
-        let pydf = to_py_df(&chunk, names.as_slice(), py, pyarrow, polars)?;
-        Ok(QueryResult {
-            df: pydf,
-            types: dtypes_map(datatypes),
-        }
-        .into_py(py))
+        let pydf = to_py_df(&chunk, names.as_slice(), py, pyarrow, polars, dtypes_map(datatypes))?;
+        Ok(pydf)
     }
 }
 
@@ -390,7 +377,6 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     }
 
     m.add_class::<Engine>()?;
-    m.add_class::<QueryResult>()?;
     m.add_class::<TimeseriesTable>()?;
     m.add_class::<TimeseriesBigQueryDatabase>()?;
     m.add_class::<TimeseriesOPCUADatabase>()?;

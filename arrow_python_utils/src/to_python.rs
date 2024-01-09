@@ -22,12 +22,58 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::collections::HashMap;
 use polars_core::frame::ArrowChunk;
 use polars_core::prelude::{ArrayRef, ArrowField};
 use polars_core::utils::arrow::ffi;
 use pyo3::ffi::Py_uintptr_t;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
+
+const SEMANTIC_DATAFRAME_CODE:&str = r#"
+from typing import Dict
+from polars import DataFrame
+from polars.datatypes import N_INFER_DEFAULT
+from polars.type_aliases import SchemaDefinition, FrameInitTypes, SchemaDict, Orientation
+
+class SemanticDataFrame(DataFrame):
+    """
+    A Polars DataFrame but with an extra field rdf_datatypes containing the RDF data types of the columns.
+    """
+    def __init__(
+            self,
+            data: FrameInitTypes | None = None,
+            schema: SchemaDefinition | None = None,
+            *,
+            schema_overrides: SchemaDict | None = None,
+            orient: Orientation | None = None,
+            infer_schema_length: int | None = N_INFER_DEFAULT,
+            nan_to_null: bool = False,
+            rdf_datatypes: Dict[str, str]
+    ):
+        """
+        The signature of this method is from Polars, license can be found in the file ../../../LICENSING/POLARS_LICENSE
+        SemanticDataFrames should be instantiated using the SemanticDataFrame.from_df()-method.
+        This method mainly exists as a placeholder to make autocomplete work.
+        """
+        super().__init__(data, schema, schema_overrides=schema_overrides, orient=orient,
+                         infer_schema_length=infer_schema_length, nan_to_null=nan_to_null)
+        self.rdf_datatypes = rdf_datatypes
+
+    @staticmethod
+    def from_df(df: DataFrame, rdf_datatypes: Dict[str, str]) -> "SemanticDataFrame":
+        """
+
+        :param rdf_datatypes:
+        :return:
+        """
+        df.__class__ = SemanticDataFrame
+        df.init_rdf_datatypes(rdf_datatypes)
+        return df
+
+    def init_rdf_datatypes(self, map: Dict[str, str]):
+        self.rdf_datatypes = map
+"#;
 
 /// Arrow array to Python.
 pub(crate) fn to_py_array(array: ArrayRef, py: Python, pyarrow: &PyModule) -> PyResult<PyObject> {
@@ -76,6 +122,7 @@ pub fn to_py_df(
     py: Python,
     pyarrow: &PyModule,
     polars: &PyModule,
+    types: HashMap<String, String>
 ) -> PyResult<PyObject> {
     let py_rb = to_py_rb(rb, names, py, pyarrow)?;
     let py_rb_list = PyList::empty(py);
@@ -85,5 +132,7 @@ pub fn to_py_df(
         .call_method1("from_batches", (py_rb_list,))?;
     let py_table = py_table.to_object(py);
     let df = polars.call_method1("from_arrow", (py_table,))?;
+    let semantic_dataframe = PyModule::from_code(py, SEMANTIC_DATAFRAME_CODE, "semantic_dataframe.py", "semantic_dataframe")?;
+    let df = semantic_dataframe.getattr("SemanticDataFrame")?.getattr("from_df")?.call1((df, types))?;
     Ok(df.to_object(py))
 }

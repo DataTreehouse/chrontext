@@ -50,7 +50,7 @@ def engine(tables):
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(1)
 def test_all_timeseries(engine):
-    res = engine.query("""
+    df = engine.query("""
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
     PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -64,14 +64,13 @@ def test_all_timeseries(engine):
         }
     ORDER BY ASC(?ts_name)
     """)
-    print(res.df)
-    assert res.df.height == 25
-
+    assert df.height == 25
+    assert df.rdf_datatypes == {'ts_description': '<http://www.w3.org/2001/XMLSchema#string>', 'ts_name': '<http://www.w3.org/2001/XMLSchema#string>'}
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(2)
 def test_get_all_inverters(engine):
-    res = engine.query("""
+    df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -84,14 +83,13 @@ def test_get_all_inverters(engine):
             ?inv rds:code ?inv_code .
             }
         """)
-    print(res.df)
-    assert res.df.height == 50
+    assert df.height == 50
 
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(3)
 def test_get_inverter_dckw(engine):
-    res = engine.query("""
+    df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -124,14 +122,13 @@ def test_get_inverter_dckw(engine):
         GROUP BY ?site ?block_code ?gen_code ?inv_code ?year ?month ?day ?hour ?minute_10
         ORDER BY ?block_code ?gen_code ?inv_code ?year ?month ?day ?hour ?minute
         """)
-    print(res.df)
-    assert res.df.height == 51900
+    assert df.height == 51900
 
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(4)
 def test_get_inverter_dckw_sugar(engine):
-    res = engine.query("""
+    df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -158,13 +155,12 @@ def test_get_inverter_dckw_sugar(engine):
             }
         ORDER BY ?block_code ?gen_code ?inv_code ?t
         """)
-    print(res.df)
-    assert res.df.height == 51900
+    assert df.height == 51900
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(4)
 def test_get_inverter_dckw_sugar_path(engine):
-    res = engine.query("""
+    df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -185,14 +181,13 @@ def test_get_inverter_dckw_sugar_path(engine):
             }
         ORDER BY ?path ?t
         """)
-    print(res.df)
-    assert res.df.height == 51900
+    assert df.height == 51900
 
 
 @pytest.mark.skipif(True, reason="Not working yet.. ")
 @pytest.mark.order(4)
 def test_get_inverter_dckw_sugar_path(engine):
-    res = engine.query("""
+    df = engine.query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
 PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
@@ -215,5 +210,5 @@ SELECT ?path WHERE {
         aggregation = "avg" }
     }
 """)
-    print(res.df)
-    assert res.df.height == 51900
+    print(df)
+    assert df.height == 51900

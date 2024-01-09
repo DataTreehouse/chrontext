@@ -1,19 +1,6 @@
 from typing import Dict, List
 from polars import DataFrame
-
-class QueryResult:
-    """
-    Class representing the result of SPARQL queries.
-    Only constructed by chrontext.
-
-    Fields:
-    df: DataFrame with result
-    types: Dict where each key is a column name and each value is the name of the type of that column.
-    """
-    def __init__(self, df:DataFrame, types:Dict[str, str]) -> QueryResult:
-        self.df = df
-        self.types = types
-        ...
+from .semantic_dataframe import SemanticDataFrame
 class Engine:
     """
     The hybrid query engine of chrontext.
@@ -50,7 +37,7 @@ class Engine:
         :return: 
         """
 
-    def query(self, query:str) -> QueryResult:
+    def query(self, query:str) -> SemanticDataFrame:
         """
 
         :param query: The SPARQL query.
