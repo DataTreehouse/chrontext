@@ -2,5 +2,4 @@
 resolver="1"
 members=[
     "chrontext",
-    "arrow_python_utils"
 ]

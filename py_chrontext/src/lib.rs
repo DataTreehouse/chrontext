@@ -45,7 +45,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyQueryError;
-use arrow_python_utils::to_python::to_py_df;
+use pydf_io::to_python::df_to_py_df;
 use chrontext::engine::Engine as RustEngine;
 use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraph;
@@ -155,22 +155,13 @@ impl Engine {
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let (mut df, datatypes) = builder
+        let (df, datatypes) = builder
             .build()
             .unwrap()
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
             .map_err(|err| PyQueryError::QueryExecutionError(err))?;
 
-        let names_vec: Vec<String> = df
-            .get_column_names()
-            .into_iter()
-            .map(|x| x.to_string())
-            .collect();
-        let names: Vec<&str> = names_vec.iter().map(|x| x.as_str()).collect();
-        let chunk = df.as_single_chunk().iter_chunks().next().unwrap();
-        let pyarrow = PyModule::import(py, "pyarrow")?;
-        let polars = PyModule::import(py, "polars")?;
-        let pydf = to_py_df(&chunk, names.as_slice(), py, pyarrow, polars, dtypes_map(datatypes))?;
+        let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
 }
