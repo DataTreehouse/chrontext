@@ -1,5 +1,5 @@
 use super::StaticQueryRewriter;
-use crate::query_context::Context;
+use representation::query_context::Context;
 use crate::rewriting::graph_patterns::GPReturn;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::NamedNodePattern;

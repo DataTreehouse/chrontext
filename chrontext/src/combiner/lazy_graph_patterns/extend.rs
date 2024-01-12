@@ -1,9 +1,9 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -11,6 +11,7 @@ use oxrdf::Variable;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::graph_patterns::extend;
 
 impl Combiner {
     #[async_recursion]
@@ -50,23 +51,17 @@ impl Combiner {
             )
             .await?;
 
-        if !output_solution_mappings.columns.contains(variable.as_str()) {
-            output_solution_mappings = self
-                .lazy_expression(
-                    expression,
-                    output_solution_mappings,
-                    Some(expression_static_query_map),
-                    expression_prepared_time_series_queries,
-                    &expression_context,
-                )
-                .await?;
-            output_solution_mappings.mappings = output_solution_mappings
-                .mappings
-                .rename([expression_context.as_str()], &[variable.as_str()]);
-            output_solution_mappings
-                .columns
-                .insert(variable.as_str().to_string());
-        }
-        Ok(output_solution_mappings)
+        output_solution_mappings = self
+            .lazy_expression(
+                expression,
+                output_solution_mappings,
+                Some(expression_static_query_map),
+                expression_prepared_time_series_queries,
+                &expression_context,
+            )
+            .await?;
+
+        Ok(extend(output_solution_mappings, &expression_context, variable)?)
+
     }
 }

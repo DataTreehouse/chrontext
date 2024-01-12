@@ -1,9 +1,9 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -12,6 +12,7 @@ use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
 use std::ops::Not;
+use query_processing::graph_patterns::minus;
 
 impl Combiner {
     #[async_recursion]
@@ -39,7 +40,6 @@ impl Combiner {
         } else {
             true
         });
-        let minus_column = left_context.as_str();
         self.counter += 1;
         let mut left_solution_mappings = self
             .lazy_graph_pattern(
@@ -50,52 +50,15 @@ impl Combiner {
                 &left_context,
             )
             .await?;
-
-        let mut left_df = left_solution_mappings
-            .mappings
-            .with_column(Expr::Literal(LiteralValue::Int64(1)).alias(&minus_column))
-            .with_column(col(&minus_column).cum_sum(false).alias(&minus_column))
-            .collect()
-            .expect("Minus collect left problem");
-        left_solution_mappings.mappings = left_df.clone().lazy();
-        let left_columns = left_solution_mappings.columns.clone();
-        let left_datatypes = left_solution_mappings.datatypes.clone();
-
-        //TODO: determine only variables actually used before copy
         let right_solution_mappings = self
             .lazy_graph_pattern(
                 right,
-                Some(left_solution_mappings),
+                Some(left_solution_mappings.clone()),
                 right_static_query_map,
                 right_prepared_time_series_queries,
                 &right_context,
             )
             .await?;
-
-        let SolutionMappings {
-            mappings: right_mappings,
-            ..
-        } = right_solution_mappings;
-
-        let right_df = right_mappings
-            .select([col(&minus_column)])
-            .collect()
-            .expect("Minus right df collect problem");
-        left_df = left_df
-            .filter(
-                &is_in(&left_df
-                    .column(&minus_column)
-                    .unwrap(),
-                    right_df.column(&minus_column).unwrap())
-                    .unwrap()
-                    .not()
-            )
-            .expect("Filter minus left hand side problem");
-        left_df = left_df.drop(&minus_column).unwrap();
-        Ok(SolutionMappings::new(
-            left_df.lazy(),
-            left_columns,
-            left_datatypes,
-        ))
+        Ok(minus(left_solution_mappings, right_solution_mappings)?)
     }
 }

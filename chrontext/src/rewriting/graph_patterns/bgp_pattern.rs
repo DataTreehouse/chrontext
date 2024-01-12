@@ -3,7 +3,7 @@ use crate::constants::{
     HAS_DATATYPE, HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_RESOURCE, HAS_TIMESTAMP, HAS_VALUE,
 };
 use crate::constraints::{Constraint, VariableConstraints};
-use crate::query_context::{Context, PathEntry, VariableInContext};
+use representation::query_context::{Context, PathEntry, VariableInContext};
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::timeseries_query::BasicTimeseriesQuery;
 use oxrdf::{NamedNode, Variable};

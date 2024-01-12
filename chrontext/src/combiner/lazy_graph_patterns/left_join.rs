@@ -1,11 +1,11 @@
 //Uses code from https://github.com/magbak/maplib/blob/main/triplestore/src/sparql/lazy_graph_patterns/left_join.rs
 
 use super::Combiner;
-use crate::combiner::solution_mapping::{is_string_col, SolutionMappings};
+use representation::solution_mapping::{is_string_col, SolutionMappings};
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -14,6 +14,7 @@ use polars_core::datatypes::DataType;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::graph_patterns::{filter, left_join};
 
 impl Combiner {
     #[async_recursion]
@@ -57,8 +58,6 @@ impl Combiner {
             )
             .await?;
 
-        left_solution_mappings.mappings = left_solution_mappings.mappings.collect().unwrap().lazy();
-
         let mut right_solution_mappings = self
             .lazy_graph_pattern(
                 right,
@@ -79,75 +78,8 @@ impl Combiner {
                     &expression_context,
                 )
                 .await?;
-            right_solution_mappings.mappings = right_solution_mappings
-                .mappings
-                .filter(col(&expression_context.as_str()))
-                .drop_columns([&expression_context.as_str()]);
+            right_solution_mappings = filter(right_solution_mappings, &expression_context)?;
         }
-        let SolutionMappings {
-            mappings: mut right_mappings,
-            columns: mut right_columns,
-            datatypes: mut right_datatypes,
-        } = right_solution_mappings;
-
-        let mut join_on: Vec<&String> = left_solution_mappings
-            .columns
-            .intersection(&right_columns)
-            .collect();
-        join_on.sort();
-
-        let join_on_cols: Vec<Expr> = join_on.iter().map(|x| col(x)).collect();
-
-        if join_on.is_empty() {
-            left_solution_mappings.mappings = left_solution_mappings.mappings.join(
-                right_mappings,
-                join_on_cols.as_slice(),
-                join_on_cols.as_slice(),
-                JoinArgs::new(JoinType::Cross),
-            )
-        } else {
-            for c in join_on {
-                if is_string_col(right_datatypes.get(c).unwrap()) {
-                    right_mappings =
-                        right_mappings.with_column(col(c).cast(DataType::Categorical(None)));
-                    left_solution_mappings.mappings = left_solution_mappings
-                        .mappings
-                        .with_column(col(c).cast(DataType::Categorical(None)));
-                }
-            }
-            let all_false = [false].repeat(join_on_cols.len());
-            right_mappings = right_mappings.sort_by_exprs(
-                join_on_cols.as_slice(),
-                all_false.as_slice(),
-                false,
-                false,
-            );
-            left_solution_mappings.mappings = left_solution_mappings.mappings.sort_by_exprs(
-                join_on_cols.as_slice(),
-                all_false.as_slice(),
-                false,
-                false,
-            );
-            left_solution_mappings.mappings = left_solution_mappings.mappings.join(
-                right_mappings,
-                join_on_cols.as_slice(),
-                join_on_cols.as_slice(),
-                JoinArgs::new(JoinType::Left),
-            )
-        }
-        for c in right_columns.drain() {
-            left_solution_mappings.columns.insert(c);
-        }
-        for (var, dt) in right_datatypes.drain() {
-            if let Some(dt_left) = left_solution_mappings.datatypes.get(&var) {
-                //TODO: handle compatibility
-                // if &dt != dt_left {
-                //     return Err(SparqlError::InconsistentDatatypes(var.clone(), dt_left.clone(), dt, context.clone()))
-                // }
-            } else {
-                left_solution_mappings.datatypes.insert(var, dt);
-            }
-        }
-        Ok(left_solution_mappings)
+        Ok(left_join(left_solution_mappings, right_solution_mappings)?)
     }
 }

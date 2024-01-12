@@ -1,9 +1,9 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use oxrdf::Variable;
@@ -11,6 +11,8 @@ use polars::prelude::{col, Expr};
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::aggregates::AggregateReturn;
+use query_processing::graph_patterns::{group_by, prepare_group_by};
 
 impl Combiner {
     pub(crate) async fn lazy_group(
@@ -38,13 +40,19 @@ impl Combiner {
                 &inner_context,
             )
             .await?;
-        let by: Vec<Expr> = variables.iter().map(|v| col(v.as_str())).collect();
+        let (mut output_solution_mappings, by, dummy_varname) = prepare_group_by(output_solution_mappings, variables);
 
         let mut aggregate_expressions = vec![];
+        let mut new_rdf_node_types = HashMap::new();
         for i in 0..aggregates.len() {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
-            let (aggregate_solution_mappings, expr, used_context) = self
+            let AggregateReturn {
+                solution_mappings: aggregate_solution_mappings,
+                expr,
+                context: _,
+                rdf_node_type,
+            } = self
                 .sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     a,
@@ -53,23 +61,9 @@ impl Combiner {
                 )
                 .await?;
             output_solution_mappings = aggregate_solution_mappings;
+            new_rdf_node_types.insert(v.as_str().to_string(), rdf_node_type);
             aggregate_expressions.push(expr);
         }
-        let SolutionMappings {
-            mut mappings,
-            mut columns,
-            datatypes,
-        } = output_solution_mappings;
-        let grouped_mappings = mappings.group_by(by.as_slice());
-
-        mappings = grouped_mappings.agg(aggregate_expressions.as_slice());
-        columns.clear();
-        for v in variables {
-            columns.insert(v.as_str().to_string());
-        }
-        for (v, _) in aggregates {
-            columns.insert(v.as_str().to_string());
-        }
-        Ok(SolutionMappings::new(mappings, columns, datatypes))
+        Ok(group_by(output_solution_mappings, aggregate_expressions, by, dummy_varname, new_rdf_node_types)?)
     }
 }

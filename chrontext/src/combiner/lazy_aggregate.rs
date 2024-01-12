@@ -1,10 +1,11 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use crate::constants::NEST;
-use crate::query_context::{Context, PathEntry};
 use oxrdf::Variable;
-use polars::prelude::{col, DataType, Expr, GetOutput, IntoSeries, str_concat};
+use polars::prelude::{col};
+use query_processing::aggregates::{AggregateReturn, avg, count_with_expression, count_without_expression, group_concat, max, min, sample, sum};
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::AggregateExpression;
 
 impl Combiner {
@@ -14,10 +15,11 @@ impl Combiner {
         aggregate_expression: &AggregateExpression,
         solution_mappings: SolutionMappings,
         context: &Context,
-    ) -> Result<(SolutionMappings, Expr, Option<Context>), CombinerError> {
+    ) -> Result<AggregateReturn, CombinerError> {
         let output_solution_mappings;
         let mut out_expr;
         let column_context;
+        let out_rdf_node_type;
         match aggregate_expression {
             AggregateExpression::Count { expr, distinct } => {
                 if let Some(some_expr) = expr {
@@ -31,25 +33,13 @@ impl Combiner {
                             column_context.as_ref().unwrap(),
                         )
                         .await?;
-                    if *distinct {
-                        out_expr = col(column_context.as_ref().unwrap().as_str()).n_unique();
-                    } else {
-                        out_expr = col(column_context.as_ref().unwrap().as_str()).count();
-                    }
+                    (out_expr, out_rdf_node_type) =
+                        count_with_expression(column_context.as_ref().unwrap(), *distinct);
                 } else {
                     output_solution_mappings = solution_mappings;
                     column_context = None;
-                    let all_proper_column_names: Vec<String> = output_solution_mappings
-                        .columns
-                        .iter()
-                        .map(|x| x.clone())
-                        .collect();
-                    let columns_expr = Expr::Columns(all_proper_column_names);
-                    if *distinct {
-                        out_expr = columns_expr.n_unique();
-                    } else {
-                        out_expr = columns_expr.unique();
-                    }
+                    (out_expr, out_rdf_node_type) =
+                        count_without_expression(&output_solution_mappings, *distinct);
                 }
             }
             AggregateExpression::Sum { expr, distinct } => {
@@ -65,13 +55,11 @@ impl Combiner {
                     )
                     .await?;
 
-                if *distinct {
-                    out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .unique()
-                        .sum();
-                } else {
-                    out_expr = col(column_context.as_ref().unwrap().as_str()).sum();
-                }
+                (out_expr, out_rdf_node_type) = sum(
+                    &output_solution_mappings,
+                    column_context.as_ref().unwrap(),
+                    *distinct,
+                );
             }
             AggregateExpression::Avg { expr, distinct } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
@@ -85,13 +73,11 @@ impl Combiner {
                     )
                     .await?;
 
-                if *distinct {
-                    out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .unique()
-                        .mean();
-                } else {
-                    out_expr = col(column_context.as_ref().unwrap().as_str()).mean();
-                }
+                (out_expr, out_rdf_node_type) = avg(
+                    &output_solution_mappings,
+                    column_context.as_ref().unwrap(),
+                    *distinct,
+                );
             }
             AggregateExpression::Min { expr, distinct: _ } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
@@ -105,8 +91,8 @@ impl Combiner {
                         column_context.as_ref().unwrap(),
                     )
                     .await?;
-
-                out_expr = col(column_context.as_ref().unwrap().as_str()).min();
+                (out_expr, out_rdf_node_type) =
+                    min(&output_solution_mappings, column_context.as_ref().unwrap());
             }
             AggregateExpression::Max { expr, distinct: _ } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
@@ -121,7 +107,8 @@ impl Combiner {
                     )
                     .await?;
 
-                out_expr = col(column_context.as_ref().unwrap().as_str()).max();
+                (out_expr, out_rdf_node_type) =
+                    max(&output_solution_mappings, column_context.as_ref().unwrap());
             }
             AggregateExpression::GroupConcat {
                 expr,
@@ -140,40 +127,8 @@ impl Combiner {
                     )
                     .await?;
 
-                let use_sep = if let Some(sep) = separator {
-                    sep.to_string()
-                } else {
-                    "".to_string()
-                };
-                if *distinct {
-                    out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8)
-                        .list()
-                        .0
-                        .apply(
-                            move |s| {
-                                Ok(Some(
-                                    str_concat(
-                                    s.unique_stable()
-                                        .expect("Unique stable error").utf8().unwrap(),
-                                        use_sep.as_str(),
-                                        false).into(),
-                                ))
-                            },
-                            GetOutput::from_type(DataType::Utf8),
-                        )
-                        .first();
-                } else {
-                    out_expr = col(column_context.as_ref().unwrap().as_str())
-                        .cast(DataType::Utf8)
-                        .list()
-                        .0
-                        .apply(
-                            move |s| Ok(Some(str_concat(&s.utf8().unwrap(), use_sep.as_str(), false).into_series())),
-                            GetOutput::from_type(DataType::Utf8),
-                        )
-                        .first();
-                }
+                (out_expr, out_rdf_node_type) =
+                    group_concat(column_context.as_ref().unwrap(), separator, *distinct);
             }
             AggregateExpression::Sample { expr, .. } => {
                 column_context = Some(context.extension_with(PathEntry::AggregationOperation));
@@ -188,7 +143,8 @@ impl Combiner {
                     )
                     .await?;
 
-                out_expr = col(column_context.as_ref().unwrap().as_str()).first();
+                (out_expr, out_rdf_node_type) =
+                    sample(&output_solution_mappings, column_context.as_ref().unwrap());
             }
             AggregateExpression::Custom {
                 name,
@@ -209,12 +165,22 @@ impl Combiner {
                         )
                         .await?;
                     out_expr = col(column_context.as_ref().unwrap().as_str());
+                    out_rdf_node_type = output_solution_mappings
+                        .rdf_node_types
+                        .get(column_context.as_ref().unwrap().as_str())
+                        .unwrap()
+                        .clone();
                 } else {
                     panic!("Custom aggregation not supported")
                 }
             }
         }
         out_expr = out_expr.alias(variable.as_str());
-        Ok((output_solution_mappings, out_expr, column_context))
+        Ok(AggregateReturn {
+            solution_mappings: output_solution_mappings,
+            expr: out_expr,
+            context: column_context,
+            rdf_node_type: out_rdf_node_type,
+        })
     }
 }

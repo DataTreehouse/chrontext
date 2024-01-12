@@ -3,7 +3,7 @@ use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -11,6 +11,7 @@ use polars::prelude::{concat, UnionArgs};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::graph_patterns::union;
 
 impl Combiner {
     #[async_recursion]
@@ -38,11 +39,7 @@ impl Combiner {
         } else {
             true
         });
-        let SolutionMappings {
-            mappings: left_mappings,
-            columns: mut left_columns,
-            datatypes: mut left_datatypes,
-        } = self
+        let left_solution_mappings = self
             .lazy_graph_pattern(
                 &left,
                 solution_mappings.clone(),
@@ -52,11 +49,7 @@ impl Combiner {
             )
             .await?;
 
-        let SolutionMappings {
-            mappings: right_mappings,
-            columns: right_columns,
-            datatypes: mut right_datatypes,
-        } = self
+        let right_solution_mappings = self
             .lazy_graph_pattern(
                 right,
                 solution_mappings,
@@ -65,21 +58,7 @@ impl Combiner {
                 &right_context,
             )
             .await?;
+        Ok(union(left_solution_mappings, right_solution_mappings)?)
 
-        let output_mappings = concat(vec![left_mappings, right_mappings], UnionArgs::default())
-            .expect("Concat problem");
-        left_columns.extend(right_columns);
-        for (v, dt) in right_datatypes.drain() {
-            if let Some(left_dt) = left_datatypes.get(&v) {
-                assert_eq!(&dt, left_dt);
-            } else {
-                left_datatypes.insert(v, dt);
-            }
-        }
-        Ok(SolutionMappings::new(
-            output_mappings,
-            left_columns,
-            left_datatypes,
-        ))
     }
 }

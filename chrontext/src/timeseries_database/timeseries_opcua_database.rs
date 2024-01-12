@@ -1,5 +1,5 @@
-use crate::constants::DATETIME_AS_SECONDS;
-use crate::query_context::Context;
+use query_processing::constants::DATETIME_AS_SECONDS;
+use representation::query_context::Context;
 use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;

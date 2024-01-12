@@ -1,7 +1,7 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -9,6 +9,7 @@ use polars_core::frame::UniqueKeepStrategy;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::graph_patterns::distinct;
 
 impl Combiner {
     #[async_recursion]
@@ -21,11 +22,7 @@ impl Combiner {
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing distinct graph pattern");
-        let SolutionMappings {
-            mappings,
-            columns,
-            datatypes,
-        } = self
+        let solution_mappings = self
             .lazy_graph_pattern(
                 inner,
                 solution_mappings,
@@ -34,10 +31,6 @@ impl Combiner {
                 &context.extension_with(PathEntry::DistinctInner),
             )
             .await?;
-        Ok(SolutionMappings::new(
-            mappings.unique_stable(None, UniqueKeepStrategy::First),
-            columns,
-            datatypes,
-        ))
+        Ok(distinct(solution_mappings)?)
     }
 }

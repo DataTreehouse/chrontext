@@ -1,7 +1,7 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -9,6 +9,7 @@ use polars::prelude::{col, Expr};
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::graph_patterns::order_by;
 
 impl Combiner {
     #[async_recursion]
@@ -48,27 +49,6 @@ impl Combiner {
             inner_contexts.push(inner_context);
             asc_ordering.push(reverse);
         }
-        let SolutionMappings {
-            mut mappings,
-            columns,
-            datatypes,
-        } = output_solution_mappings;
-
-        mappings = mappings.sort_by_exprs(
-            inner_contexts
-                .iter()
-                .map(|c| col(c.as_str()))
-                .collect::<Vec<Expr>>(),
-            asc_ordering.iter().map(|asc| !asc).collect::<Vec<bool>>(),
-            true,
-            false,
-        );
-        mappings = mappings.drop_columns(
-            inner_contexts
-                .iter()
-                .map(|x| x.as_str())
-                .collect::<Vec<&str>>(),
-        );
-        Ok(SolutionMappings::new(mappings, columns, datatypes))
+        Ok(order_by(output_solution_mappings, &inner_contexts, asc_ordering)?)
     }
 }

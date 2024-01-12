@@ -7,7 +7,6 @@ mod find_query_variables;
 mod preparing;
 pub mod preprocessing;
 pub mod pushdown_setting;
-pub mod query_context;
 pub mod rewriting;
 pub mod sparql_database;
 mod sparql_result_to_polars;

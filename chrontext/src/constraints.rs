@@ -1,4 +1,4 @@
-use crate::query_context::{Context, VariableInContext};
+use representation::query_context::{Context, VariableInContext};
 use oxrdf::Variable;
 
 #[derive(PartialEq, Debug, Clone)]

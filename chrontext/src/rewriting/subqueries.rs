@@ -1,4 +1,4 @@
-use crate::query_context::Context;
+use representation::query_context::Context;
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::rewriting::StaticQueryRewriter;
 use oxrdf::Variable;

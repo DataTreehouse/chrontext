@@ -6,7 +6,7 @@ use sea_query::{BinOper, ColumnRef, SimpleExpr, UnOper, Value};
 use sea_query::{Expr as SeaExpr, Func};
 use spargebra::algebra::Expression;
 
-use crate::constants::{
+use query_processing::constants::{
     DATETIME_AS_SECONDS, FLOOR_DATETIME_TO_SECONDS_INTERVAL, SECONDS_AS_DATETIME,
 };
 use crate::timeseries_database::timeseries_sql_rewrite::{Name, TimeseriesQueryToSQLError};

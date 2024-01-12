@@ -1,6 +1,6 @@
 use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::rewriting::expressions::ExReturn;
 use spargebra::algebra::{Expression, GraphPattern};
 

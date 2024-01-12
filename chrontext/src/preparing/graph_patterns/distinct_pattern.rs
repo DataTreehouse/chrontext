@@ -1,9 +1,9 @@
 use super::TimeseriesQueryPrepper;
 use log::debug;
 
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::preparing::graph_patterns::GPPrepReturn;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 
 impl TimeseriesQueryPrepper {

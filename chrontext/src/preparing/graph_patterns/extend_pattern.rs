@@ -1,8 +1,8 @@
 use super::TimeseriesQueryPrepper;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::find_query_variables::find_all_used_variables_in_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Variable;
 use spargebra::algebra::{Expression, GraphPattern};

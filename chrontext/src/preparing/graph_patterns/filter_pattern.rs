@@ -1,9 +1,9 @@
 use super::TimeseriesQueryPrepper;
 use crate::change_types::ChangeType;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::preparing::graph_patterns::filter_expression_rewrites::rewrite_filter_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashMap;

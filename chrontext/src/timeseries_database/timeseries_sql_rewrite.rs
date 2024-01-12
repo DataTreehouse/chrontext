@@ -725,7 +725,7 @@ fn check_partitioning_support(tables: &Vec<TimeseriesTable>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::query_context::{Context, VariableInContext};
+    use representation::query_context::{Context, VariableInContext};
     use crate::timeseries_database::timeseries_sql_rewrite::{
         TimeseriesQueryToSQLTransformer, TimeseriesTable,
     };

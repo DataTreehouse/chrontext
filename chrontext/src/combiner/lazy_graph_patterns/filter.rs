@@ -1,9 +1,9 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
@@ -11,6 +11,7 @@ use polars::prelude::col;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::graph_patterns::filter;
 
 impl Combiner {
     #[async_recursion]
@@ -40,7 +41,7 @@ impl Combiner {
             true
         });
 
-        let output_solution_mappings = self
+        let mut output_solution_mappings = self
             .lazy_graph_pattern(
                 inner,
                 input_solution_mappings,
@@ -49,11 +50,7 @@ impl Combiner {
                 &inner_context,
             )
             .await?;
-        let SolutionMappings {
-            mut mappings,
-            columns,
-            datatypes,
-        } = self
+        output_solution_mappings = self
             .lazy_expression(
                 expression,
                 output_solution_mappings,
@@ -62,9 +59,6 @@ impl Combiner {
                 &expression_context,
             )
             .await?;
-        mappings = mappings
-            .filter(col(&expression_context.as_str()))
-            .drop_columns([&expression_context.as_str()]);
-        Ok(SolutionMappings::new(mappings, columns, datatypes))
+        Ok(filter(output_solution_mappings, &expression_context)?)
     }
 }

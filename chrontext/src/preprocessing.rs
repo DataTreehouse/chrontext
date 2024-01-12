@@ -3,7 +3,7 @@ use crate::constraints::{Constraint, VariableConstraints};
 use crate::find_query_variables::{
     find_all_used_variables_in_aggregate_expression, find_all_used_variables_in_expression,
 };
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::{
     AggregateExpression, Expression, GraphPattern, OrderExpression, PropertyPathExpression,
 };

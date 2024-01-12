@@ -10,10 +10,10 @@ mod or_expression;
 mod unary_ordinary_expression;
 
 use super::TimeseriesQueryPrepper;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::preparing::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::preparing::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
-use crate::query_context::Context;
+use representation::query_context::Context;
 use crate::timeseries_query::TimeseriesQuery;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;

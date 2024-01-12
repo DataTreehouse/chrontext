@@ -10,7 +10,7 @@ use polars::frame::DataFrame;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use oxrdf::NamedNode;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
@@ -75,8 +75,8 @@ impl Engine {
         };
         self.time_series_database = Some(combiner.time_series_database);
         self.sparql_database = Some(combiner.sparql_database);
-        let SolutionMappings { mappings, columns, datatypes } = solution_mappings;
+        let SolutionMappings { mappings, rdf_node_types } = solution_mappings;
 
-        Ok((mappings.collect()?, datatypes))
+        Ok((mappings.collect()?, rdf_node_types))
     }
 }

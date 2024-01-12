@@ -1,8 +1,8 @@
 use super::TimeseriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 
-use crate::combiner::solution_mapping::SolutionMappings;
-use crate::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
+use representation::query_context::{Context, PathEntry};
 use log::debug;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 

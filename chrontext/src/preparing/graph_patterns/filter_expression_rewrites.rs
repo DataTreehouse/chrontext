@@ -1,6 +1,6 @@
 use crate::change_types::ChangeType;
 use crate::pushdown_setting::PushdownSetting;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Literal;
 use spargebra::algebra::Expression;

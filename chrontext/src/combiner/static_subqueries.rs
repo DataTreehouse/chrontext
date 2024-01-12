@@ -1,8 +1,8 @@
 use super::Combiner;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::time_series_queries::complete_basic_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::query_context::Context;
+use representation::query_context::Context;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
 use oxrdf::vocab::xsd;
@@ -55,8 +55,7 @@ impl Combiner {
         let mut lf = df.lazy();
         if let Some(SolutionMappings {
             mappings: input_lf,
-            columns: input_columns,
-            datatypes: input_datatypes,
+            rdf_node_types: input_datatypes,
         }) = use_solution_mappings
         {
             let on: Vec<&String> = columns.intersection(&input_columns).collect();

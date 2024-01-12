@@ -1,9 +1,9 @@
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use log::debug;
 use std::collections::{HashMap, HashSet};
 
 use super::TimeseriesQueryPrepper;
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::constants::GROUPING_COL;
 use crate::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
@@ -87,7 +87,7 @@ impl TimeseriesQueryPrepper {
         self.grouping_counter += 1;
         let by_names: Vec<String> = by
             .iter()
-            .filter(|x| solution_mappings.columns.contains(x.as_str()))
+            .filter(|x| solution_mappings.rdf_node_types.contains_key(x.as_str()))
             .map(|x| x.as_str().to_string())
             .collect();
         solution_mappings.mappings = solution_mappings.mappings.clone().collect().unwrap().lazy();

@@ -1,8 +1,8 @@
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::combiner::Combiner;
 use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
 use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::{

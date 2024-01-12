@@ -2,13 +2,12 @@ pub(crate) mod lazy_aggregate;
 pub(crate) mod lazy_expressions;
 pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
-pub mod solution_mapping;
 pub(crate) mod static_subqueries;
 pub(crate) mod time_series_queries;
 
-use crate::query_context::Context;
+use representation::query_context::Context;
 
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::preparing::TimeseriesQueryPrepper;
 use crate::pushdown_setting::PushdownSetting;
 use crate::sparql_database::SparqlQueryable;
@@ -19,11 +18,15 @@ use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use query_processing::errors::QueryProcessingError;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum CombinerError {
     TimeseriesQueryError(Box<dyn Error>),
     StaticQueryExecutionError(Box<dyn Error>),
+    #[error(transparent)]
+    QueryProcessingError(#[from] QueryProcessingError),
     InconsistentDatatype(String, String, String),
     TimeseriesValidationError(TimeseriesValidationError),
     ResourceIsNotString(String, String),
@@ -64,8 +67,6 @@ impl Display for CombinerError {
         }
     }
 }
-
-impl Error for CombinerError {}
 
 pub struct Combiner {
     counter: u16,

@@ -18,8 +18,8 @@ mod union_pattern;
 mod values_pattern;
 
 use super::TimeseriesQueryPrepper;
-use crate::combiner::solution_mapping::SolutionMappings;
-use crate::query_context::Context;
+use representation::solution_mapping::SolutionMappings;
+use representation::query_context::Context;
 use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use spargebra::algebra::GraphPattern;

@@ -2,9 +2,9 @@ mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
 
-use crate::combiner::solution_mapping::SolutionMappings;
+use representation::solution_mapping::SolutionMappings;
 use crate::pushdown_setting::PushdownSetting;
-use crate::query_context::Context;
+use representation::query_context::Context;
 use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use spargebra::algebra::Expression;
 use spargebra::Query;

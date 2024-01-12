@@ -1,5 +1,5 @@
 use super::StaticQueryRewriter;
-use crate::query_context::{Context, PathEntry};
+use representation::query_context::{Context, PathEntry};
 use crate::rewriting::aggregate_expression::AEReturn;
 use crate::rewriting::graph_patterns::GPReturn;
 use oxrdf::Variable;

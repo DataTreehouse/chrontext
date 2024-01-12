@@ -1,7 +1,7 @@
 use crate::find_query_variables::{
     find_all_used_variables_in_aggregate_expression, find_all_used_variables_in_expression,
 };
-use crate::query_context::{Context, VariableInContext};
+use representation::query_context::{Context, VariableInContext};
 use log::warn;
 use oxrdf::vocab::xsd;
 use oxrdf::NamedNode;
