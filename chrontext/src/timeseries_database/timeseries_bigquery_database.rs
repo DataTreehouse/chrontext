@@ -10,6 +10,7 @@ use polars_core::prelude::DataFrame;
 use reqwest::Url;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use representation::solution_mapping::SolutionMappings;
 use thiserror::Error;
 use tonic::Status;
 
@@ -61,7 +62,7 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
     fn get_database_type(&self) -> DatabaseType {
         DatabaseType::BigQuery
     }
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
 
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
@@ -106,7 +107,7 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
 
         let ex = BigQueryExecutor::new(client, project_id, query_string);
         let lf = ex.execute_query().await?;
-        Ok(lf.collect().unwrap())
+        Ok(SolutionMappings::new(lf, tsq.get_datatype_map()))
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {

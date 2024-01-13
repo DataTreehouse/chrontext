@@ -13,8 +13,10 @@ use polars::prelude::{
 use spargebra::algebra::{Expression};
 use spargebra::Query;
 use std::collections::HashMap;
+use oxrdf::vocab::xsd;
 use query_processing::exists_helper::rewrite_exists_graph_pattern;
 use query_processing::expressions::{binary_expression, bound, coalesce_expression, exists, func_expression, if_expression, in_expression, literal, named_node, not_expression, unary_minus, unary_plus, variable};
+use representation::RDFNodeType;
 
 impl Combiner {
     #[async_recursion]
@@ -533,6 +535,10 @@ impl Combiner {
                     .with_column(col(&exists_context.as_str()).cum_sum(false).alias(&exists_context.as_str()));
 
                 let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());
+                output_solution_mappings.rdf_node_types.insert(
+                    exists_context.as_str().to_string(),
+                    RDFNodeType::Literal(xsd::BOOLEAN.into_owned()),
+                );
                 let SolutionMappings {
                     mappings: exists_lf,
                     ..

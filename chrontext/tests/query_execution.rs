@@ -8,13 +8,14 @@ use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{CsvReader, SerReader};
+use polars::prelude::{col, CsvReader, CsvWriter, IntoLazy, SerReader, SerWriter};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
+use polars_core::prelude::DataType;
 
 use crate::common::{
     add_sparql_testdata, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
@@ -781,11 +782,13 @@ async fn test_optional_clause_query(
         }
     }
     "#;
-    let df = engine
+    let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
-        .sort(["w", "v", "greater"], vec![false], false)
+        .expect("Hybrid error").0;
+    df = df.lazy().with_column(col("w").cast(DataType::Utf8)).collect().unwrap();
+
+    df = df.sort(["w", "v", "greater"], vec![false], false)
         .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_optional_clause_query.csv");
@@ -822,19 +825,22 @@ async fn test_minus_query(
     PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
     PREFIX types:<http://example.org/types#>
     SELECT ?w ?v WHERE {
-        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?w types:hasSensor/chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasValue ?v .
         MINUS {
+        ?ts chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasValue ?v .
         FILTER(?v > 300)
         }
     }
     "#;
-    let df = engine
+    let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
-        .sort(["w", "v"], vec![false], false)
+        .expect("Hybrid error").0;
+    df = df.lazy().with_column(col("w").cast(DataType::Utf8)).collect().unwrap();
+    df = df.sort(["w", "v"], vec![false, false], true)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_minus_query.csv");
@@ -846,13 +852,10 @@ async fn test_minus_query(
         .with_try_parse_dates(true)
         .finish()
         .expect("DF read error")
-        .sort(["w", "v"], vec![false], false)
+        .sort(["w", "v"], vec![false, false], true)
         .expect("Sort error");
+
     assert_eq!(expected_df, df);
-    // let file = File::create(file_path.as_path()).expect("could not open file");
-    // let writer = CsvWriter::new(file);
-    // writer.finish(&mut df).expect("writeok");
-    // println!("{}", df);
 }
 
 #[rstest]
@@ -1118,11 +1121,12 @@ async fn test_coalesce_query(
         }
     }
     "#;
-    let df = engine
+    let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
-        .sort(["s1", "t1", "v1", "v2"], vec![false], false)
+        .expect("Hybrid error").0;
+    df = df.lazy().with_column(col("s1").cast(DataType::Utf8)).collect().unwrap();
+    df = df.sort(["s1", "t1", "v1", "v2"], vec![false], false)
         .expect("Sort problem");
 
     let mut file_path = testdata_path.clone();

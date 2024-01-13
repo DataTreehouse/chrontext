@@ -1,5 +1,3 @@
-use query_processing::constants::DATETIME_AS_SECONDS;
-use representation::query_context::Context;
 use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
@@ -18,6 +16,9 @@ use polars::prelude::{concat, IntoLazy, UnionArgs};
 use polars_core::frame::DataFrame;
 use polars_core::prelude::{AnyValue, DataType, NamedFrom};
 use polars_core::series::Series;
+use query_processing::constants::DATETIME_AS_SECONDS;
+use representation::query_context::Context;
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, Expression, Function};
 use std::collections::HashMap;
 use std::error::Error;
@@ -97,7 +98,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
         DatabaseType::OPCUA
     }
 
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
         validate_tsq(tsq, true, false)?;
         let session = self.session.write();
         let start_time = find_time(tsq, &FindTime::Start);
@@ -280,7 +281,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
             .unwrap()
             .collect()
             .unwrap();
-        Ok(df)
+        Ok(SolutionMappings::new(df.lazy(), tsq.get_datatype_map()))
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {

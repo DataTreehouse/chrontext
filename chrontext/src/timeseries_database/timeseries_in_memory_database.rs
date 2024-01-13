@@ -1,8 +1,6 @@
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::Combiner;
 use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
-use representation::query_context::{Context, PathEntry};
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
 use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::{
@@ -12,11 +10,15 @@ use async_recursion::async_recursion;
 use async_trait::async_trait;
 use polars::frame::DataFrame;
 use polars::prelude::DataFrameJoinOps;
-use polars::prelude::{col, concat, lit, IntoLazy, UnionArgs, JoinArgs, JoinType};
+use polars::prelude::{col, concat, lit, IntoLazy, JoinArgs, JoinType, UnionArgs};
+use query_processing::aggregates::AggregateReturn;
+use query_processing::graph_patterns::extend;
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
+use representation::{RDFNodeType};
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
-use query_processing::aggregates::AggregateReturn;
 
 pub struct TimeseriesInMemoryDatabase {
     pub frames: HashMap<String, DataFrame>,
@@ -28,7 +30,7 @@ impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
         DatabaseType::InMemory
     }
 
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
         self.execute_query(tsq).await
     }
 
@@ -39,7 +41,15 @@ impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
 
 impl TimeseriesInMemoryDatabase {
     #[async_recursion]
-    async fn execute_query(&self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    async fn execute_query(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+        let (df, dtypes) = self.execute_query_impl(tsq).await?;
+        Ok(SolutionMappings::new(df.lazy(), dtypes))
+    }
+    #[async_recursion]
+    async fn execute_query_impl(
+        &self,
+        tsq: &TimeseriesQuery,
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         match tsq {
             TimeseriesQuery::Basic(b) => self.execute_basic(b),
             TimeseriesQuery::Filtered(inner, filter) => self.execute_filtered(inner, filter).await,
@@ -48,7 +58,7 @@ impl TimeseriesInMemoryDatabase {
             }
             TimeseriesQuery::Grouped(grouped) => self.execute_grouped(grouped).await,
             TimeseriesQuery::GroupedBasic(btsq, df, ..) => {
-                let mut basic_df = self.execute_basic(btsq)?;
+                let (mut basic_df, dtypes) = self.execute_basic(btsq)?;
                 basic_df = basic_df
                     .join(
                         df,
@@ -60,12 +70,13 @@ impl TimeseriesInMemoryDatabase {
                 basic_df = basic_df
                     .drop(btsq.identifier_variable.as_ref().unwrap().as_str())
                     .unwrap();
-                Ok(basic_df)
+                Ok((basic_df, dtypes))
             }
             TimeseriesQuery::ExpressionAs(tsq, v, e) => {
-                let mut df = self.execute_query(tsq).await?;
+                let (mut df, dtypes) = self.execute_query_impl(tsq).await?;
+
                 let tmp_context = Context::from_path(vec![PathEntry::Coalesce(13)]);
-                let solution_mappings = SolutionMappings::new(df.lazy(), HashMap::new());
+                let solution_mappings = SolutionMappings::new(df.lazy(), dtypes);
                 let mut combiner = Combiner::new(
                     Box::new(SparqlEndpoint {
                         endpoint: "".to_string(),
@@ -77,18 +88,24 @@ impl TimeseriesInMemoryDatabase {
                     vec![],
                     Default::default(),
                 );
-                let mut out_lf = combiner
+                let sm = combiner
                     .lazy_expression(e, solution_mappings, None, None, &tmp_context)
                     .await?;
-                out_lf.mappings = out_lf.mappings.rename([tmp_context.as_str()], [v.as_str()]);
-                df = out_lf.mappings.collect().unwrap();
-                Ok(df)
+                let SolutionMappings {
+                    mappings,
+                    rdf_node_types,
+                } = extend(sm, &tmp_context, v)?;
+                Ok((mappings.collect().unwrap(), rdf_node_types))
             }
         }
     }
 
-    fn execute_basic(&self, btsq: &BasicTimeseriesQuery) -> Result<DataFrame, Box<dyn Error>> {
+    fn execute_basic(
+        &self,
+        btsq: &BasicTimeseriesQuery,
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         let mut lfs = vec![];
+        let dtypes = TimeseriesQuery::Basic(btsq.clone()).get_datatype_map();
         for id in btsq.ids.as_ref().unwrap() {
             if let Some(df) = self.frames.get(id) {
                 assert!(btsq.identifier_variable.is_some());
@@ -117,7 +134,7 @@ impl TimeseriesInMemoryDatabase {
             }
         }
         let out_lf = concat(lfs, UnionArgs::default())?;
-        Ok(out_lf.collect().unwrap())
+        Ok((out_lf.collect().unwrap(), dtypes))
     }
 
     #[async_recursion]
@@ -125,10 +142,10 @@ impl TimeseriesInMemoryDatabase {
         &self,
         tsq: &TimeseriesQuery,
         filter: &Expression,
-    ) -> Result<DataFrame, Box<dyn Error>> {
-        let df = self.execute_query(tsq).await?;
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
+        let (df, dtypes) = self.execute_query_impl(tsq).await?;
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
-        let mut solution_mappings = SolutionMappings::new(df.lazy(), HashMap::new());
+        let mut solution_mappings = SolutionMappings::new(df.lazy(), dtypes);
         let mut combiner = Combiner::new(
             Box::new(SparqlEndpoint {
                 endpoint: "".to_string(),
@@ -143,18 +160,16 @@ impl TimeseriesInMemoryDatabase {
         solution_mappings = combiner
             .lazy_expression(filter, solution_mappings, None, None, &tmp_context)
             .await?;
-        solution_mappings.mappings = solution_mappings
-            .mappings
-            .filter(col(tmp_context.as_str()))
-            .drop_columns([tmp_context.as_str()]);
-        Ok(solution_mappings.mappings.collect().unwrap())
+        let SolutionMappings{ mappings, rdf_node_types } =
+            query_processing::graph_patterns::filter(solution_mappings, &tmp_context)?;
+        Ok((mappings.collect().unwrap(), rdf_node_types))
     }
 
     async fn execute_grouped(
         &self,
         grouped: &GroupedTimeseriesQuery,
-    ) -> Result<DataFrame, Box<dyn Error>> {
-        let df = self.execute_query(&grouped.tsq).await?;
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
+        let (df, dtypes) = self.execute_query_impl(&grouped.tsq).await?;
         let mut out_lf = df.lazy();
 
         let mut aggregation_exprs = vec![];
@@ -169,26 +184,30 @@ impl TimeseriesInMemoryDatabase {
             vec![],
             Default::default(),
         );
-        let mut solution_mappings = SolutionMappings::new(out_lf, HashMap::new());
+        let mut solution_mappings = SolutionMappings::new(out_lf, dtypes);
         for i in 0..grouped.aggregations.len() {
             let (v, agg) = grouped.aggregations.get(i).unwrap();
-            let AggregateReturn{
+            let agg_ctx = grouped
+                .context
+                .extension_with(PathEntry::GroupAggregation(i as u16));
+            let AggregateReturn {
                 solution_mappings: new_solution_mappings,
                 expr: agg_expr,
                 context: _,
-                rdf_node_type: _,
+                rdf_node_type,
             } = combiner
                 .sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     agg,
                     solution_mappings,
-                    &grouped
-                        .context
-                        .extension_with(PathEntry::GroupAggregation(i as u16)),
+                    &agg_ctx,
                 )
                 .await?;
             solution_mappings = new_solution_mappings;
             aggregation_exprs.push(agg_expr);
+            solution_mappings
+                .rdf_node_types
+                .insert(v.as_str().to_string(), rdf_node_type);
         }
         let mut groupby = vec![col(grouped.tsq.get_groupby_column().unwrap())];
         let tsfuncs = grouped.tsq.get_timeseries_functions(&grouped.context);
@@ -200,26 +219,30 @@ impl TimeseriesInMemoryDatabase {
                 }
             }
         }
+        let SolutionMappings {
+            mappings,
+            rdf_node_types,
+        } = solution_mappings;
 
-        let grouped_lf = solution_mappings.mappings.group_by(groupby);
+        let grouped_lf = mappings.group_by(groupby);
         out_lf = grouped_lf.agg(aggregation_exprs.as_slice());
 
         let collected = out_lf.collect()?;
-        Ok(collected)
+        Ok((collected, rdf_node_types))
     }
 
     async fn execute_inner_synchronized(
         &self,
         inners: &Vec<Box<TimeseriesQuery>>,
         synchronizers: &Vec<Synchronizer>,
-    ) -> Result<DataFrame, Box<dyn Error>> {
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         assert_eq!(synchronizers.len(), 1);
         #[allow(irrefutable_let_patterns)]
         if let Synchronizer::Identity(timestamp_col) = synchronizers.get(0).unwrap() {
             let mut on = vec![timestamp_col.clone()];
             let mut dfs = vec![];
             for q in inners {
-                let df = self.execute_query(q).await?;
+                let (df, dtypes) = self.execute_query_impl(q).await?;
                 for c in df.get_column_names() {
                     if c.starts_with(GROUPING_COL) {
                         let c_string = c.to_string();
@@ -228,18 +251,19 @@ impl TimeseriesInMemoryDatabase {
                         }
                     }
                 }
-                dfs.push(df);
+                dfs.push((df, dtypes));
             }
-            let mut first_df = dfs.remove(0);
-            for df in dfs.into_iter() {
+            let (mut first_df, mut first_dtypes) = dfs.remove(0);
+            for (df, dtypes) in dfs.into_iter() {
                 first_df = first_df.join(
                     &df,
                     on.as_slice(),
                     on.as_slice(),
                     JoinArgs::new(JoinType::Inner),
                 )?;
+                first_dtypes.extend(dtypes);
             }
-            Ok(first_df)
+            Ok((first_df, first_dtypes))
         } else {
             todo!()
         }

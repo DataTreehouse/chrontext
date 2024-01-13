@@ -10,6 +10,7 @@ use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
 use polars_core::prelude::{DataType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
+use representation::solution_mapping;
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -18,11 +19,12 @@ impl Combiner {
         mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Executing time series query: {:?}", tsq);
-        let ts_df = self
+        let SolutionMappings { mappings, rdf_node_types } = self
             .time_series_database
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeseriesQueryError(x))?;
+        let ts_df = mappings.collect().unwrap();
         debug!("Time series query results: \n{}", ts_df);
         tsq.validate(&ts_df)
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
@@ -55,10 +57,7 @@ impl Combiner {
                     .map(|x| x.as_str().to_string())
                     .collect::<Vec<String>>(),
             );
-        }
-        let datatypes = tsq.get_datatype_map();
-        for (k, v) in datatypes {
-            solution_mappings.rdf_node_types.insert(k, v);
+            //Todo: Also drop resource vars
         }
 
         //In order to join on timestamps when multiple synchronized tsqs.
@@ -69,6 +68,10 @@ impl Combiner {
         }
         let on_cols: Vec<Expr> = on.into_iter().map(|x| col(&x)).collect();
 
+        for (k, v) in rdf_node_types {
+            solution_mappings.rdf_node_types.insert(k, v);
+        }
+
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {
@@ -77,7 +80,6 @@ impl Combiner {
                 .mappings
                 .with_column(col(cat_col).cast(DataType::Categorical(None)));
         }
-
         let on_reverse_false = vec![false].repeat(on_cols.len());
         ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
         solution_mappings.mappings = solution_mappings.mappings.sort_by_exprs(

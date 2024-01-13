@@ -12,12 +12,13 @@ use log::debug;
 use polars::frame::DataFrame;
 use sea_query::{BigQueryQueryBuilder};
 use std::error::Error;
+use representation::solution_mapping::SolutionMappings;
 
 #[async_trait]
 pub trait TimeseriesQueryable: Send {
     fn get_database_type(&self) -> DatabaseType;
 
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<DataFrame, Box<dyn Error>>;
+    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>>;
     fn allow_compound_timeseries_queries(&self) -> bool;
 }
 

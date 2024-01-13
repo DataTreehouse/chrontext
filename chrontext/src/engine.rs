@@ -9,6 +9,7 @@ use log::debug;
 use polars::frame::DataFrame;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use polars_core::enable_string_cache;
 use representation::RDFNodeType;
 use representation::solution_mapping::SolutionMappings;
 
@@ -40,6 +41,7 @@ impl Engine {
     }
 
     pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
+        enable_string_cache();
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", &parsed_query);
         debug!("Parsed query algebra: {:?}", &parsed_query);
