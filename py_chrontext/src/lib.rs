@@ -45,7 +45,6 @@ static GLOBAL: Jemalloc = Jemalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyQueryError;
-use pydf_io::to_python::df_to_py_df;
 use chrontext::engine::Engine as RustEngine;
 use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraph;
@@ -58,6 +57,7 @@ use chrontext::timeseries_database::TimeseriesQueryable;
 use log::debug;
 use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
+use pydf_io::to_python::df_to_py_df;
 use pyo3::prelude::*;
 use tokio::runtime::Builder;
 
@@ -375,6 +375,6 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-fn dtypes_map(map: HashMap<String, NamedNode>) -> HashMap<String, String> {
+fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
     map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
 }
