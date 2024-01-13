@@ -10,7 +10,6 @@ use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
 use polars_core::prelude::{DataType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
-use representation::solution_mapping;
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(

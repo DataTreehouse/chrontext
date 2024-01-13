@@ -9,7 +9,6 @@ use crate::timeseries_database::timeseries_sql_rewrite::{
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
-use polars::frame::DataFrame;
 use sea_query::{BigQueryQueryBuilder};
 use std::error::Error;
 use representation::solution_mapping::SolutionMappings;

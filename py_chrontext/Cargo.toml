@@ -1,6 +1,6 @@
 [package]
 name = "py_chrontext"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 
 [workspace]
@@ -11,7 +11,8 @@ pyo3 = {version = "0.19.2", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io"}
 thiserror="1.0.31"
-polars-core = {version="0.35.4"}
+polars-core = {version="0.35.4", features = ["lazy"]}
+polars-lazy = {version="0.35.4"}
 oxrdf = "0.1.7"
 spargebra = "0.2.8"
 simple-error = "0.3.0"

@@ -73,7 +73,7 @@ impl TimeseriesInMemoryDatabase {
                 Ok((basic_df, dtypes))
             }
             TimeseriesQuery::ExpressionAs(tsq, v, e) => {
-                let (mut df, dtypes) = self.execute_query_impl(tsq).await?;
+                let (df, dtypes) = self.execute_query_impl(tsq).await?;
 
                 let tmp_context = Context::from_path(vec![PathEntry::Coalesce(13)]);
                 let solution_mappings = SolutionMappings::new(df.lazy(), dtypes);

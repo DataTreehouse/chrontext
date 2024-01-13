@@ -8,7 +8,7 @@ use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{col, CsvReader, CsvWriter, IntoLazy, SerReader, SerWriter};
+use polars::prelude::{col, CsvReader, IntoLazy, SerReader};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;

@@ -58,8 +58,11 @@ use chrontext::timeseries_database::TimeseriesQueryable;
 use log::debug;
 use oxigraph::io::DatasetFormat;
 use oxrdf::{IriParseError, NamedNode};
+use polars_core::prelude::DataFrame;
+use polars_lazy::frame::IntoLazy;
 use pydf_io::to_python::df_to_py_df;
 use pyo3::prelude::*;
+use representation::multitype::multi_col_to_string_col;
 use tokio::runtime::Builder;
 
 const TTL_FILE_METADATA: &str = "ttl_file_data.txt";
@@ -156,12 +159,13 @@ impl Engine {
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let (df, datatypes) = builder
+        let (mut df, datatypes) = builder
             .build()
             .unwrap()
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
             .map_err(|err| PyQueryError::QueryExecutionError(err))?;
 
+        df = fix_multicolumns(df, &datatypes);
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
@@ -378,4 +382,14 @@ fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
 fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
     map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
+}
+
+fn fix_multicolumns(mut df: DataFrame, dts: &HashMap<String, RDFNodeType>) -> DataFrame {
+    let mut lf = df.lazy();
+    for (c, v) in dts {
+        if v == &RDFNodeType::MultiType {
+            lf = multi_col_to_string_col(lf, c);
+        }
+    }
+    lf.collect().unwrap()
 }
