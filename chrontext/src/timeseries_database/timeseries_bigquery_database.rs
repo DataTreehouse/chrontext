@@ -6,13 +6,15 @@ use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use bigquery_polars::{BigQueryExecutor, Client};
 use polars::prelude::PolarsError;
-use polars_core::prelude::DataFrame;
+use polars::prelude::IntoLazy;
 use reqwest::Url;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use representation::solution_mapping::SolutionMappings;
 use thiserror::Error;
 use tonic::Status;
+use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
+use representation::RDFNodeType;
 
 #[derive(Error, Debug)]
 pub enum BigQueryError {
@@ -107,7 +109,14 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
 
         let ex = BigQueryExecutor::new(client, project_id, query_string);
         let lf = ex.execute_query().await?;
-        Ok(SolutionMappings::new(lf, tsq.get_datatype_map()))
+        let mut datatypes = tsq.get_datatype_map();
+        let df = lf.collect().unwrap();
+        for c in df.get_column_names() {
+            if !datatypes.contains_key(c) {
+                datatypes.insert(c.to_string(), RDFNodeType::Literal(primitive_polars_type_to_literal_type(df.column(c).unwrap().dtype()).unwrap().into_owned()));
+            }
+        }
+        Ok(SolutionMappings::new(df.lazy(), datatypes))
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {
