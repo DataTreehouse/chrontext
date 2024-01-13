@@ -6,6 +6,7 @@ edition = "2021"
 [workspace]
 
 [dependencies]
+representation = { git = "https://github.com/DataTreehouse/representation"}
 pyo3 = {version = "0.19.2", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io"}

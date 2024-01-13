@@ -1,5 +1,6 @@
 pub mod errors;
 
+use representation::RDFNodeType;
 use filesize::PathExt;
 use std::collections::{HashMap, HashSet};
 use std::fs::{read_to_string, File};
