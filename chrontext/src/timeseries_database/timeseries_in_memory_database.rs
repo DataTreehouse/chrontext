@@ -16,6 +16,7 @@ use polars::prelude::{col, concat, lit, IntoLazy, UnionArgs, JoinArgs, JoinType}
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
+use query_processing::aggregates::AggregateReturn;
 
 pub struct TimeseriesInMemoryDatabase {
     pub frames: HashMap<String, DataFrame>,
@@ -64,12 +65,7 @@ impl TimeseriesInMemoryDatabase {
             TimeseriesQuery::ExpressionAs(tsq, v, e) => {
                 let mut df = self.execute_query(tsq).await?;
                 let tmp_context = Context::from_path(vec![PathEntry::Coalesce(13)]);
-                let columns = df
-                    .get_column_names()
-                    .into_iter()
-                    .map(|x| x.to_string())
-                    .collect();
-                let solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
+                let solution_mappings = SolutionMappings::new(df.lazy(), HashMap::new());
                 let mut combiner = Combiner::new(
                     Box::new(SparqlEndpoint {
                         endpoint: "".to_string(),
@@ -131,13 +127,8 @@ impl TimeseriesInMemoryDatabase {
         filter: &Expression,
     ) -> Result<DataFrame, Box<dyn Error>> {
         let df = self.execute_query(tsq).await?;
-        let columns = df
-            .get_column_names()
-            .into_iter()
-            .map(|x| x.to_string())
-            .collect();
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
-        let mut solution_mappings = SolutionMappings::new(df.lazy(), columns, HashMap::new());
+        let mut solution_mappings = SolutionMappings::new(df.lazy(), HashMap::new());
         let mut combiner = Combiner::new(
             Box::new(SparqlEndpoint {
                 endpoint: "".to_string(),
@@ -164,11 +155,6 @@ impl TimeseriesInMemoryDatabase {
         grouped: &GroupedTimeseriesQuery,
     ) -> Result<DataFrame, Box<dyn Error>> {
         let df = self.execute_query(&grouped.tsq).await?;
-        let columns = df
-            .get_column_names()
-            .into_iter()
-            .map(|x| x.to_string())
-            .collect();
         let mut out_lf = df.lazy();
 
         let mut aggregation_exprs = vec![];
@@ -183,10 +169,15 @@ impl TimeseriesInMemoryDatabase {
             vec![],
             Default::default(),
         );
-        let mut solution_mappings = SolutionMappings::new(out_lf, columns, HashMap::new());
+        let mut solution_mappings = SolutionMappings::new(out_lf, HashMap::new());
         for i in 0..grouped.aggregations.len() {
             let (v, agg) = grouped.aggregations.get(i).unwrap();
-            let (new_solution_mappings, agg_expr, _) = combiner
+            let AggregateReturn{
+                solution_mappings: new_solution_mappings,
+                expr: agg_expr,
+                context: _,
+                rdf_node_type: _,
+            } = combiner
                 .sparql_aggregate_expression_as_lazy_column_and_expression(
                     v,
                     agg,

@@ -9,7 +9,7 @@ use log::debug;
 use polars::frame::DataFrame;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use oxrdf::NamedNode;
+use representation::RDFNodeType;
 use representation::solution_mapping::SolutionMappings;
 
 pub struct Engine {
@@ -39,7 +39,7 @@ impl Engine {
         self.sparql_database.is_some()
     }
 
-    pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<(DataFrame, HashMap<String, NamedNode>), Box<dyn Error>> {
+    pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", &parsed_query);
         debug!("Parsed query algebra: {:?}", &parsed_query);

@@ -7,11 +7,9 @@ use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
-use polars::prelude::{col, Expr, IntoLazy, LiteralValue, is_in};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use std::ops::Not;
 use query_processing::graph_patterns::minus;
 
 impl Combiner {
@@ -41,7 +39,7 @@ impl Combiner {
             true
         });
         self.counter += 1;
-        let mut left_solution_mappings = self
+        let left_solution_mappings = self
             .lazy_graph_pattern(
                 left,
                 solution_mappings,

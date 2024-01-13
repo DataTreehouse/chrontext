@@ -6,7 +6,6 @@ use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
-use polars::enable_string_cache;
 use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
 use polars_core::prelude::{DataType};
 use sparesults::QuerySolution;
@@ -59,23 +58,17 @@ impl Combiner {
         }
         let datatypes = tsq.get_datatype_map();
         for (k, v) in datatypes {
-            solution_mappings.datatypes.insert(k, v);
+            solution_mappings.rdf_node_types.insert(k, v);
         }
 
         //In order to join on timestamps when multiple synchronized tsqs.
-        for c in &solution_mappings.columns {
+        for c in solution_mappings.rdf_node_types.keys() {
             if ts_df.get_column_names().contains(&c.as_str()) && !on.contains(c) {
                 on.push(c.to_string())
             }
         }
         let on_cols: Vec<Expr> = on.into_iter().map(|x| col(&x)).collect();
-        for c in ts_df.get_column_names() {
-            if !drop_cols.contains(&c.to_string()) {
-                solution_mappings.columns.insert(c.to_string());
-            }
-        }
 
-        enable_string_cache();
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {
@@ -104,8 +97,7 @@ impl Combiner {
             )
             .drop_columns(drop_cols.as_slice());
         for c in &drop_cols {
-            solution_mappings.datatypes.remove(c);
-            solution_mappings.columns.remove(c);
+            solution_mappings.rdf_node_types.remove(c);
         }
         return Ok(solution_mappings);
     }

@@ -7,7 +7,6 @@ use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use oxrdf::Variable;
-use polars::prelude::{col, Expr};
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
@@ -31,7 +30,7 @@ impl Combiner {
             split_time_series_queries(&mut prepared_time_series_queries, &inner_context);
         let inner_static_query_map = split_static_queries(&mut static_query_map, &inner_context);
 
-        let mut output_solution_mappings = self
+        let output_solution_mappings = self
             .lazy_graph_pattern(
                 inner,
                 solution_mapping,

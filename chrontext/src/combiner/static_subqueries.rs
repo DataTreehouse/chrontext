@@ -5,16 +5,16 @@ use crate::combiner::CombinerError;
 use representation::query_context::Context;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
-use oxrdf::vocab::xsd;
-use oxrdf::{Literal, NamedNode, NamedNodeRef, Variable};
-use polars::prelude::{JoinType, col, Expr, IntoLazy, JoinArgs};
-use polars_core::datatypes::AnyValue;
+use oxrdf::{Term, Variable};
+use polars::prelude::{col, Expr, IntoLazy};
 use polars_core::prelude::{UniqueKeepStrategy};
-use polars_core::series::SeriesIter;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::GroundTerm;
 use spargebra::Query;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
+use polars::export::rayon::iter::{IntoParallelIterator, ParallelIterator};
+use query_processing::graph_patterns::join;
+use representation::polars_to_sparql::{df_as_result, QuerySolutions};
 
 impl Combiner {
     pub async fn execute_static_query(
@@ -42,40 +42,13 @@ impl Combiner {
             &solutions,
             &mut self.prepper.basic_time_series_queries,
         )?;
-        let (df, mut datatypes) = create_static_query_dataframe(&use_query, solutions);
+        let (df, datatypes) = create_static_query_dataframe(&use_query, solutions);
         debug!("Static query results:\n {}", df);
-        let mut columns: HashSet<String> = df
-            .get_column_names()
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
-        if columns.is_empty() {
-            return Ok(use_solution_mappings.unwrap());
+        let mut out_solution_mappings = SolutionMappings::new(df.lazy(), datatypes);
+        if let Some(use_solution_mappings) = use_solution_mappings {
+            out_solution_mappings = join(out_solution_mappings, use_solution_mappings)?;
         }
-        let mut lf = df.lazy();
-        if let Some(SolutionMappings {
-            mappings: input_lf,
-            rdf_node_types: input_datatypes,
-        }) = use_solution_mappings
-        {
-            let on: Vec<&String> = columns.intersection(&input_columns).collect();
-            let on_cols: Vec<Expr> = on.iter().map(|x| col(x)).collect();
-            let join_type = if on_cols.is_empty() {
-                JoinType::Cross
-            } else {
-                JoinType::Inner
-            };
-            lf = lf.join(
-                input_lf,
-                on_cols.as_slice(),
-                on_cols.as_slice(),
-                JoinArgs::new(join_type),
-            );
-
-            columns.extend(input_columns);
-            datatypes.extend(input_datatypes);
-        }
-        Ok(SolutionMappings::new(lf, columns, datatypes))
+        Ok(out_solution_mappings)
     }
 }
 
@@ -117,7 +90,7 @@ fn constrain_query(
 
     let mut constrain_variables = vec![];
     for v in projected_variables {
-        if solution_mappings.columns.contains(v.as_str()) {
+        if solution_mappings.rdf_node_types.contains_key(v.as_str()) {
             constrain_variables.push(v.clone());
         }
     }
@@ -137,33 +110,17 @@ fn constrain_query(
         .collect()
         .unwrap();
 
-    let mut bindings = vec![];
-    let height = variable_columns.height();
-    let datatypes: Vec<NamedNode> = constrain_variables
-        .iter()
-        .map(|x| {
-            solution_mappings
-                .datatypes
-                .get(x.as_str())
-                .expect("Datatype did not exist")
-                .clone()
-        })
-        .collect();
-    let datatypes_nnref: Vec<NamedNodeRef> = datatypes.iter().map(|x| x.as_ref()).collect();
-    let mut series_iters: Vec<SeriesIter> = variable_columns.iter().map(|x| x.iter()).collect();
-    for _i in 0..height {
-        let mut binding = vec![];
-        for (j, iter) in series_iters.iter_mut().enumerate() {
-            binding.push(any_to_ground_term(
-                iter.next().unwrap(),
-                datatypes.get(j).unwrap(),
-                datatypes_nnref.get(j).unwrap(),
-            ));
-        }
-        bindings.push(binding)
-    }
+    let QuerySolutions{ variables, solutions } = df_as_result(variable_columns, &solution_mappings.rdf_node_types);
+    let bindings = solutions.into_par_iter().map(|x| {
+        x.into_iter().map(|y:Option<Term>| if let Some(y) = y {Some(match y {
+            Term::NamedNode(nn) => {GroundTerm::NamedNode(nn)}
+            Term::BlankNode(_) => {panic!()}
+            Term::Literal(l) => {GroundTerm::Literal(l)}
+            Term::Triple(_) => {todo!()}
+        })} else {None}).collect()
+    }).collect();
     let values_pattern = GraphPattern::Values {
-        variables: constrain_variables,
+        variables,
         bindings,
     };
     (
@@ -223,65 +180,3 @@ fn get_variable_set(query: &Query) -> Vec<&Variable> {
     }
 }
 
-fn any_to_ground_term(
-    any: AnyValue,
-    datatype: &NamedNode,
-    datatype_nnref: &NamedNodeRef,
-) -> Option<GroundTerm> {
-    #[allow(unreachable_patterns)]
-    match any {
-        AnyValue::Null => None,
-        AnyValue::Boolean(b) => Some(GroundTerm::Literal(Literal::from(b))),
-        AnyValue::Utf8(s) => {
-            if datatype_nnref == &xsd::STRING {
-                Some(GroundTerm::Literal(Literal::new_simple_literal(s)))
-            } else {
-                Some(GroundTerm::NamedNode(NamedNode::new_unchecked(s)))
-            }
-        }
-        AnyValue::UInt8(u) => Some(GroundTerm::Literal(Literal::new_typed_literal(
-            u.to_string(),
-            datatype.to_owned(),
-        ))),
-        AnyValue::UInt16(u) => Some(GroundTerm::Literal(Literal::from(u))),
-        AnyValue::UInt32(u) => Some(GroundTerm::Literal(Literal::from(u))),
-        AnyValue::UInt64(u) => Some(GroundTerm::Literal(Literal::from(u))),
-        AnyValue::Int8(i) => Some(GroundTerm::Literal(Literal::new_typed_literal(
-            i.to_string(),
-            datatype.to_owned(),
-        ))),
-        AnyValue::Int16(i) => Some(GroundTerm::Literal(Literal::from(i))),
-        AnyValue::Int32(i) => Some(GroundTerm::Literal(Literal::from(i))),
-        AnyValue::Int64(i) => Some(GroundTerm::Literal(Literal::from(i))),
-        AnyValue::Float32(f) => Some(GroundTerm::Literal(Literal::from(f))),
-        AnyValue::Float64(f) => Some(GroundTerm::Literal(Literal::from(f))),
-        AnyValue::Date(_) => {
-            todo!("No support for date yet")
-        }
-        AnyValue::Datetime(_, _, _) => {
-            todo!("No support for datetime yet")
-        }
-        AnyValue::Duration(_, _) => {
-            todo!("No support for duration yet")
-        }
-        AnyValue::Time(_) => {
-            todo!("No support for time yet")
-        }
-        AnyValue::Categorical(..) => {
-            todo!("No support for categorical yet")
-        }
-        AnyValue::List(_) => {
-            todo!("No support for list yet")
-        }
-        AnyValue::Utf8Owned(s) => {
-            if datatype_nnref == &xsd::STRING {
-                Some(GroundTerm::Literal(Literal::new_simple_literal(s)))
-            } else {
-                Some(GroundTerm::NamedNode(NamedNode::new_unchecked(s)))
-            }
-        }
-        _ => {
-            unimplemented!("Not implemented for {}", any)
-        }
-    }
-}

@@ -1,7 +1,7 @@
 //Uses code from https://github.com/magbak/maplib/blob/main/triplestore/src/sparql/lazy_graph_patterns/left_join.rs
 
 use super::Combiner;
-use representation::solution_mapping::{is_string_col, SolutionMappings};
+use representation::solution_mapping::{SolutionMappings};
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
@@ -9,8 +9,6 @@ use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
-use polars::prelude::{col, Expr, IntoLazy, JoinType, JoinArgs};
-use polars_core::datatypes::DataType;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
@@ -48,7 +46,7 @@ impl Combiner {
         } else {
             true
         });
-        let mut left_solution_mappings = self
+        let left_solution_mappings = self
             .lazy_graph_pattern(
                 left,
                 solution_mapping,

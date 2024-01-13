@@ -21,7 +21,7 @@ impl Combiner {
     pub async fn lazy_expression(
         &mut self,
         expr: &Expression,
-        mut solution_mappings: SolutionMappings,
+        solution_mappings: SolutionMappings,
         mut static_query_map: Option<HashMap<Context, Query>>,
         mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
         context: &Context,
@@ -628,12 +628,10 @@ impl Combiner {
                 coalesce_expression(output_solution_mappings, inner_contexts, &context)?
             }
             Expression::FunctionCall(func, args) => {
-                let args_contexts: Vec<Context> = (0..args.len())
-                    .map(|i| context.extension_with(PathEntry::FunctionCall(i as u16)))
-                    .collect();
+                let mut args_contexts: HashMap<usize, Context> = HashMap::new();
                 let mut output_solution_mappings = solution_mappings;
                 for i in 0..args.len() {
-                    let arg_context = args_contexts.get(i).unwrap();
+                    let arg_context = context.extension_with(PathEntry::FunctionCall(i as u16));
                     let arg_prepared_time_series_queries =
                         split_time_series_queries(&mut prepared_time_series_queries, &arg_context);
                     let arg_static_query_map =
@@ -644,9 +642,10 @@ impl Combiner {
                             output_solution_mappings,
                             arg_static_query_map,
                             arg_prepared_time_series_queries,
-                            arg_context,
+                            &arg_context,
                         )
                         .await?;
+                    args_contexts.insert(i, arg_context);
                 }
                 func_expression(output_solution_mappings, func, args, args_contexts, &context)?
             }

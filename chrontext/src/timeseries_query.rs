@@ -11,6 +11,7 @@ use spargebra::term::Variable;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use representation::RDFNodeType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TimeseriesQuery {
@@ -417,20 +418,20 @@ impl TimeseriesQuery {
         }
     }
 
-    pub fn get_datatype_map(&self) -> HashMap<String, NamedNode> {
+    pub fn get_datatype_map(&self) -> HashMap<String, RDFNodeType> {
         match self {
             TimeseriesQuery::Basic(b) => {
                 let mut map = HashMap::new();
                 if let Some(tsv) = &b.timestamp_variable {
                     map.insert(
                         tsv.variable.as_str().to_string(),
-                        xsd::DATE_TIME_STAMP.into_owned(),
+                        RDFNodeType::Literal(xsd::DATE_TIME_STAMP.into_owned()),
                     );
                 }
                 if let Some(v) = &b.value_variable.clone() {
                     map.insert(
                         v.variable.as_str().to_string(),
-                        b.datatype.as_ref().unwrap().clone(),
+                        RDFNodeType::Literal(b.datatype.as_ref().unwrap().clone()),
                     );
                 }
                 map
@@ -442,7 +443,7 @@ impl TimeseriesQuery {
                     .variable
                     .as_str()
                     .to_string(),
-                b.datatype.as_ref().unwrap().clone(),
+                RDFNodeType::Literal(b.datatype.as_ref().unwrap().clone()),
             )]),
             TimeseriesQuery::Filtered(tsq, _) => tsq.get_datatype_map(),
             TimeseriesQuery::InnerSynchronized(tsqs, _) => {

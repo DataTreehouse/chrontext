@@ -25,7 +25,6 @@ use thiserror::Error;
 pub enum CombinerError {
     TimeseriesQueryError(Box<dyn Error>),
     StaticQueryExecutionError(Box<dyn Error>),
-    #[error(transparent)]
     QueryProcessingError(#[from] QueryProcessingError),
     InconsistentDatatype(String, String, String),
     TimeseriesValidationError(TimeseriesValidationError),
@@ -62,6 +61,11 @@ impl Display for CombinerError {
                 write!(
                     f,
                     "Resource variable for value variable {value_var} has conflicting values {r1} != {r2}"
+                )
+            }
+            CombinerError::QueryProcessingError(e) => {
+                write!(
+                    f, "{}", e
                 )
             }
         }

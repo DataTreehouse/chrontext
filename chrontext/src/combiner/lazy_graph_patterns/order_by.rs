@@ -5,7 +5,6 @@ use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
-use polars::prelude::{col, Expr};
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::HashMap;
