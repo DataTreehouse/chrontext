@@ -84,6 +84,31 @@ impl Display for TimeseriesValidationError {
 impl Error for TimeseriesValidationError {}
 
 impl TimeseriesQuery {
+    pub(crate) fn has_identifiers(&self) -> bool {
+        match self {
+            TimeseriesQuery::Basic(b) => {
+                if let Some(i) = &b.ids {
+                    !i.is_empty()
+                } else {
+                    false
+                }
+            }
+            TimeseriesQuery::GroupedBasic(_, df, _) => {
+                df.height() > 0
+            }
+            TimeseriesQuery::Filtered(i, _) => {
+                i.has_identifiers()
+            }
+            TimeseriesQuery::InnerSynchronized(i, _) => {
+                i.iter().any(|x|x.has_identifiers())
+            }
+            TimeseriesQuery::ExpressionAs(t, _, _) => {t.has_identifiers()}
+            TimeseriesQuery::Grouped(g) => {
+                g.tsq.has_identifiers()
+            }
+        }
+    }
+
     pub(crate) fn validate(&self, df: &DataFrame) -> Result<(), TimeseriesValidationError> {
         let expected_columns = self.expected_columns();
         let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
@@ -104,7 +129,7 @@ impl TimeseriesQuery {
         }
     }
 
-    fn expected_columns<'a>(&'a self) -> HashSet<&'a str> {
+    pub(crate) fn expected_columns<'a>(&'a self) -> HashSet<&'a str> {
         match self {
             TimeseriesQuery::Basic(b) => b.expected_columns(),
             TimeseriesQuery::Filtered(inner, ..) => inner.expected_columns(),

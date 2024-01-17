@@ -7,9 +7,11 @@ use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
-use polars_core::prelude::{DataType};
+use polars_core::prelude::{DataFrame, DataType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
+use polars_core::series::Series;
+use representation::RDFNodeType;
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -18,6 +20,28 @@ impl Combiner {
         mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Executing time series query: {:?}", tsq);
+        if !tsq.has_identifiers() {
+            let mut expected_cols:Vec<_> = tsq.expected_columns().into_iter().collect();
+            expected_cols.sort();
+            let drop_cols = get_drop_cols(tsq);
+            let mut series_vec = vec![];
+            for e in expected_cols {
+                if !drop_cols.contains(e) {
+                    series_vec.push(Series::new_empty(e, &DataType::Null));
+                    solution_mappings.rdf_node_types.insert(e.to_string(), RDFNodeType::None);
+                }
+            }
+            let df = DataFrame::new(series_vec).unwrap();
+            for d in drop_cols {
+                if solution_mappings.rdf_node_types.contains_key(&d) {
+                    solution_mappings.rdf_node_types.remove(&d);
+                    solution_mappings.mappings = solution_mappings.mappings.drop_columns(vec![d]);
+                }
+            }
+            solution_mappings.mappings = solution_mappings.mappings.join(df.lazy(), vec![], vec![], JoinArgs::new(JoinType::Cross));
+            return Ok(solution_mappings)
+        }
+
         let SolutionMappings { mappings, rdf_node_types } = self
             .time_series_database
             .execute(tsq)
@@ -29,11 +53,10 @@ impl Combiner {
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
 
         let mut on: Vec<String>;
-        let mut drop_cols: Vec<String>;
         let to_cat_col: Option<String>;
+        let drop_cols = get_drop_cols(tsq);
         if let Some(colname) = tsq.get_groupby_column() {
             on = vec![colname.to_string()];
-            drop_cols = vec![colname.to_string()];
             to_cat_col = None;
         } else {
             let idvars: Vec<String> = tsq
@@ -44,19 +67,6 @@ impl Combiner {
             assert_eq!(idvars.len(), 1);
             to_cat_col = Some(idvars.get(0).unwrap().clone());
             on = idvars;
-
-            drop_cols = tsq
-                .get_identifier_variables()
-                .iter()
-                .map(|x| x.as_str().to_string())
-                .collect();
-            drop_cols.extend(
-                tsq.get_datatype_variables()
-                    .iter()
-                    .map(|x| x.as_str().to_string())
-                    .collect::<Vec<String>>(),
-            );
-            //Todo: Also drop resource vars
         }
 
         //In order to join on timestamps when multiple synchronized tsqs.
@@ -96,7 +106,7 @@ impl Combiner {
                 on_cols.as_slice(),
                 JoinArgs::new(JoinType::Inner),
             )
-            .drop_columns(drop_cols.as_slice());
+            .drop_columns(drop_cols.iter());
         for c in &drop_cols {
             solution_mappings.rdf_node_types.remove(c);
         }
@@ -124,6 +134,24 @@ pub(crate) fn split_time_series_queries(
     } else {
         None
     }
+}
+
+fn get_drop_cols(tsq:&TimeseriesQuery) -> HashSet<String> {
+    let mut drop_cols = HashSet::new();
+    if let Some(colname) = tsq.get_groupby_column() {
+        drop_cols.insert(colname.to_string());
+    } else {
+        drop_cols.extend(tsq.get_identifier_variables()
+            .iter()
+            .map(|x| x.as_str().to_string()));
+        drop_cols.extend(
+            tsq.get_datatype_variables()
+                .iter()
+                .map(|x| x.as_str().to_string()),
+        );
+        //Todo also resource vars
+    }
+    drop_cols
 }
 
 pub(crate) fn complete_basic_time_series_queries(

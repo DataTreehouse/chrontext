@@ -178,6 +178,39 @@ async fn test_simple_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+async fn test_simple_hybrid_no_tsq_matches_query(
+    #[future] with_testdata: (),
+    mut engine: Engine,
+    use_logger: (),
+) {
+    use_logger;
+    let _ = with_testdata.await;
+    let query = r#"
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s ?t ?v WHERE {
+        ?w a types:BigWidgetInvalidType .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
+    }
+    "#;
+    let df = engine
+        .execute_hybrid_query(query)
+        .await
+        .expect("Hybrid error").0;
+
+    assert_eq!(df.height(), 0);
+}
+
+
+#[rstest]
+#[tokio::test]
+#[serial]
 async fn test_complex_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
