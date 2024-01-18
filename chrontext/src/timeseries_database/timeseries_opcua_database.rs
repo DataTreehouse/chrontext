@@ -1,4 +1,4 @@
-use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
+use crate::timeseries_database::{DatabaseType, get_datatype_map, TimeseriesQueryable};
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use opcua::client::prelude::{
@@ -281,7 +281,8 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
             .unwrap()
             .collect()
             .unwrap();
-        Ok(SolutionMappings::new(df.lazy(), tsq.get_datatype_map()))
+        let datatypes = get_datatype_map(&df);
+        Ok(SolutionMappings::new(df.lazy(), datatypes))
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {

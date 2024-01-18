@@ -27,7 +27,6 @@ pub struct GPReturn {
     pub(crate) graph_pattern: Option<GraphPattern>,
     pub(crate) rewritten: bool,
     pub(crate) variables_in_scope: HashSet<Variable>,
-    pub(crate) datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) resources_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
     pub(crate) is_subquery: bool,
@@ -38,7 +37,6 @@ impl GPReturn {
         graph_pattern: GraphPattern,
         rewritten: bool,
         variables_in_scope: HashSet<Variable>,
-        datatypes_in_scope: HashMap<Variable, Vec<Variable>>,
         resources_in_scope: HashMap<Variable, Vec<Variable>>,
         external_ids_in_scope: HashMap<Variable, Vec<Variable>>,
         is_subquery: bool,
@@ -47,7 +45,6 @@ impl GPReturn {
             graph_pattern: Some(graph_pattern),
             rewritten,
             variables_in_scope,
-            datatypes_in_scope,
             resources_in_scope,
             external_ids_in_scope,
             is_subquery,
@@ -59,7 +56,6 @@ impl GPReturn {
             graph_pattern: None,
             rewritten: true,
             variables_in_scope: Default::default(),
-            datatypes_in_scope: Default::default(),
             resources_in_scope: Default::default(),
             external_ids_in_scope: Default::default(),
             is_subquery: true,
@@ -79,15 +75,7 @@ impl GPReturn {
     fn with_scope(&mut self, gpr: &mut GPReturn) -> &mut GPReturn {
         self.variables_in_scope
             .extend(&mut gpr.variables_in_scope.drain());
-        for (k, v) in gpr.datatypes_in_scope.drain() {
-            if let Some(vs) = self.datatypes_in_scope.get_mut(&k) {
-                for vee in v {
-                    vs.push(vee);
-                }
-            } else {
-                self.datatypes_in_scope.insert(k, v);
-            }
-        }
+
         for (k, v) in gpr.resources_in_scope.drain() {
             if let Some(vs) = self.resources_in_scope.get_mut(&k) {
                 for vee in v {

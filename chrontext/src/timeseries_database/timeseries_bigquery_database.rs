@@ -1,7 +1,7 @@
 use crate::timeseries_database::timeseries_sql_rewrite::{
     TimeseriesQueryToSQLError, TimeseriesTable,
 };
-use crate::timeseries_database::{DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable};
+use crate::timeseries_database::{DatabaseType, get_datatype_map, TimeseriesQueryable, TimeseriesSQLQueryable};
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use bigquery_polars::{BigQueryExecutor, Client};
@@ -13,8 +13,6 @@ use std::fmt::{Display, Formatter};
 use representation::solution_mapping::SolutionMappings;
 use thiserror::Error;
 use tonic::Status;
-use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
-use representation::RDFNodeType;
 
 #[derive(Error, Debug)]
 pub enum BigQueryError {
@@ -109,13 +107,8 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
 
         let ex = BigQueryExecutor::new(client, project_id, query_string);
         let lf = ex.execute_query().await?;
-        let mut datatypes = tsq.get_datatype_map();
         let df = lf.collect().unwrap();
-        for c in df.get_column_names() {
-            if !datatypes.contains_key(c) {
-                datatypes.insert(c.to_string(), RDFNodeType::Literal(primitive_polars_type_to_literal_type(df.column(c).unwrap().dtype()).unwrap().into_owned()));
-            }
-        }
+        let datatypes = get_datatype_map(&df);
         Ok(SolutionMappings::new(df.lazy(), datatypes))
     }
 

@@ -758,8 +758,6 @@ mod tests {
                 Variable::new_unchecked("v"),
                 Context::new(),
             )),
-            datatype_variable: Some(Variable::new_unchecked("dt")),
-            datatype: Some(xsd::DOUBLE.into_owned()),
             resource_variable: Some(Variable::new_unchecked("res")),
             resource: Some("my_resource".to_string()),
             timestamp_variable: Some(VariableInContext::new(
@@ -832,10 +830,6 @@ mod tests {
                                                         Variable::new_unchecked("val_speed"),
                                                         Context::new(),
                                                     )),
-                                                    datatype_variable: Some(
-                                                        Variable::new_unchecked("ts_datatype_1"),
-                                                    ),
-                                                    datatype: Some(xsd::DOUBLE.into_owned()),
                                                     resource_variable: Some(
                                                         Variable::new_unchecked("ts_resource_1"),
                                                     ),
@@ -876,10 +870,6 @@ mod tests {
                                                         Variable::new_unchecked("val_dir"),
                                                         Context::new(),
                                                     )),
-                                                    datatype_variable: Some(
-                                                        Variable::new_unchecked("ts_datatype_2"),
-                                                    ),
-                                                    datatype: Some(xsd::DOUBLE.into_owned()),
                                                     resource_variable: Some(
                                                         Variable::new_unchecked("ts_resource_2"),
                                                     ),

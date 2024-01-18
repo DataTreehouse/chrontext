@@ -13,9 +13,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::common::{
-    add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT,
-};
+use crate::common::{add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT, wipe_database};
 
 #[fixture]
 fn use_logger() {
@@ -48,6 +46,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
     let _ = sparql_endpoint.await;
     let mut testdata_path = testdata_path.clone();
     testdata_path.push("testdata.sparql");
+    wipe_database().await;
     add_sparql_testdata(testdata_path).await;
 }
 

@@ -19,7 +19,7 @@ use std::thread::{sleep, JoinHandle};
 use std::{thread, time};
 use tokio::runtime::Builder;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT};
+use crate::common::{add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT, wipe_database};
 use crate::opcua_data_provider::OPCUADataProvider;
 
 #[fixture]
@@ -59,6 +59,7 @@ fn with_testdata(sparql_endpoint: (), testdata_path: PathBuf) {
     let mut builder = Builder::new_multi_thread();
     builder.enable_all();
     let runtime = builder.build().unwrap();
+    runtime.block_on(wipe_database());
     runtime.block_on(add_sparql_testdata(testdata_path));
 }
 

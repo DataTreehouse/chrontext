@@ -2,7 +2,7 @@ use crate::combiner::Combiner;
 use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
-use crate::timeseries_database::{DatabaseType, TimeseriesQueryable};
+use crate::timeseries_database::{DatabaseType, get_datatype_map, TimeseriesQueryable};
 use crate::timeseries_query::{
     BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
 };
@@ -105,7 +105,6 @@ impl TimeseriesInMemoryDatabase {
         btsq: &BasicTimeseriesQuery,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         let mut lfs = vec![];
-        let dtypes = TimeseriesQuery::Basic(btsq.clone()).get_datatype_map();
         for id in btsq.ids.as_ref().unwrap() {
             if let Some(df) = self.frames.get(id) {
                 assert!(btsq.identifier_variable.is_some());
@@ -133,8 +132,9 @@ impl TimeseriesInMemoryDatabase {
                 panic!("Missing frame");
             }
         }
-        let out_lf = concat(lfs, UnionArgs::default())?;
-        Ok((out_lf.collect().unwrap(), dtypes))
+        let out_df = concat(lfs, UnionArgs::default())?.collect().unwrap();
+        let dtypes = get_datatype_map(&out_df);
+        Ok((out_df, dtypes))
     }
 
     #[async_recursion]

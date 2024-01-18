@@ -1,17 +1,13 @@
 use crate::find_query_variables::{
-    find_all_used_variables_in_aggregate_expression, find_all_used_variables_in_expression,
+    find_all_used_variables_in_expression,
 };
 use representation::query_context::{Context, VariableInContext};
-use log::warn;
-use oxrdf::vocab::xsd;
-use oxrdf::NamedNode;
 use polars::frame::DataFrame;
 use spargebra::algebra::{AggregateExpression, Expression};
 use spargebra::term::Variable;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use representation::RDFNodeType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TimeseriesQuery {
@@ -42,8 +38,6 @@ pub struct BasicTimeseriesQuery {
     pub timeseries_variable: Option<VariableInContext>,
     pub data_point_variable: Option<VariableInContext>,
     pub value_variable: Option<VariableInContext>,
-    pub datatype_variable: Option<Variable>,
-    pub datatype: Option<NamedNode>,
     pub resource_variable: Option<Variable>,
     pub resource: Option<String>,
     pub timestamp_variable: Option<VariableInContext>,
@@ -267,32 +261,32 @@ impl TimeseriesQuery {
         }
     }
 
-    pub(crate) fn get_datatype_variables(&self) -> Vec<&Variable> {
+    pub(crate) fn get_resource_variables(&self) -> Vec<&Variable> {
         match self {
             TimeseriesQuery::Basic(b) => {
-                if let Some(dt_var) = &b.datatype_variable {
-                    vec![dt_var]
+                if let Some(res_var) = &b.resource_variable {
+                    vec![res_var]
                 } else {
                     vec![]
                 }
             }
-            TimeseriesQuery::Filtered(inner, _) => inner.get_datatype_variables(),
+            TimeseriesQuery::Filtered(inner, _) => inner.get_resource_variables(),
             TimeseriesQuery::InnerSynchronized(inners, _) => {
                 let mut vs = vec![];
                 for inner in inners {
-                    vs.extend(inner.get_datatype_variables())
+                    vs.extend(inner.get_resource_variables())
                 }
                 vs
             }
-            TimeseriesQuery::Grouped(grouped) => grouped.tsq.get_datatype_variables(),
+            TimeseriesQuery::Grouped(grouped) => grouped.tsq.get_resource_variables(),
             TimeseriesQuery::GroupedBasic(b, ..) => {
-                if let Some(dt_var) = &b.datatype_variable {
-                    vec![dt_var]
+                if let Some(res_var) = &b.resource_variable {
+                    vec![res_var]
                 } else {
                     vec![]
                 }
             }
-            TimeseriesQuery::ExpressionAs(t, ..) => t.get_datatype_variables(),
+            TimeseriesQuery::ExpressionAs(t, ..) => t.get_resource_variables(),
         }
     }
 
@@ -346,8 +340,6 @@ impl BasicTimeseriesQuery {
             timeseries_variable: None,
             data_point_variable: None,
             value_variable: None,
-            datatype_variable: None,
-            datatype: None,
             resource_variable: None,
             resource: None,
             timestamp_variable: None,
@@ -440,73 +432,6 @@ impl TimeseriesQuery {
                 tsfs
             }
             TimeseriesQuery::Grouped(tsq, ..) => tsq.tsq.get_timeseries_functions(context),
-        }
-    }
-
-    pub fn get_datatype_map(&self) -> HashMap<String, RDFNodeType> {
-        match self {
-            TimeseriesQuery::Basic(b) => {
-                let mut map = HashMap::new();
-                if let Some(tsv) = &b.timestamp_variable {
-                    map.insert(
-                        tsv.variable.as_str().to_string(),
-                        RDFNodeType::Literal(xsd::DATE_TIME_STAMP.into_owned()),
-                    );
-                }
-                if let Some(v) = &b.value_variable.clone() {
-                    map.insert(
-                        v.variable.as_str().to_string(),
-                        RDFNodeType::Literal(b.datatype.as_ref().unwrap().clone()),
-                    );
-                }
-                map
-            }
-            TimeseriesQuery::GroupedBasic(b, ..) => HashMap::from([(
-                b.value_variable
-                    .as_ref()
-                    .unwrap()
-                    .variable
-                    .as_str()
-                    .to_string(),
-                RDFNodeType::Literal(b.datatype.as_ref().unwrap().clone()),
-            )]),
-            TimeseriesQuery::Filtered(tsq, _) => tsq.get_datatype_map(),
-            TimeseriesQuery::InnerSynchronized(tsqs, _) => {
-                let mut map = HashMap::new();
-                for tsq in tsqs {
-                    map.extend(tsq.get_datatype_map());
-                }
-                map
-            }
-            TimeseriesQuery::ExpressionAs(tsq, v, e) => {
-                let v_str = v.as_str();
-                let mut map = tsq.get_datatype_map();
-                let mut used_vars = HashSet::new();
-                find_all_used_variables_in_expression(e, &mut used_vars);
-                for u in &used_vars {
-                    let u_str = u.as_str();
-                    if map.contains_key(u_str) {
-                        map.insert(v_str.to_string(), map.get(u_str).unwrap().clone());
-                    } else {
-                        warn!("Map does not contain datatype {:?}", u);
-                    }
-                }
-                map
-            }
-            TimeseriesQuery::Grouped(gr) => {
-                let mut map = gr.tsq.get_datatype_map();
-                for (v, agg) in gr.aggregations.iter().rev() {
-                    let v_str = v.as_str();
-                    let mut used_vars = HashSet::new();
-                    find_all_used_variables_in_aggregate_expression(&agg, &mut used_vars);
-                    for av in used_vars {
-                        let av_str = av.as_str();
-                        //TODO: This is not correct.
-                        map.insert(v_str.to_string(), map.get(av_str).unwrap().clone());
-                    }
-                }
-                map
-            }
         }
     }
 }

@@ -145,11 +145,10 @@ fn get_drop_cols(tsq:&TimeseriesQuery) -> HashSet<String> {
             .iter()
             .map(|x| x.as_str().to_string()));
         drop_cols.extend(
-            tsq.get_datatype_variables()
+            tsq.get_resource_variables()
                 .iter()
                 .map(|x| x.as_str().to_string()),
         );
-        //Todo also resource vars
     }
     drop_cols
 }
@@ -168,29 +167,6 @@ pub(crate) fn complete_basic_time_series_queries(
                     ids.insert(lit.value().to_string());
                 } else {
                     todo!()
-                }
-            }
-        }
-
-        if let Some(datatype_var) = &basic_query.datatype_variable {
-            for sqs in static_query_solutions {
-                if let Some(Term::NamedNode(nn)) = sqs.get(datatype_var) {
-                    if basic_query.datatype.is_none() {
-                        basic_query.datatype = Some(nn.clone());
-                    } else if let Some(dt) = &basic_query.datatype {
-                        if dt.as_str() != nn.as_str() {
-                            return Err(CombinerError::InconsistentDatatype(
-                                nn.as_str().to_string(),
-                                dt.as_str().to_string(),
-                                basic_query
-                                    .timeseries_variable
-                                    .as_ref()
-                                    .unwrap()
-                                    .variable
-                                    .to_string(),
-                            ));
-                        }
-                    }
                 }
             }
         }

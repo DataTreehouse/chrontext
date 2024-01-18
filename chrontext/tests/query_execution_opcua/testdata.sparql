@@ -9,9 +9,7 @@ INSERT DATA {
     case:myWidget1 a types:BigWidget .
     case:myWidget2 a types:SmallWidget .
     case:mySensor1 chrontext:hasTimeseries case:myTimeseries1 .
-    case:myTimeseries1 chrontext:hasDatatype xsd:unsignedInt .
     case:mySensor2 chrontext:hasTimeseries case:myTimeseries2 .
-    case:myTimeseries2 chrontext:hasDatatype xsd:unsignedInt .
     case:myTimeseries1 chrontext:hasExternalId "ns=1;s=ts1" .
     case:myTimeseries2 chrontext:hasExternalId "ns=1;s=ts2" .
     case:myTimeseries1 chrontext:hasResource "placeholder" .

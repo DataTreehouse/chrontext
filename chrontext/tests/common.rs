@@ -48,7 +48,13 @@ pub async fn start_sparql_container() {
     let docker = Docker::connect_with_local_defaults().expect("Could not find local docker");
     let container_name = "my-oxigraph-server";
     let existing = find_container(&docker, container_name).await;
-    if existing.is_some() {
+    if let Some(existing) = existing {
+        if let Some(state) = &existing.state {
+            println!("Existing container state: {}", state);
+            if state == "running" {
+                return;
+            }
+        }
         docker
             .remove_container(
                 container_name,
@@ -104,6 +110,19 @@ pub async fn start_sparql_container() {
         .as_ref()
         .unwrap()
         .contains("Up"));
+}
+
+pub async fn wipe_database() {
+    let delete_all_query = r#"
+    DELETE {?s ?v ?o } WHERE {?s ?v ?o}
+    "#;
+    let client = reqwest::Client::new();
+    let put_request = client
+        .post(UPDATE_ENDPOINT)
+        .header(CONTENT_TYPE, "application/sparql-update")
+        .body(delete_all_query);
+    let put_response = put_request.send().await.expect("Update error");
+    assert_eq!(put_response.status(), StatusCode::from_u16(204).unwrap());
 }
 
 pub async fn add_sparql_testdata(testdata_path: PathBuf) {

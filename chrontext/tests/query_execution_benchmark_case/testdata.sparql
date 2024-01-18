@@ -23,14 +23,6 @@ INSERT DATA {
 <https://github.com/DataTreehouse/chrontext/windpower_example#WeatherMeasuringSystem6> <https://github.com/DataTreehouse/chrontext#hasTimeseries> <https://github.com/DataTreehouse/chrontext/windpower_example#wdir6> .
 <https://github.com/DataTreehouse/chrontext/windpower_example#WeatherMeasuringSystem7> <https://github.com/DataTreehouse/chrontext#hasTimeseries> <https://github.com/DataTreehouse/chrontext/windpower_example#wdir7> .
 <https://github.com/DataTreehouse/chrontext/windpower_example#WeatherMeasuringSystem8> <https://github.com/DataTreehouse/chrontext#hasTimeseries> <https://github.com/DataTreehouse/chrontext/windpower_example#wdir8> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir1> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir2> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir3> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir4> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir5> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir6> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir7> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
-<https://github.com/DataTreehouse/chrontext/windpower_example#wdir8> <https://github.com/DataTreehouse/chrontext#hasDatatype> <http://www.w3.org/2001/XMLSchema#double> .
 <https://github.com/DataTreehouse/chrontext/windpower_example#wdir1> <https://github.com/DataTreehouse/chrontext#hasResource> "my_resource" .
 <https://github.com/DataTreehouse/chrontext/windpower_example#wdir2> <https://github.com/DataTreehouse/chrontext#hasResource> "my_resource" .
 <https://github.com/DataTreehouse/chrontext/windpower_example#wdir3> <https://github.com/DataTreehouse/chrontext#hasResource> "my_resource" .

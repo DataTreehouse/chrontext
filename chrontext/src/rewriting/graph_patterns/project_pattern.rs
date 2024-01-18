@@ -34,23 +34,6 @@ impl StaticQueryRewriter {
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
             .collect::<Vec<Variable>>();
-        let mut datatype_keys_sorted = gpreturn
-            .datatypes_in_scope
-            .keys()
-            .collect::<Vec<&Variable>>();
-        datatype_keys_sorted.sort_by_key(|v| v.to_string());
-
-        for k in datatype_keys_sorted {
-            let vs = gpreturn.datatypes_in_scope.get(k).unwrap();
-            let mut vars = vs.iter().collect::<Vec<&Variable>>();
-            //Sort to make rewrites deterministic
-            vars.sort_by_key(|v| v.to_string());
-            for v in vars {
-                if !variables_rewrite.contains(v) {
-                    variables_rewrite.push(v.clone());
-                }
-            }
-        }
 
         let mut resource_keys_sorted = gpreturn
             .resources_in_scope

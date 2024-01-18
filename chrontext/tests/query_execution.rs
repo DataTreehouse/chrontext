@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use polars_core::prelude::DataType;
 
 use crate::common::{
-    add_sparql_testdata, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
+    add_sparql_testdata, wipe_database, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
 };
 
 #[fixture]
@@ -52,6 +52,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
     let _ = sparql_endpoint.await;
     let mut testdata_path = testdata_path.clone();
     testdata_path.push("testdata.sparql");
+    wipe_database().await;
     add_sparql_testdata(testdata_path).await;
 }
 
