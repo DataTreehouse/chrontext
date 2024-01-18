@@ -157,7 +157,7 @@ def test_get_inverter_dckw_sugar(engine):
         """)
     assert df.height == 51900
 
-@pytest.mark.skipif(True, reason="Not working yet")
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(4)
 def test_get_inverter_dckw_sugar_no_static_results(engine):
     df = engine.query("""
@@ -187,7 +187,7 @@ def test_get_inverter_dckw_sugar_no_static_results(engine):
             }
         ORDER BY ?block_code ?gen_code ?inv_code ?t
         """)
-    assert df.height == 51900
+    assert df.height == 0
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(4)
