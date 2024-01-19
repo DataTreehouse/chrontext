@@ -57,7 +57,7 @@ use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable as R
 use chrontext::timeseries_database::TimeseriesQueryable;
 use log::debug;
 use oxigraph::io::DatasetFormat;
-use oxrdf::{IriParseError, NamedNode};
+use oxrdf::{IriParseError};
 use polars_core::prelude::DataFrame;
 use polars_lazy::frame::IntoLazy;
 use pydf_io::to_python::df_to_py_df;
@@ -298,7 +298,6 @@ pub struct TimeseriesTable {
     pub value_column: String,
     pub timestamp_column: String,
     pub identifier_column: String,
-    pub value_datatype: String,
     pub year_column: Option<String>,
     pub month_column: Option<String>,
     pub day_column: Option<String>,
@@ -313,7 +312,6 @@ impl TimeseriesTable {
         value_column: String,
         timestamp_column: String,
         identifier_column: String,
-        value_datatype: String,
         schema: Option<String>,
         year_column: Option<String>,
         month_column: Option<String>,
@@ -326,7 +324,6 @@ impl TimeseriesTable {
             value_column,
             timestamp_column,
             identifier_column,
-            value_datatype,
             year_column,
             month_column,
             day_column,
@@ -343,7 +340,6 @@ impl TimeseriesTable {
             value_column: self.value_column.clone(),
             timestamp_column: self.timestamp_column.clone(),
             identifier_column: self.identifier_column.clone(),
-            value_datatype: NamedNode::new(&self.value_datatype)?,
             year_column: self.year_column.clone(),
             month_column: self.month_column.clone(),
             day_column: self.day_column.clone(),
@@ -384,7 +380,7 @@ fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
     map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
 }
 
-fn fix_multicolumns(mut df: DataFrame, dts: &HashMap<String, RDFNodeType>) -> DataFrame {
+fn fix_multicolumns(df: DataFrame, dts: &HashMap<String, RDFNodeType>) -> DataFrame {
     let mut lf = df.lazy();
     for (c, v) in dts {
         if v == &RDFNodeType::MultiType {

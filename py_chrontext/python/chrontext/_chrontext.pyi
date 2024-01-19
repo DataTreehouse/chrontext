@@ -1,5 +1,4 @@
-from typing import Dict, List
-from polars import DataFrame
+from typing import List
 from .semantic_dataframe import SemanticDataFrame
 class Engine:
     """
@@ -91,7 +90,6 @@ class TimeseriesTable:
                  value_column: str,
                  timestamp_column: str,
                  identifier_column: str,
-                 value_datatype: str,
                  schema: str=None,
                  year_column: str=None,
                  month_column: str=None,
@@ -105,7 +103,6 @@ class TimeseriesTable:
         :param value_column: Column containing the values. This is the object of the `ct:hasValue`-property.
         :param timestamp_column: Column containing the timestamps. This is the object of the `ct:hasTimestamp`-property.
         :param identifier_column: Column containing the identity of the timeseries. This is the object of the `ct:hasExternalId`-property.
-        :param value_datatype: Datatype of the value (e.g. http://www.w3.org/2001/XMLSchema#double)
         :param year_column: Optionally the column containing the year of the timestamp, used for parititioning.
         :param month_column: Optionally the column containing the day of the timestamp, used for parititioning.
         :param day_column: Optionally the column containing the day of the timestamp, used for parititioning.

@@ -5,7 +5,7 @@ use crate::timeseries_database::timeseries_sql_rewrite::expression_rewrite::SPAR
 use crate::timeseries_database::timeseries_sql_rewrite::partitioning_support::add_partitioned_timestamp_conditions;
 use crate::timeseries_database::DatabaseType;
 use crate::timeseries_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery};
-use oxrdf::{NamedNode, Variable};
+use oxrdf::{Variable};
 use polars_core::datatypes::AnyValue;
 use polars_core::frame::DataFrame;
 use sea_query::extension::bigquery::{NamedField, Unnest};
@@ -106,7 +106,6 @@ pub struct TimeseriesTable {
     pub value_column: String,
     pub timestamp_column: String,
     pub identifier_column: String,
-    pub value_datatype: NamedNode,
     pub year_column: Option<String>,
     pub month_column: Option<String>,
     pub day_column: Option<String>,
