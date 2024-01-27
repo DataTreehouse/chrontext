@@ -254,6 +254,9 @@ impl Combiner {
             GraphPattern::DT { .. } => {
                 panic!("Should never happen!")
             }
+            GraphPattern::PValues { .. } => {
+                todo!("Not currently supported")
+            }
         }
     }
 }

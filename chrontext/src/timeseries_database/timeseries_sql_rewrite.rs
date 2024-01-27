@@ -733,7 +733,7 @@ mod tests {
         BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
     };
     use oxrdf::vocab::xsd;
-    use oxrdf::{Literal, NamedNode, Variable};
+    use oxrdf::{Literal, Variable};
     use polars_core::frame::DataFrame;
     use polars_core::prelude::NamedFrom;
     use polars_core::series::Series;

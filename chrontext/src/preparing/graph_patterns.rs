@@ -175,6 +175,9 @@ impl TimeseriesQueryPrepper {
             ),
             GraphPattern::Service { .. } => self.prepare_service(),
             GraphPattern::DT { .. } => panic!("Should never happen"),
+            GraphPattern::PValues { .. } => {
+                todo!("Not currently supported")
+            }
         }
     }
 }

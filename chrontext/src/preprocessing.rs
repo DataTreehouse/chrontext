@@ -326,6 +326,9 @@ impl Preprocessor {
             GraphPattern::DT { .. } => {
                 panic!()
             }
+            GraphPattern::PValues { .. } => {
+                todo!("Not currently supported")
+            }
         }
     }
 

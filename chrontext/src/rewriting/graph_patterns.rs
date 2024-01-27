@@ -156,6 +156,9 @@ impl StaticQueryRewriter {
             GraphPattern::DT { .. } => {
                 panic!("Should never happen")
             }
+            GraphPattern::PValues { .. } => {
+                todo!("Not currently supported")
+            }
         }
     }
 }
