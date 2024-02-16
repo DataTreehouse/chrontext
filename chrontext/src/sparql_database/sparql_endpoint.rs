@@ -1,6 +1,6 @@
 use super::SparqlQueryable;
 use async_trait::async_trait;
-use reqwest::header::CONTENT_TYPE;
+use reqwest::header::{ACCEPT, CONTENT_TYPE, USER_AGENT};
 use reqwest::StatusCode;
 use sparesults::{
     ParseError, QueryResultsFormat, QueryResultsParser, QueryResultsReader, QuerySolution,
@@ -48,9 +48,11 @@ impl SparqlQueryable for SparqlEndpoint {
     async fn execute(&mut self, query: &Query) -> Result<Vec<QuerySolution>, Box<dyn Error>> {
         let client = reqwest::Client::new();
         let response = client
-            .post(&self.endpoint)
-            .header(CONTENT_TYPE, "application/sparql-query")
-            .body(query.to_string())
+            .get(&self.endpoint)
+            .header(ACCEPT, "application/sparql-results+json,application/json,text/javascript,application/javascript")
+            .header(USER_AGENT, "chrontext")
+            .query(&[("query",query.to_string())])
+            .query(&[("format", "json"), ("output", "json"), ("results", "json")])
             .send()
             .await;
         match response {
