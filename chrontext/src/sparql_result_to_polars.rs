@@ -9,7 +9,7 @@ use representation::RDFNodeType;
 use sparesults::QuerySolution;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub(crate) fn create_static_query_dataframe(
     static_query: &Query,
@@ -22,17 +22,7 @@ pub(crate) fn create_static_query_dataframe(
         base_iri: _,
     } = static_query
     {
-        if let GraphPattern::Project { variables, .. } = pattern {
-            column_variables = variables.clone();
-        } else if let GraphPattern::Distinct { inner } = pattern {
-            if let GraphPattern::Project { variables, .. } = inner.as_ref() {
-                column_variables = variables.clone();
-            } else {
-                panic!("");
-            }
-        } else {
-            panic!("");
-        }
+        column_variables = get_projected_variables(pattern)
     } else {
         panic!("");
     }
@@ -164,4 +154,30 @@ pub(crate) fn create_static_query_dataframe(
         .collect();
     let df = DataFrame::new(series).expect("Create df problem");
     (df, datatypes)
+}
+
+fn get_projected_variables(g:&GraphPattern) -> Vec<Variable> {
+    match g {
+        GraphPattern::Union { left, right } => {
+            let left_vars = get_projected_variables(left);
+            let right_vars = get_projected_variables(right);
+            let mut all_vars = HashSet::new();
+            all_vars.extend(left_vars.into_iter());
+            all_vars.extend(right_vars.into_iter());
+            all_vars.into_iter().collect()
+        }
+        GraphPattern::Project { variables, .. } => {
+            variables.clone()
+        }
+        GraphPattern::Distinct { inner } => {
+            get_projected_variables(inner)
+        }
+        GraphPattern::Reduced { inner } => {
+            get_projected_variables(inner)
+        }
+        GraphPattern::Slice { inner, .. } => {
+            get_projected_variables(inner)
+        }
+        _ => panic!("Should not happen!")
+    }
 }
