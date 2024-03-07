@@ -470,12 +470,15 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
   }
 }
     "#;
-    let df = engine
+    let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
-        .sort(["w", "kind", "second_5"], vec![false], false)
-        .expect("Sort error");
+        .expect("Hybrid error").0;
+    df = df.lazy().with_columns([
+        col("w").cast(DataType::String),
+        col("kind").cast(DataType::String)
+    ]).sort_by_exprs([col("w"), col("kind"), col("second_5")], vec![false], false, false)
+        .collect().unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_union_of_two_groupby.csv");
 
@@ -820,7 +823,7 @@ async fn test_optional_clause_query(
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error").0;
-    df = df.lazy().with_column(col("w").cast(DataType::Utf8)).collect().unwrap();
+    df = df.lazy().with_column(col("w").cast(DataType::String)).collect().unwrap();
 
     df = df.sort(["w", "v", "greater"], vec![false], false)
         .unwrap();
@@ -873,7 +876,7 @@ async fn test_minus_query(
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error").0;
-    df = df.lazy().with_column(col("w").cast(DataType::Utf8)).collect().unwrap();
+    df = df.lazy().with_column(col("w").cast(DataType::String)).collect().unwrap();
     df = df.sort(["w", "v"], vec![false, false], true)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -1101,12 +1104,14 @@ async fn test_union_query(
         }
     }
     "#;
-    let df = engine
+    let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
-        .sort(["w", "v"], vec![false], false)
-        .expect("Sort problem");
+        .expect("Hybrid error").0;
+    df = df.lazy().with_columns([
+        col("w").cast(DataType::String),
+    ]).sort_by_exprs([col("w"), col("v")], vec![false], true, false).collect().unwrap();
+
 
     let mut file_path = testdata_path.clone();
     file_path.push("expected_union_query.csv");
@@ -1159,7 +1164,7 @@ async fn test_coalesce_query(
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error").0;
-    df = df.lazy().with_column(col("s1").cast(DataType::Utf8)).collect().unwrap();
+    df = df.lazy().with_column(col("s1").cast(DataType::String)).collect().unwrap();
     df = df.sort(["s1", "t1", "v1", "v2"], vec![false], false)
         .expect("Sort problem");
 

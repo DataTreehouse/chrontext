@@ -301,7 +301,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         for _ in 0..df.height() {
             let id = identifier_iter.next().unwrap();
             let grp = groupcol_iter.next().unwrap();
-            let id_value = if let AnyValue::Utf8(id_value) = id {
+            let id_value = if let AnyValue::String(id_value) = id {
                 id_value.to_string()
             } else {
                 panic!("Should never happen");

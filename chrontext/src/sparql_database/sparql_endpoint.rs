@@ -1,6 +1,6 @@
 use super::SparqlQueryable;
 use async_trait::async_trait;
-use reqwest::header::{ACCEPT, CONTENT_TYPE, USER_AGENT};
+use reqwest::header::{ACCEPT, USER_AGENT};
 use reqwest::StatusCode;
 use sparesults::{
     ParseError, QueryResultsFormat, QueryResultsParser, QueryResultsReader, QuerySolution,

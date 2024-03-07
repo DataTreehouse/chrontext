@@ -12,7 +12,8 @@ use log::debug;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::graph_patterns::{filter, left_join};
+use polars::prelude::JoinType;
+use query_processing::graph_patterns::{filter, join};
 
 impl Combiner {
     #[async_recursion]
@@ -77,7 +78,8 @@ impl Combiner {
                 )
                 .await?;
             right_solution_mappings = filter(right_solution_mappings, &expression_context)?;
+            right_solution_mappings.rdf_node_types.remove(expression_context.as_str());
         }
-        Ok(left_join(left_solution_mappings, right_solution_mappings)?)
+        Ok(join(left_solution_mappings, right_solution_mappings, JoinType::Left)?)
     }
 }

@@ -7,11 +7,11 @@ use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
-use polars_core::prelude::{DataFrame, DataType};
+use polars_core::prelude::{CategoricalOrdering, DataFrame, DataType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
 use polars_core::series::Series;
-use representation::RDFNodeType;
+use representation::{BaseRDFNodeType, RDFNodeType};
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -23,19 +23,26 @@ impl Combiner {
         if !tsq.has_identifiers() {
             let mut expected_cols:Vec<_> = tsq.expected_columns().into_iter().collect();
             expected_cols.sort();
+            let timestamp_vars:Vec<_> = tsq.get_timestamp_variables().into_iter().map(|x|x.variable.as_str()).collect();
             let drop_cols = get_drop_cols(tsq);
             let mut series_vec = vec![];
             for e in expected_cols {
                 if !drop_cols.contains(e) {
-                    series_vec.push(Series::new_empty(e, &DataType::Null));
-                    solution_mappings.rdf_node_types.insert(e.to_string(), RDFNodeType::None);
+                    if timestamp_vars.contains(&e) {
+                        let dt = BaseRDFNodeType::Literal(xsd::DATE_TIME.into_owned());
+                        series_vec.push(Series::new_empty(e, &dt.polars_data_type()));
+                        solution_mappings.rdf_node_types.insert(e.to_string(), dt.as_rdf_node_type());
+                    } else {
+                        series_vec.push(Series::new_empty(e, &BaseRDFNodeType::None.polars_data_type()));
+                        solution_mappings.rdf_node_types.insert(e.to_string(), RDFNodeType::None);
+                    }
                 }
             }
             let df = DataFrame::new(series_vec).unwrap();
             for d in drop_cols {
                 if solution_mappings.rdf_node_types.contains_key(&d) {
                     solution_mappings.rdf_node_types.remove(&d);
-                    solution_mappings.mappings = solution_mappings.mappings.drop_columns(vec![d]);
+                    solution_mappings.mappings = solution_mappings.mappings.drop(vec![d]);
                 }
             }
             solution_mappings.mappings = solution_mappings.mappings.join(df.lazy(), vec![], vec![], JoinArgs::new(JoinType::Cross));
@@ -84,10 +91,10 @@ impl Combiner {
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {
-            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None)));
+            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)));
             solution_mappings.mappings = solution_mappings
                 .mappings
-                .with_column(col(cat_col).cast(DataType::Categorical(None)));
+                .with_column(col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)));
         }
         let on_reverse_false = vec![false].repeat(on_cols.len());
         ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
@@ -106,7 +113,7 @@ impl Combiner {
                 on_cols.as_slice(),
                 JoinArgs::new(JoinType::Inner),
             )
-            .drop_columns(drop_cols.iter());
+            .drop(drop_cols.iter());
         for c in &drop_cols {
             solution_mappings.rdf_node_types.remove(c);
         }

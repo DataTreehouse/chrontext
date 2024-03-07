@@ -1,5 +1,5 @@
 from typing import List
-from .semantic_dataframe import SemanticDataFrame
+from .semantic_dataframe import DataFrame
 class Engine:
     """
     The hybrid query engine of chrontext.
@@ -36,7 +36,7 @@ class Engine:
         :return: 
         """
 
-    def query(self, query:str) -> SemanticDataFrame:
+    def query(self, query:str) -> DataFrame:
         """
 
         :param query: The SPARQL query.

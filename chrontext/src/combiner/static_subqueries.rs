@@ -6,7 +6,7 @@ use representation::query_context::Context;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
 use oxrdf::{Term, Variable};
-use polars::prelude::{col, Expr, IntoLazy};
+use polars::prelude::{col, Expr, IntoLazy, JoinType};
 use polars_core::prelude::{UniqueKeepStrategy};
 use spargebra::algebra::GraphPattern;
 use spargebra::term::GroundTerm;
@@ -46,7 +46,7 @@ impl Combiner {
         debug!("Static query results:\n {}", df);
         let mut out_solution_mappings = SolutionMappings::new(df.lazy(), datatypes);
         if let Some(use_solution_mappings) = use_solution_mappings {
-            out_solution_mappings = join(out_solution_mappings, use_solution_mappings)?;
+            out_solution_mappings = join(out_solution_mappings, use_solution_mappings, JoinType::Inner)?;
         }
         Ok(out_solution_mappings)
     }

@@ -1,15 +1,13 @@
-use oxrdf::{Term, Variable};
-use polars::prelude::{as_struct, col, DataFrame, IntoLazy, LiteralValue};
-use polars_core::prelude::{NamedFrom, Series};
-use representation::multitype::{MULTI_DT_COL, MULTI_IRI_DT, MULTI_LANG_COL, MULTI_VALUE_COL};
-use representation::sparql_to_polars::{
-    polars_literal_values_to_series, sparql_term_to_polars_literal_value,
-};
-use representation::RDFNodeType;
+use oxrdf::{NamedNode, Term, Variable};
+use polars::prelude::{as_struct, col, DataFrame, Expr, IntoLazy, lit};
+use polars_core::prelude::{AnyValue, NamedFrom, Series};
+use representation::multitype::{all_multi_cols, MULTI_BLANK_DT, multi_has_this_type_column, MULTI_IRI_DT, MULTI_NONE_DT, non_multi_type_string};
+use representation::{BaseRDFNodeType, LANG_STRING_LANG_FIELD, LANG_STRING_VALUE_FIELD, RDFNodeType};
 use sparesults::QuerySolution;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use representation::literals::sparql_literal_to_any_value;
 
 pub(crate) fn create_static_query_dataframe(
     static_query: &Query,
@@ -26,134 +24,123 @@ pub(crate) fn create_static_query_dataframe(
     } else {
         panic!("");
     }
-
-    let datatypes: HashMap<_, _> = column_variables
-        .iter()
-        .map(|c: &Variable| {
-            let mut dtype = None;
-            for s in &static_query_solutions {
-                if let Some(term) = s.get(c) {
-                    match term {
-                        Term::NamedNode(_) => {
-                            if let Some(dt) = &dtype {
-                                if dt == &RDFNodeType::IRI {
-                                    continue;
-                                } else {
-                                    dtype = Some(RDFNodeType::MultiType);
-                                }
-                            } else {
-                                dtype = Some(RDFNodeType::IRI);
-                            }
-                        }
-                        Term::BlankNode(_) => {
-                            if let Some(dt) = &dtype {
-                                if dt == &RDFNodeType::BlankNode {
-                                    continue;
-                                } else {
-                                    dtype = Some(RDFNodeType::MultiType);
-                                }
-                            } else {
-                                dtype = Some(RDFNodeType::BlankNode);
-                            }
-                        }
-                        Term::Literal(l) => {
-                            if let Some(dt) = &dtype {
-                                if let RDFNodeType::Literal(nn) = dt {
-                                    if l.datatype() == nn.as_ref() {
-                                        continue;
-                                    } else {
-                                        dtype = Some(RDFNodeType::MultiType);
-                                    }
-                                } else {
-                                    dtype = Some(RDFNodeType::MultiType);
-                                }
-                            } else {
-                                dtype = Some(RDFNodeType::Literal(l.datatype().into_owned()));
-                            }
-                        }
-                        Term::Triple(_) => {
-                            todo!()
-                        }
+    let mut var_col_map = HashMap::new();
+    for v in &column_variables {
+        let mut i = 0;
+        let mut col_map: HashMap<String, Vec<AnyValue>> = HashMap::new();
+        for s in &static_query_solutions {
+            let (k, anyval) = if let Some(term) = s.get(v) {
+                match term {
+                    Term::NamedNode(n) => {
+                        (MULTI_IRI_DT, AnyValue::StringOwned(n.to_string().into()))
                     }
-                }
-                if let Some(RDFNodeType::MultiType) = dtype {
-                    break;
-                }
-            }
-            (c.as_str().to_string(), dtype.unwrap_or(RDFNodeType::None))
-        })
-        .collect();
-
-    let series: Vec<_> = column_variables
-        .iter()
-        .map(|c| {
-            let c = c.as_str();
-            if datatypes.get(c).unwrap() == &RDFNodeType::MultiType {
-                let mut values = vec![];
-                let mut dtypes = vec![];
-                let mut langs = vec![];
-                for s in &static_query_solutions {
-                    if let Some(t) = s.get(c) {
-                        match t {
-                            Term::NamedNode(nn) => {
-                                values.push(nn.to_string());
-                                dtypes.push(MULTI_IRI_DT.to_string());
-                                langs.push(None);
-                            }
-                            Term::BlankNode(bl) => {
-                                values.push(bl.to_string());
-                                dtypes.push(MULTI_IRI_DT.to_string());
-                                langs.push(None);
-                            }
-                            Term::Literal(l) => {
-                                values.push(l.value().to_string());
-                                dtypes.push(l.datatype().to_string());
-                                let lang = if let Some(lang) = l.language() {
-                                    Some(lang.to_string())
-                                } else {
-                                    None
-                                };
-                                langs.push(lang);
-                            }
-                            Term::Triple(_) => {
-                                todo!()
-                            }
-                        }
+                    Term::BlankNode(b) => {
+                        (MULTI_BLANK_DT, AnyValue::StringOwned(b.to_string().into()))
                     }
+                    Term::Literal(l) => {
+                        (l.datatype().as_str(), sparql_literal_to_any_value(l.value(), l.language(), &Some(l.datatype())).0)
+                    }
+                    _ => {todo!()}
                 }
-                let values_ser = Series::new(MULTI_VALUE_COL, values);
-                let dtypes_ser = Series::new(MULTI_DT_COL, dtypes);
-                let langs_ser = Series::new(MULTI_LANG_COL, langs);
-
-                let mut df = DataFrame::new(vec![values_ser, dtypes_ser, langs_ser]).unwrap();
-                df = df
-                    .lazy()
-                    .with_column(
-                        as_struct(vec![
-                            col(MULTI_VALUE_COL),
-                            col(MULTI_DT_COL),
-                            col(MULTI_LANG_COL),
-                        ])
-                        .alias(c),
-                    )
-                    .collect()
-                    .unwrap();
-                df.drop_in_place(c).unwrap()
             } else {
-                let mut literal_values = vec![];
-                for s in &static_query_solutions {
-                    literal_values.push(if let Some(term) = s.get(c) {
-                        sparql_term_to_polars_literal_value(term)
-                    } else {
-                        LiteralValue::Null
-                    });
-                }
-                polars_literal_values_to_series(literal_values, c)
+                (MULTI_NONE_DT, AnyValue::Null)
+            };
+
+            if let Some(v) = col_map.get_mut(k) {
+                v.push(anyval)
+            } else if k != MULTI_NONE_DT {
+                let mut v: Vec<_> = (0..i).map(|_|AnyValue::Null).collect();
+                v.push(anyval);
+                col_map.insert(k.to_string(), v);
             }
-        })
-        .collect();
-    let df = DataFrame::new(series).expect("Create df problem");
-    (df, datatypes)
+            push_none_all_others(k, &mut col_map);
+            i += 1;
+        }
+        if col_map.len() == 0 {
+            col_map.insert(MULTI_NONE_DT.to_string(), (0..i).map(|_|AnyValue::Null).collect());
+        }
+        let mut new_col_map = HashMap::new();
+        for (c, v) in col_map {
+            let dt = if c == MULTI_IRI_DT {
+                BaseRDFNodeType::IRI
+            } else if c == MULTI_BLANK_DT {
+                BaseRDFNodeType::BlankNode
+            } else if c == MULTI_NONE_DT {
+                BaseRDFNodeType::None
+            } else {
+                BaseRDFNodeType::Literal(NamedNode::new_unchecked(c))
+            };
+            new_col_map.insert(dt, v);
+        }
+
+        var_col_map.insert(v.as_str().to_string(), new_col_map);
+    }
+    let mut rdf_node_types = HashMap::new();
+    let mut all_series: Vec<_> = vec![] ;
+    for (c, m) in var_col_map {
+            let mlen = m.len();
+            let mut series = vec![];
+            let mut types = vec![];
+            for (t, v) in m {
+                let name = if mlen > 1 {
+                    non_multi_type_string(&t)
+                } else {
+                    c.clone()
+                };
+
+                let ser = Series::from_any_values_and_dtype(&name, v.as_slice(), &t.polars_data_type(), false).unwrap();
+                if mlen > 1 && t.is_lang_string() {
+                    series.push(ser.struct_().unwrap().field_by_name(LANG_STRING_VALUE_FIELD).unwrap());
+                    series.push(ser.struct_().unwrap().field_by_name(LANG_STRING_LANG_FIELD).unwrap());
+                } else {
+                    series.push(ser);
+                }
+                types.push(t);
+            }
+            if series.len() == 1 {
+                all_series.push(series.pop().unwrap());
+                rdf_node_types.insert(c.to_string(), types.pop().unwrap().as_rdf_node_type());
+            } else {
+                let mut lf = DataFrame::new(series).unwrap().lazy();
+                let mut struct_exprs = vec![];
+                for c in all_multi_cols(&types) {
+                    struct_exprs.push(col(&c));
+                }
+                let mut is_exprs: Vec<Expr> = vec![];
+                let mut need_none = false;
+                for t in &types {
+                    if &BaseRDFNodeType::None == t {
+                        need_none = true;
+                    } else {
+                        is_exprs.push(
+                            col(&non_multi_type_string(t)).is_null().alias(
+                                &multi_has_this_type_column(t)));
+                    }
+                }
+                if need_none {
+                    let mut is_iter = is_exprs.iter();
+                    let mut e = if let Some(e) = is_iter.next() {
+                        e.clone()
+                    } else {
+                        lit(true)
+                    };
+                    for other_e in is_iter {
+                        e = e.and(other_e.clone().not())
+                    }
+                    e = e.alias(&multi_has_this_type_column(&BaseRDFNodeType::None));
+                    is_exprs.push(e);
+                }
+                struct_exprs.extend(is_exprs);
+                lf = lf.with_column(as_struct(struct_exprs).alias(&c)).select([col(&c)]);
+                let mut df = lf.collect().unwrap();
+
+                types.sort();
+                rdf_node_types.insert(c.to_string(), RDFNodeType::MultiType(types));
+                all_series.push(df.drop_in_place(&c).unwrap());
+            }
+        }
+    let df = DataFrame::new(all_series).expect("Create df problem");
+    (df, rdf_node_types)
 }
 
 fn get_projected_variables(g:&GraphPattern) -> Vec<Variable> {
@@ -179,5 +166,13 @@ fn get_projected_variables(g:&GraphPattern) -> Vec<Variable> {
             get_projected_variables(inner)
         }
         _ => panic!("Should not happen!")
+    }
+}
+
+fn push_none_all_others(k_not:&str, map:&mut HashMap<String, Vec<AnyValue>>) {
+    for (k, v) in map.iter_mut() {
+        if k != k_not {
+            v.push(AnyValue::Null);
+        }
     }
 }

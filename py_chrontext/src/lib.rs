@@ -62,7 +62,7 @@ use polars_core::prelude::DataFrame;
 use polars_lazy::frame::IntoLazy;
 use pydf_io::to_python::df_to_py_df;
 use pyo3::prelude::*;
-use representation::multitype::multi_col_to_string_col;
+use representation::multitype::{compress_actual_multitypes, lf_column_from_categorical, multi_columns_to_string_cols};
 use tokio::runtime::Builder;
 
 const TTL_FILE_METADATA: &str = "ttl_file_data.txt";
@@ -159,13 +159,13 @@ impl Engine {
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let (mut df, datatypes) = builder
+        let (mut df, mut datatypes) = builder
             .build()
             .unwrap()
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
             .map_err(|err| PyQueryError::QueryExecutionError(err))?;
 
-        df = fix_multicolumns(df, &datatypes);
+        (df,datatypes) = fix_cats_and_multicolumns(df, datatypes);
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
@@ -380,12 +380,11 @@ fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
     map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
 }
 
-fn fix_multicolumns(df: DataFrame, dts: &HashMap<String, RDFNodeType>) -> DataFrame {
-    let mut lf = df.lazy();
-    for (c, v) in dts {
-        if v == &RDFNodeType::MultiType {
-            lf = multi_col_to_string_col(lf, c);
-        }
+fn fix_cats_and_multicolumns(mut df: DataFrame, mut dts: HashMap<String, RDFNodeType>) -> (DataFrame, HashMap<String, RDFNodeType>)  {
+    for (c,_) in &dts {
+        df = lf_column_from_categorical(df.lazy(), c, &dts).collect().unwrap();
     }
-    lf.collect().unwrap()
+    (df, dts) = compress_actual_multitypes(df, dts);
+    df = multi_columns_to_string_cols(df.lazy(), &dts).collect().unwrap();
+    (df, dts)
 }

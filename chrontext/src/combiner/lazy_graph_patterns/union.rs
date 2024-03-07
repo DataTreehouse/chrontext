@@ -57,7 +57,7 @@ impl Combiner {
                 &right_context,
             )
             .await?;
-        Ok(union(left_solution_mappings, right_solution_mappings)?)
+        Ok(union(vec![left_solution_mappings, right_solution_mappings])?)
 
     }
 }
