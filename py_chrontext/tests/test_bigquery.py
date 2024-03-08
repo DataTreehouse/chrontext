@@ -62,6 +62,7 @@ def test_all_timeseries(engine):
         }
     ORDER BY ASC(?ts_name)
     """)
+
     assert df.height == 25
     #TODO: Fix datatypes
     #assert df.rdf_datatypes == {'ts_description': '<http://www.w3.org/2001/XMLSchema#string>', 'ts_name': '<http://www.w3.org/2001/XMLSchema#string>'}
