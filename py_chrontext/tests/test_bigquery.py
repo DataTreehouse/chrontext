@@ -62,10 +62,11 @@ def test_all_timeseries(engine):
         }
     ORDER BY ASC(?ts_name)
     """)
-
+    assert df.columns == ['ts_name', 'ts_description']
     assert df.height == 25
-    #TODO: Fix datatypes
-    #assert df.rdf_datatypes == {'ts_description': '<http://www.w3.org/2001/XMLSchema#string>', 'ts_name': '<http://www.w3.org/2001/XMLSchema#string>'}
+    # TODO: Fix datatypes
+    # assert df.rdf_datatypes == {'ts_description': '<http://www.w3.org/2001/XMLSchema#string>', 'ts_name': '<http://www.w3.org/2001/XMLSchema#string>'}
+
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(2)
@@ -83,6 +84,7 @@ def test_get_all_inverters(engine):
             ?inv rds:code ?inv_code .
             }
         """)
+    assert ['site', 'gen_code', 'block_code', 'inv_code']
     assert df.height == 50
 
 
@@ -122,6 +124,8 @@ def test_get_inverter_dckw(engine):
         GROUP BY ?site ?block_code ?gen_code ?inv_code ?year ?month ?day ?hour ?minute_10
         ORDER BY ?block_code ?gen_code ?inv_code ?year ?month ?day ?hour ?minute
         """)
+    assert (df.columns ==
+            ['site', 'gen_code', 'block_code', 'inv_code', 'year', 'month', 'day', 'hour', 'minute', 'avg_dcpow'])
     assert df.height == 51900
 
 
@@ -155,10 +159,12 @@ def test_get_inverter_dckw_sugar(engine):
             }
         ORDER BY ?block_code ?gen_code ?inv_code ?t
         """)
+    assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
     assert df.height == 51900
 
+
 @pytest.mark.skipif(skip, reason="Environment vars not present")
-@pytest.mark.order(4)
+@pytest.mark.order(5)
 def test_get_inverter_dckw_sugar_no_static_results(engine):
     df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -187,17 +193,19 @@ def test_get_inverter_dckw_sugar_no_static_results(engine):
             }
         ORDER BY ?block_code ?gen_code ?inv_code ?t
         """)
+    assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
     assert df.height == 0
 
+
 @pytest.mark.skipif(skip, reason="Environment vars not present")
-@pytest.mark.order(4)
+@pytest.mark.order(6)
 def test_get_inverter_dckw_sugar_path(engine):
     df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
         PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
         PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
-        SELECT ?path WHERE {
+        SELECT ?path ?inv WHERE {
             ?site a rds:Site .
             ?site rdfs:label "Metropolis" .
             ?site rds:functionalAspect+ ?inv .
@@ -213,12 +221,14 @@ def test_get_inverter_dckw_sugar_path(engine):
             }
         ORDER BY ?path ?t
         """)
+
+    assert df.columns == ['path', 'inv', 't', 'ts_pow_value_avg']
     assert df.height == 51900
 
 
 @pytest.mark.skipif(True, reason="Not working yet.. ")
-@pytest.mark.order(4)
-def test_get_inverter_dckw_sugar_path(engine):
+@pytest.mark.order(7)
+def test_get_inverter_dckw_sugar_multi(engine):
     df = engine.query("""
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
 PREFIX ct:<https://github.com/DataTreehouse/chrontext#>

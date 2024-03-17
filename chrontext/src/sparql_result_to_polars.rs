@@ -139,7 +139,8 @@ pub(crate) fn create_static_query_dataframe(
                 all_series.push(df.drop_in_place(&c).unwrap());
             }
         }
-    let df = DataFrame::new(all_series).expect("Create df problem");
+    let mut df = DataFrame::new(all_series).expect("Create df problem");
+    df = df.select(column_variables.iter().map(|x|x.as_str())).unwrap();
     (df, rdf_node_types)
 }
 

@@ -381,10 +381,12 @@ fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
 }
 
 fn fix_cats_and_multicolumns(mut df: DataFrame, mut dts: HashMap<String, RDFNodeType>) -> (DataFrame, HashMap<String, RDFNodeType>)  {
+    let column_ordering: Vec<_> = df.get_column_names().iter().map(|x|x.to_string()).collect();;
     for (c,_) in &dts {
         df = lf_column_from_categorical(df.lazy(), c, &dts).collect().unwrap();
     }
     (df, dts) = compress_actual_multitypes(df, dts);
     df = multi_columns_to_string_cols(df.lazy(), &dts).collect().unwrap();
+    df = df.select(column_ordering.as_slice()).unwrap();
     (df, dts)
 }
