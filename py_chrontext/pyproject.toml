@@ -2,6 +2,7 @@
 name = "chrontext"
 description = "SPARQL queries over hybrid infrastructures - time-series and context"
 dependencies = ["polars==0.20.2", "pyarrow>=7.0.0", "pandas"]
+metadata_version = "2.3"
 readme = "README.md"
 authors = [{name = "Magnus Bakken", email = "magnus@data-treehouse.com" }]
 license = {file = "LICENSE"}
@@ -27,7 +28,7 @@ Repository = "https://github.com/DataTreehouse/chrontext"
 Changelog = "https://github.com/DataTreehouse/chrontext/releases"
 
 [build-system]
-requires = ["maturin==1.2.3"]
+requires = ["maturin==1.3.2"]
 build-backend = "maturin"
 
 [tool.maturin]
