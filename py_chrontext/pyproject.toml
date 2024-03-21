@@ -1,8 +1,8 @@
 [project]
 name = "chrontext"
+summary = "Hybrid SPARQL query engine"
 description = "SPARQL queries over hybrid infrastructures - time-series and context"
 dependencies = ["polars==0.20.2", "pyarrow>=7.0.0", "pandas"]
-metadata_version = "2.3"
 readme = "README.md"
 authors = [{name = "Magnus Bakken", email = "magnus@data-treehouse.com" }]
 license = {file = "LICENSE"}
