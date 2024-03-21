@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 #representation = {path = "../../representation"}
 representation = { git = "https://github.com/DataTreehouse/representation"}
-pyo3 = {version = "0.19.2", features = ["extension-module"]}
+pyo3 = {version = "0.20.3", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io"}
 #pydf_io = { path = "../../pydf_io" }
