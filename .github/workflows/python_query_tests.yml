@@ -11,7 +11,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_LOG: debug
-  MATURIN_VERSION: '1.3.2'
+  MATURIN_VERSION: '1.5.0'
   RUST_TOOLCHAIN: nightly-2024-01-20
 
 jobs:
