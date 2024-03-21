@@ -1,6 +1,6 @@
 [project]
 name = "chrontext"
-description = "Hybrid SPARQL query engine for time-series data"
+description = "Hybrid SPARQL query engine for timeseries data"
 dependencies = ["polars>=0.20.2", "pyarrow>=7.0.0", "pandas"]
 readme = "README.md"
 authors = [{name = "Magnus Bakken", email = "magnus@data-treehouse.com" }]
