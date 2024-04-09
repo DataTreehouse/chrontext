@@ -4,40 +4,38 @@ version = "0.4.0"
 edition = "2021"
 
 [dependencies]
-polars = {version="0.37.0", features=["lazy", "concat_str", "unique_counts", "group_by_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
-tokio = {version="1.18.2", features=["rt-multi-thread", "rt"]}
-log = "0.4.17"
+polars = {version="0.38.3", features=["lazy", "concat_str", "unique_counts", "group_by_list", "list_eval", "abs", "round_series", "is_in", "cum_agg", "dtype-full", "cse", "nightly", "performant"] }
+tokio = {version="1.32.1", features=["rt-multi-thread", "rt"]}
+log = "0.4.21"
 #spargebra = { path = "../../spargebra", features = ["rdf-star"]}
+spargebra = { git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8"}
 #query_processing = { path = "../../query_processing"}
-query_processing = { git = "https://github.com/DataTreehouse/query_processing"}
+query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.2.0"}
 #representation = { path ="../../representation"}
-representation = { git = "https://github.com/DataTreehouse/representation"}
-spargebra = { git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"]}
+representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.5.0"}
 sparesults = {version="0.1.8"}
 oxrdf = {version="0.1.7"}
-reqwest= {version="0.11.23", features=["stream"]}
-env_logger = "0.10.0"
-tonic = "0.10.2"
+reqwest= {version= "0.12.3", features=["stream"]}
+env_logger = "0.11.3"
 thiserror = "1.0.31"
-polars-core = "0.37.0"
 sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
-async-trait = "0.1.68"
-base64 = "0.21.3"
+async-trait = "0.1.78"
+base64 = "0.22.0"
 opcua = {version="0.12.0", features = ["vendored-openssl"]}
-async-recursion = "1.0.4"
+async-recursion = "1.1.0"
 #bigquery-polars = {path = "../../bigquery-polars/bigquery-polars"}
-bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars"}
+bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars", tag="v0.2.0"}
 crossbeam = {version = "0.8.2"}
 serde_json = "1.0.105"
 oxigraph = "0.3.22"
-chrono = {version = "0.4.31", features = ["clock"]}
+chrono = {version = "0.4.37", features = ["clock"]}
 
 [dev-dependencies]
 bollard = "0.15.0"
 rstest = "0.18.2"
-polars = {version="0.37.0", features=["lazy", "unique_counts", "group_by_list"]}
-tokio = {version="1.18.2", features=["rt-multi-thread"]}
+polars = {version="0.38.3", features=["lazy", "unique_counts", "group_by_list"]}
+tokio = {version="1.32.1", features=["rt-multi-thread"]}
 serial_test = "2.0.0"
 futures-util = "0.3.21"
-reqwest= {version="0.11.10", features=["stream", "json"]}
+reqwest= {version= "0.12.3", features=["stream", "json"]}
 serde="1.0.139"

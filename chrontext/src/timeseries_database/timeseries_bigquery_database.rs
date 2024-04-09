@@ -12,11 +12,9 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use representation::solution_mapping::SolutionMappings;
 use thiserror::Error;
-use tonic::Status;
 
 #[derive(Error, Debug)]
 pub enum BigQueryError {
-    TonicStatus(#[from] Status),
     TransportError(#[from] tonic::transport::Error),
     TranslationError(#[from] TimeseriesQueryToSQLError),
     PolarsError(#[from] PolarsError),
@@ -25,9 +23,6 @@ pub enum BigQueryError {
 impl Display for BigQueryError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            BigQueryError::TonicStatus(status) => {
-                write!(f, "Error with status: {}", status)
-            }
             BigQueryError::TransportError(err) => {
                 write!(f, "Error during transport: {}", err)
             }

@@ -76,7 +76,7 @@ class TimeseriesBigQueryDatabase:
         Create a new mapping to a BigQuery database containing timeseries data.
 
         :param tables: The referenced tables.
-        :param key: Path to json key with credentials. This will soon change.
+        :param key: Path to service account JSON key with credentials.
         """
 
 
