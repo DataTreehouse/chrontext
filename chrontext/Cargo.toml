@@ -8,7 +8,7 @@ polars = {version="0.38.3", features=["lazy", "concat_str", "unique_counts", "gr
 tokio = {version="1.32.1", features=["rt-multi-thread", "rt"]}
 log = "0.4.21"
 #spargebra = { path = "../../spargebra", features = ["rdf-star"]}
-spargebra = { git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8"}
+spargebra = {git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8"}
 #query_processing = { path = "../../query_processing"}
 query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.2.0"}
 #representation = { path ="../../representation"}
