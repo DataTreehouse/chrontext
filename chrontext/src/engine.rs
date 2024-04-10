@@ -6,12 +6,12 @@ use crate::sparql_database::SparqlQueryable;
 use crate::splitter::parse_sparql_select_query;
 use crate::timeseries_database::TimeseriesQueryable;
 use log::debug;
+use polars::enable_string_cache;
 use polars::frame::DataFrame;
+use representation::solution_mapping::SolutionMappings;
+use representation::RDFNodeType;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use polars::enable_string_cache;
-use representation::RDFNodeType;
-use representation::solution_mapping::SolutionMappings;
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
@@ -40,7 +40,10 @@ impl Engine {
         self.sparql_database.is_some()
     }
 
-    pub async fn execute_hybrid_query(&mut self, query: &str) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
+    pub async fn execute_hybrid_query(
+        &mut self,
+        query: &str,
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         enable_string_cache();
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", &parsed_query);
@@ -77,7 +80,10 @@ impl Engine {
         };
         self.time_series_database = Some(combiner.time_series_database);
         self.sparql_database = Some(combiner.sparql_database);
-        let SolutionMappings { mappings, rdf_node_types } = solution_mappings;
+        let SolutionMappings {
+            mappings,
+            rdf_node_types,
+        } = solution_mappings;
 
         Ok((mappings.collect()?, rdf_node_types))
     }

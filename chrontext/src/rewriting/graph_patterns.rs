@@ -17,8 +17,8 @@ mod union_pattern;
 mod values_pattern;
 
 use super::StaticQueryRewriter;
-use representation::query_context::Context;
 use oxrdf::Variable;
+use representation::query_context::Context;
 use spargebra::algebra::GraphPattern;
 use std::collections::{HashMap, HashSet};
 

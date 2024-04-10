@@ -1,19 +1,19 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::time_series_queries::complete_basic_time_series_queries;
 use crate::combiner::CombinerError;
-use representation::query_context::Context;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
 use oxrdf::{Term, Variable};
+use polars::export::rayon::iter::{IntoParallelIterator, ParallelIterator};
 use polars::prelude::{col, Expr, IntoLazy, JoinType, UniqueKeepStrategy};
+use query_processing::graph_patterns::join;
+use representation::polars_to_sparql::{df_as_result, QuerySolutions};
+use representation::query_context::Context;
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use spargebra::term::GroundTerm;
 use spargebra::Query;
-use std::collections::{HashMap};
-use polars::export::rayon::iter::{IntoParallelIterator, ParallelIterator};
-use query_processing::graph_patterns::join;
-use representation::polars_to_sparql::{df_as_result, QuerySolutions};
+use std::collections::HashMap;
 
 impl Combiner {
     pub async fn execute_static_query(
@@ -45,7 +45,11 @@ impl Combiner {
         debug!("Static query results:\n {}", df);
         let mut out_solution_mappings = SolutionMappings::new(df.lazy(), datatypes);
         if let Some(use_solution_mappings) = use_solution_mappings {
-            out_solution_mappings = join(out_solution_mappings, use_solution_mappings, JoinType::Inner)?;
+            out_solution_mappings = join(
+                out_solution_mappings,
+                use_solution_mappings,
+                JoinType::Inner,
+            )?;
         }
         Ok(out_solution_mappings)
     }
@@ -109,15 +113,33 @@ fn constrain_query(
         .collect()
         .unwrap();
 
-    let QuerySolutions{ variables, solutions } = df_as_result(variable_columns, &solution_mappings.rdf_node_types);
-    let bindings = solutions.into_par_iter().map(|x| {
-        x.into_iter().map(|y:Option<Term>| if let Some(y) = y {Some(match y {
-            Term::NamedNode(nn) => {GroundTerm::NamedNode(nn)}
-            Term::BlankNode(_) => {panic!()}
-            Term::Literal(l) => {GroundTerm::Literal(l)}
-            Term::Triple(_) => {todo!()}
-        })} else {None}).collect()
-    }).collect();
+    let QuerySolutions {
+        variables,
+        solutions,
+    } = df_as_result(variable_columns, &solution_mappings.rdf_node_types);
+    let bindings = solutions
+        .into_par_iter()
+        .map(|x| {
+            x.into_iter()
+                .map(|y: Option<Term>| {
+                    if let Some(y) = y {
+                        Some(match y {
+                            Term::NamedNode(nn) => GroundTerm::NamedNode(nn),
+                            Term::BlankNode(_) => {
+                                panic!()
+                            }
+                            Term::Literal(l) => GroundTerm::Literal(l),
+                            Term::Triple(_) => {
+                                todo!()
+                            }
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
+        .collect();
     let values_pattern = GraphPattern::Values {
         variables,
         bindings,
@@ -178,4 +200,3 @@ fn get_variable_set(query: &Query) -> Vec<&Variable> {
         panic!("Non select query not supported")
     }
 }
-

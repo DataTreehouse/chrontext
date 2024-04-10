@@ -1,19 +1,19 @@
 //Uses code from https://github.com/magbak/maplib/blob/main/triplestore/src/sparql/lazy_graph_patterns/left_join.rs
 
 use super::Combiner;
-use representation::solution_mapping::{SolutionMappings};
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
+use polars::prelude::JoinType;
+use query_processing::graph_patterns::{filter, join};
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use polars::prelude::JoinType;
-use query_processing::graph_patterns::{filter, join};
 
 impl Combiner {
     #[async_recursion]
@@ -78,8 +78,14 @@ impl Combiner {
                 )
                 .await?;
             right_solution_mappings = filter(right_solution_mappings, &expression_context)?;
-            right_solution_mappings.rdf_node_types.remove(expression_context.as_str());
+            right_solution_mappings
+                .rdf_node_types
+                .remove(expression_context.as_str());
         }
-        Ok(join(left_solution_mappings, right_solution_mappings, JoinType::Left)?)
+        Ok(join(
+            left_solution_mappings,
+            right_solution_mappings,
+            JoinType::Left,
+        )?)
     }
 }

@@ -1,15 +1,15 @@
 use super::Combiner;
 use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
-use log::{debug};
+use log::debug;
 use oxrdf::Variable;
+use query_processing::graph_patterns::project;
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::graph_patterns::project;
 
 impl Combiner {
     #[async_recursion]

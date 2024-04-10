@@ -1,12 +1,10 @@
 use super::StaticQueryRewriter;
-use crate::constants::{
-    HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_RESOURCE, HAS_TIMESTAMP, HAS_VALUE,
-};
+use crate::constants::{HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_RESOURCE, HAS_TIMESTAMP, HAS_VALUE};
 use crate::constraints::{Constraint, VariableConstraints};
-use representation::query_context::{Context, PathEntry, VariableInContext};
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::timeseries_query::BasicTimeseriesQuery;
 use oxrdf::{NamedNode, Variable};
+use representation::query_context::{Context, PathEntry, VariableInContext};
 use spargebra::algebra::GraphPattern;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 use std::collections::{HashMap, HashSet};
@@ -32,7 +30,7 @@ impl StaticQueryRewriter {
                                 "ts_external_id_".to_string()
                                     + self.variable_counter.to_string().as_str(),
                             )
-                                .unwrap();
+                            .unwrap();
 
                             let resource_var = Variable::new_unchecked(format!(
                                 "ts_resource_{}",
@@ -65,8 +63,7 @@ impl StaticQueryRewriter {
                             new_triples.push(new_resource_triple);
                             external_ids_in_scope
                                 .insert(ts_var.clone(), vec![external_id_var.clone()]);
-                            resources_in_scope
-                                .insert(ts_var.clone(), vec![resource_var.clone()]);
+                            resources_in_scope.insert(ts_var.clone(), vec![resource_var.clone()]);
                         }
                     }
                 }

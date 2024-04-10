@@ -1,17 +1,17 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use oxrdf::Variable;
+use query_processing::aggregates::AggregateReturn;
+use query_processing::graph_patterns::{group_by, prepare_group_by};
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::aggregates::AggregateReturn;
-use query_processing::graph_patterns::{group_by, prepare_group_by};
 
 impl Combiner {
     pub(crate) async fn lazy_group(
@@ -39,7 +39,8 @@ impl Combiner {
                 &inner_context,
             )
             .await?;
-        let (mut output_solution_mappings, by, dummy_varname) = prepare_group_by(output_solution_mappings, variables);
+        let (mut output_solution_mappings, by, dummy_varname) =
+            prepare_group_by(output_solution_mappings, variables);
 
         let mut aggregate_expressions = vec![];
         let mut new_rdf_node_types = HashMap::new();
@@ -63,6 +64,12 @@ impl Combiner {
             new_rdf_node_types.insert(v.as_str().to_string(), rdf_node_type);
             aggregate_expressions.push(expr);
         }
-        Ok(group_by(output_solution_mappings, aggregate_expressions, by, dummy_varname, new_rdf_node_types)?)
+        Ok(group_by(
+            output_solution_mappings,
+            aggregate_expressions,
+            by,
+            dummy_varname,
+            new_rdf_node_types,
+        )?)
     }
 }

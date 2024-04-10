@@ -1,7 +1,7 @@
 use super::StaticQueryRewriter;
-use representation::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::rewriting::order_expression::OEReturn;
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::{GraphPattern, OrderExpression};
 
 impl StaticQueryRewriter {

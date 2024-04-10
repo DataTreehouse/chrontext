@@ -1,15 +1,17 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
-use representation::query_context::Context;
 use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
-use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType, CategoricalOrdering, DataFrame, DataType, Series};
+use polars::prelude::{
+    col, CategoricalOrdering, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType, Series,
+};
+use representation::query_context::Context;
+use representation::solution_mapping::SolutionMappings;
+use representation::{BaseRDFNodeType, RDFNodeType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
-use representation::{BaseRDFNodeType, RDFNodeType};
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(
@@ -19,9 +21,13 @@ impl Combiner {
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Executing time series query: {:?}", tsq);
         if !tsq.has_identifiers() {
-            let mut expected_cols:Vec<_> = tsq.expected_columns().into_iter().collect();
+            let mut expected_cols: Vec<_> = tsq.expected_columns().into_iter().collect();
             expected_cols.sort();
-            let timestamp_vars:Vec<_> = tsq.get_timestamp_variables().into_iter().map(|x|x.variable.as_str()).collect();
+            let timestamp_vars: Vec<_> = tsq
+                .get_timestamp_variables()
+                .into_iter()
+                .map(|x| x.variable.as_str())
+                .collect();
             let drop_cols = get_drop_cols(tsq);
             let mut series_vec = vec![];
             for e in expected_cols {
@@ -29,10 +35,17 @@ impl Combiner {
                     if timestamp_vars.contains(&e) {
                         let dt = BaseRDFNodeType::Literal(xsd::DATE_TIME.into_owned());
                         series_vec.push(Series::new_empty(e, &dt.polars_data_type()));
-                        solution_mappings.rdf_node_types.insert(e.to_string(), dt.as_rdf_node_type());
+                        solution_mappings
+                            .rdf_node_types
+                            .insert(e.to_string(), dt.as_rdf_node_type());
                     } else {
-                        series_vec.push(Series::new_empty(e, &BaseRDFNodeType::None.polars_data_type()));
-                        solution_mappings.rdf_node_types.insert(e.to_string(), RDFNodeType::None);
+                        series_vec.push(Series::new_empty(
+                            e,
+                            &BaseRDFNodeType::None.polars_data_type(),
+                        ));
+                        solution_mappings
+                            .rdf_node_types
+                            .insert(e.to_string(), RDFNodeType::None);
                     }
                 }
             }
@@ -43,11 +56,19 @@ impl Combiner {
                     solution_mappings.mappings = solution_mappings.mappings.drop(vec![d]);
                 }
             }
-            solution_mappings.mappings = solution_mappings.mappings.join(df.lazy(), vec![], vec![], JoinArgs::new(JoinType::Cross));
-            return Ok(solution_mappings)
+            solution_mappings.mappings = solution_mappings.mappings.join(
+                df.lazy(),
+                vec![],
+                vec![],
+                JoinArgs::new(JoinType::Cross),
+            );
+            return Ok(solution_mappings);
         }
 
-        let SolutionMappings { mappings, rdf_node_types } = self
+        let SolutionMappings {
+            mappings,
+            rdf_node_types,
+        } = self
             .time_series_database
             .execute(tsq)
             .await
@@ -89,10 +110,12 @@ impl Combiner {
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
         let mut ts_lf = ts_df.lazy();
         if let Some(cat_col) = &to_cat_col {
-            ts_lf = ts_lf.with_column(col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)));
-            solution_mappings.mappings = solution_mappings
-                .mappings
-                .with_column(col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)));
+            ts_lf = ts_lf.with_column(
+                col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)),
+            );
+            solution_mappings.mappings = solution_mappings.mappings.with_column(
+                col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)),
+            );
         }
         let on_reverse_false = vec![false].repeat(on_cols.len());
         ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
@@ -141,14 +164,16 @@ pub(crate) fn split_time_series_queries(
     }
 }
 
-fn get_drop_cols(tsq:&TimeseriesQuery) -> HashSet<String> {
+fn get_drop_cols(tsq: &TimeseriesQuery) -> HashSet<String> {
     let mut drop_cols = HashSet::new();
     if let Some(colname) = tsq.get_groupby_column() {
         drop_cols.insert(colname.to_string());
     } else {
-        drop_cols.extend(tsq.get_identifier_variables()
-            .iter()
-            .map(|x| x.as_str().to_string()));
+        drop_cols.extend(
+            tsq.get_identifier_variables()
+                .iter()
+                .map(|x| x.as_str().to_string()),
+        );
         drop_cols.extend(
             tsq.get_resource_variables()
                 .iter()

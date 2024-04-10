@@ -3,19 +3,19 @@ pub mod timeseries_in_memory_database;
 pub mod timeseries_opcua_database;
 pub mod timeseries_sql_rewrite;
 
-use std::collections::HashMap;
 use crate::timeseries_database::timeseries_sql_rewrite::{
     TimeseriesQueryToSQLError, TimeseriesQueryToSQLTransformer, TimeseriesTable,
 };
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
-use sea_query::{BigQueryQueryBuilder};
-use std::error::Error;
 use polars::prelude::DataFrame;
 use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
-use representation::RDFNodeType;
 use representation::solution_mapping::SolutionMappings;
+use representation::RDFNodeType;
+use sea_query::BigQueryQueryBuilder;
+use std::collections::HashMap;
+use std::error::Error;
 
 #[async_trait]
 pub trait TimeseriesQueryable: Send {
@@ -60,10 +60,17 @@ pub trait TimeseriesSQLQueryable {
     fn get_time_series_tables(&self) -> &Vec<TimeseriesTable>;
 }
 
-pub fn get_datatype_map(df:&DataFrame) -> HashMap<String,RDFNodeType> {
+pub fn get_datatype_map(df: &DataFrame) -> HashMap<String, RDFNodeType> {
     let mut map = HashMap::new();
     for c in df.columns(df.get_column_names()).unwrap() {
-        map.insert(c.name().to_string(), RDFNodeType::Literal(primitive_polars_type_to_literal_type(c.dtype()).unwrap().into_owned()));
+        map.insert(
+            c.name().to_string(),
+            RDFNodeType::Literal(
+                primitive_polars_type_to_literal_type(c.dtype())
+                    .unwrap()
+                    .into_owned(),
+            ),
+        );
     }
     map
 }

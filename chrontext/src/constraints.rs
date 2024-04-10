@@ -1,5 +1,5 @@
-use representation::query_context::{Context, VariableInContext};
 use oxrdf::Variable;
+use representation::query_context::{Context, VariableInContext};
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Constraint {

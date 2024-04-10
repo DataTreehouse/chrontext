@@ -1,16 +1,18 @@
 use crate::timeseries_database::timeseries_sql_rewrite::{
     TimeseriesQueryToSQLError, TimeseriesTable,
 };
-use crate::timeseries_database::{DatabaseType, get_datatype_map, TimeseriesQueryable, TimeseriesSQLQueryable};
+use crate::timeseries_database::{
+    get_datatype_map, DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable,
+};
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use bigquery_polars::{BigQueryExecutor, Client};
-use polars::prelude::PolarsError;
 use polars::prelude::IntoLazy;
+use polars::prelude::PolarsError;
+use representation::solution_mapping::SolutionMappings;
 use reqwest::Url;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use representation::solution_mapping::SolutionMappings;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

@@ -3,14 +3,14 @@ use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
+use query_processing::graph_patterns::union;
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::graph_patterns::union;
 
 impl Combiner {
     #[async_recursion]
@@ -57,7 +57,9 @@ impl Combiner {
                 &right_context,
             )
             .await?;
-        Ok(union(vec![left_solution_mappings, right_solution_mappings])?)
-
+        Ok(union(vec![
+            left_solution_mappings,
+            right_solution_mappings,
+        ])?)
     }
 }

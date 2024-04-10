@@ -8,7 +8,7 @@ use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{col, CsvReader, IntoLazy, SerReader, DataType};
+use polars::prelude::{col, CsvReader, DataType, IntoLazy, SerReader};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;
@@ -17,7 +17,8 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::common::{
-    add_sparql_testdata, wipe_database, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,
+    add_sparql_testdata, compare_all_solutions, start_sparql_container, wipe_database,
+    QUERY_ENDPOINT,
 };
 
 #[fixture]
@@ -157,7 +158,8 @@ async fn test_simple_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid.csv");
 
@@ -202,11 +204,11 @@ async fn test_simple_hybrid_no_tsq_matches_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
 
     assert_eq!(df.height(), 0);
 }
-
 
 #[rstest]
 #[tokio::test]
@@ -242,7 +244,8 @@ async fn test_complex_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_complex_hybrid.csv");
 
@@ -287,7 +290,8 @@ async fn test_pushdown_group_by_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -342,7 +346,8 @@ async fn test_pushdown_group_by_second_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w", "sum_v"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -398,7 +403,8 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w", "sum_v"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -472,12 +478,22 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
-    df = df.lazy().with_columns([
-        col("w").cast(DataType::String),
-        col("kind").cast(DataType::String)
-    ]).sort_by_exprs([col("w"), col("kind"), col("second_5")], vec![false], false, false)
-        .collect().unwrap();
+        .expect("Hybrid error")
+        .0;
+    df = df
+        .lazy()
+        .with_columns([
+            col("w").cast(DataType::String),
+            col("kind").cast(DataType::String),
+        ])
+        .sort_by_exprs(
+            [col("w"), col("kind"), col("second_5")],
+            vec![false],
+            false,
+            false,
+        )
+        .collect()
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_union_of_two_groupby.csv");
 
@@ -525,7 +541,8 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w", "seconds_5"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -575,7 +592,8 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w", "seconds_3"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -625,7 +643,8 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -678,7 +697,8 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -731,7 +751,8 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w"], vec![false], false)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
@@ -776,7 +797,8 @@ async fn test_path_group_by_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_path_group_by_query.csv");
 
@@ -821,11 +843,15 @@ async fn test_optional_clause_query(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
-    df = df.lazy().with_column(col("w").cast(DataType::String)).collect().unwrap();
-
-    df = df.sort(["w", "v", "greater"], vec![false], false)
+        .expect("Hybrid error")
+        .0;
+    df = df
+        .lazy()
+        .with_column(col("w").cast(DataType::String))
+        .collect()
         .unwrap();
+
+    df = df.sort(["w", "v", "greater"], vec![false], false).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_optional_clause_query.csv");
 
@@ -874,9 +900,15 @@ async fn test_minus_query(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
-    df = df.lazy().with_column(col("w").cast(DataType::String)).collect().unwrap();
-    df = df.sort(["w", "v"], vec![false, false], true)
+        .expect("Hybrid error")
+        .0;
+    df = df
+        .lazy()
+        .with_column(col("w").cast(DataType::String))
+        .collect()
+        .unwrap();
+    df = df
+        .sort(["w", "v"], vec![false, false], true)
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_minus_query.csv");
@@ -918,7 +950,8 @@ async fn test_in_expression_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_in_expression.csv");
 
@@ -961,7 +994,8 @@ async fn test_values_query(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     df = df.sort(&["v", "w"], vec![true, true], false).unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_values_query.csv");
@@ -1007,7 +1041,8 @@ async fn test_if_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w", "v_with_min"], vec![false], false)
         .expect("Sort problem");
     let mut file_path = testdata_path.clone();
@@ -1053,7 +1088,8 @@ async fn test_distinct_query(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(["w", "v_with_min"], vec![false], false)
         .unwrap();
     let mut file_path = testdata_path.clone();
@@ -1106,11 +1142,14 @@ async fn test_union_query(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
-    df = df.lazy().with_columns([
-        col("w").cast(DataType::String),
-    ]).sort_by_exprs([col("w"), col("v")], vec![false], true, false).collect().unwrap();
-
+        .expect("Hybrid error")
+        .0;
+    df = df
+        .lazy()
+        .with_columns([col("w").cast(DataType::String)])
+        .sort_by_exprs([col("w"), col("v")], vec![false], true, false)
+        .collect()
+        .unwrap();
 
     let mut file_path = testdata_path.clone();
     file_path.push("expected_union_query.csv");
@@ -1162,9 +1201,15 @@ async fn test_coalesce_query(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
-    df = df.lazy().with_column(col("s1").cast(DataType::String)).collect().unwrap();
-    df = df.sort(["s1", "t1", "v1", "v2"], vec![false], false)
+        .expect("Hybrid error")
+        .0;
+    df = df
+        .lazy()
+        .with_column(col("s1").cast(DataType::String))
+        .collect()
+        .unwrap();
+    df = df
+        .sort(["s1", "t1", "v1", "v2"], vec![false], false)
         .expect("Sort problem");
 
     let mut file_path = testdata_path.clone();

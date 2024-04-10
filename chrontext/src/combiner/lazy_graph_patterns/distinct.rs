@@ -1,14 +1,14 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
+use query_processing::graph_patterns::distinct;
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::graph_patterns::distinct;
 
 impl Combiner {
     #[async_recursion]

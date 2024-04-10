@@ -6,9 +6,9 @@ mod project_static;
 mod subqueries;
 
 use crate::constraints::{Constraint, VariableConstraints};
-use representation::query_context::Context;
 use crate::rewriting::expressions::ExReturn;
 use crate::timeseries_query::BasicTimeseriesQuery;
+use representation::query_context::Context;
 use spargebra::algebra::Expression;
 use spargebra::term::Variable;
 use spargebra::Query;

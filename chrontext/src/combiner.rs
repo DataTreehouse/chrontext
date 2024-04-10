@@ -7,18 +7,18 @@ pub(crate) mod time_series_queries;
 
 use representation::query_context::Context;
 
-use representation::solution_mapping::SolutionMappings;
 use crate::preparing::TimeseriesQueryPrepper;
 use crate::pushdown_setting::PushdownSetting;
 use crate::sparql_database::SparqlQueryable;
 use crate::timeseries_database::TimeseriesQueryable;
 use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesValidationError};
+use query_processing::errors::QueryProcessingError;
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use query_processing::errors::QueryProcessingError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -64,9 +64,7 @@ impl Display for CombinerError {
                 )
             }
             CombinerError::QueryProcessingError(e) => {
-                write!(
-                    f, "{}", e
-                )
+                write!(f, "{}", e)
             }
         }
     }
@@ -122,7 +120,7 @@ impl Combiner {
                 // Combination assumes there is something to combine!
                 // If there are no time series queries, we are done.
                 if new_time_series_queries.is_empty() {
-                    return Ok(new_solution_mappings)
+                    return Ok(new_solution_mappings);
                 }
                 solution_mappings = Some(new_solution_mappings);
                 time_series_queries = Some(new_time_series_queries);

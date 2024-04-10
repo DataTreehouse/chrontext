@@ -1,22 +1,22 @@
-
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries_opt;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
-use polars::prelude::{
-    col, Expr, LiteralValue, Operator,
+use oxrdf::vocab::xsd;
+use polars::prelude::{col, Expr, LiteralValue, Operator};
+use query_processing::exists_helper::rewrite_exists_graph_pattern;
+use query_processing::expressions::{
+    binary_expression, bound, coalesce_expression, exists, func_expression, if_expression,
+    in_expression, literal, named_node, not_expression, unary_minus, unary_plus, variable,
 };
-use spargebra::algebra::{Expression};
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
+use representation::RDFNodeType;
+use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::HashMap;
-use oxrdf::vocab::xsd;
-use query_processing::exists_helper::rewrite_exists_graph_pattern;
-use query_processing::expressions::{binary_expression, bound, coalesce_expression, exists, func_expression, if_expression, in_expression, literal, named_node, not_expression, unary_minus, unary_plus, variable};
-use representation::RDFNodeType;
 
 impl Combiner {
     #[async_recursion]
@@ -332,7 +332,12 @@ impl Combiner {
                         )
                         .await?;
                 }
-                in_expression(output_solution_mappings, &left_context, &right_contexts, &context)?
+                in_expression(
+                    output_solution_mappings,
+                    &left_context,
+                    &right_contexts,
+                    &context,
+                )?
             }
             Expression::Add(left, right) => {
                 let left_context = context.extension_with(PathEntry::AddLeft);
@@ -532,7 +537,11 @@ impl Combiner {
                     .with_column(
                         Expr::Literal(LiteralValue::Int64(1)).alias(&exists_context.as_str()),
                     )
-                    .with_column(col(&exists_context.as_str()).cum_sum(false).alias(&exists_context.as_str()));
+                    .with_column(
+                        col(&exists_context.as_str())
+                            .cum_sum(false)
+                            .alias(&exists_context.as_str()),
+                    );
 
                 let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());
                 output_solution_mappings.rdf_node_types.insert(
@@ -558,9 +567,7 @@ impl Combiner {
                     &context,
                 )?
             }
-            Expression::Bound(v) => {
-                bound(solution_mappings, v, &context)?
-            }
+            Expression::Bound(v) => bound(solution_mappings, v, &context)?,
             Expression::If(left, middle, right) => {
                 let left_context = context.extension_with(PathEntry::IfLeft);
                 let left_prepared_time_series_queries =
@@ -605,7 +612,13 @@ impl Combiner {
                     )
                     .await?;
 
-                if_expression(output_solution_mappings, &left_context, &middle_context, &right_context, &context)?
+                if_expression(
+                    output_solution_mappings,
+                    &left_context,
+                    &middle_context,
+                    &right_context,
+                    &context,
+                )?
             }
             Expression::Coalesce(inner) => {
                 let inner_contexts: Vec<Context> = (0..inner.len())
@@ -653,7 +666,13 @@ impl Combiner {
                         .await?;
                     args_contexts.insert(i, arg_context);
                 }
-                func_expression(output_solution_mappings, func, args, args_contexts, &context)?
+                func_expression(
+                    output_solution_mappings,
+                    func,
+                    args,
+                    args_contexts,
+                    &context,
+                )?
             }
         };
         Ok(output_solution_mappings)

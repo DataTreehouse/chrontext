@@ -6,4 +6,3 @@ pub const HAS_RESOURCE: &str = "https://github.com/DataTreehouse/chrontext#hasRe
 pub const HAS_EXTERNAL_ID: &str = "https://github.com/DataTreehouse/chrontext#hasExternalId";
 pub const NEST: &str = "https://github.com/DataTreehouse/chrontext#nestAggregation";
 pub const GROUPING_COL: &str = "grouping_col";
-

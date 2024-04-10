@@ -1,8 +1,8 @@
 use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
-use representation::query_context::{Context, PathEntry};
 use crate::rewriting::expressions::ExReturn;
 use oxrdf::Variable;
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
 use std::collections::HashSet;
 

@@ -2,10 +2,10 @@ mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
 
-use representation::solution_mapping::SolutionMappings;
 use crate::pushdown_setting::PushdownSetting;
-use representation::query_context::Context;
 use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
+use representation::query_context::Context;
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};

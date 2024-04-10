@@ -2,8 +2,11 @@ use super::Combiner;
 use crate::combiner::CombinerError;
 use crate::constants::NEST;
 use oxrdf::Variable;
-use polars::prelude::{col};
-use query_processing::aggregates::{AggregateReturn, avg, count_with_expression, count_without_expression, group_concat, max, min, sample, sum};
+use polars::prelude::col;
+use query_processing::aggregates::{
+    avg, count_with_expression, count_without_expression, group_concat, max, min, sample, sum,
+    AggregateReturn,
+};
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::AggregateExpression;

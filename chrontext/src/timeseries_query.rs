@@ -1,11 +1,9 @@
-use crate::find_query_variables::{
-    find_all_used_variables_in_expression,
-};
-use representation::query_context::{Context, VariableInContext};
+use crate::find_query_variables::find_all_used_variables_in_expression;
 use polars::frame::DataFrame;
+use representation::query_context::{Context, VariableInContext};
 use spargebra::algebra::{AggregateExpression, Expression};
 use spargebra::term::Variable;
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
@@ -87,19 +85,11 @@ impl TimeseriesQuery {
                     false
                 }
             }
-            TimeseriesQuery::GroupedBasic(_, df, _) => {
-                df.height() > 0
-            }
-            TimeseriesQuery::Filtered(i, _) => {
-                i.has_identifiers()
-            }
-            TimeseriesQuery::InnerSynchronized(i, _) => {
-                i.iter().any(|x|x.has_identifiers())
-            }
-            TimeseriesQuery::ExpressionAs(t, _, _) => {t.has_identifiers()}
-            TimeseriesQuery::Grouped(g) => {
-                g.tsq.has_identifiers()
-            }
+            TimeseriesQuery::GroupedBasic(_, df, _) => df.height() > 0,
+            TimeseriesQuery::Filtered(i, _) => i.has_identifiers(),
+            TimeseriesQuery::InnerSynchronized(i, _) => i.iter().any(|x| x.has_identifiers()),
+            TimeseriesQuery::ExpressionAs(t, _, _) => t.has_identifiers(),
+            TimeseriesQuery::Grouped(g) => g.tsq.has_identifiers(),
         }
     }
 

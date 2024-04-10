@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT, wipe_database};
+use crate::common::{add_sparql_testdata, start_sparql_container, wipe_database, QUERY_ENDPOINT};
 
 #[fixture]
 fn use_logger() {
@@ -133,7 +133,8 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(
             vec![
                 "site_label",
@@ -238,7 +239,8 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0
+        .expect("Hybrid error")
+        .0
         .sort(
             vec![
                 "site_label",

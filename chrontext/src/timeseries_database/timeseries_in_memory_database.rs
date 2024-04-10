@@ -2,7 +2,7 @@ use crate::combiner::Combiner;
 use crate::constants::GROUPING_COL;
 use crate::pushdown_setting::all_pushdowns;
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
-use crate::timeseries_database::{DatabaseType, get_datatype_map, TimeseriesQueryable};
+use crate::timeseries_database::{get_datatype_map, DatabaseType, TimeseriesQueryable};
 use crate::timeseries_query::{
     BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
 };
@@ -15,7 +15,7 @@ use query_processing::aggregates::AggregateReturn;
 use query_processing::graph_patterns::extend;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
-use representation::{RDFNodeType};
+use representation::RDFNodeType;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
@@ -41,7 +41,10 @@ impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
 
 impl TimeseriesInMemoryDatabase {
     #[async_recursion]
-    async fn execute_query(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+    async fn execute_query(
+        &self,
+        tsq: &TimeseriesQuery,
+    ) -> Result<SolutionMappings, Box<dyn Error>> {
         let (df, dtypes) = self.execute_query_impl(tsq).await?;
         Ok(SolutionMappings::new(df.lazy(), dtypes))
     }
@@ -160,8 +163,10 @@ impl TimeseriesInMemoryDatabase {
         solution_mappings = combiner
             .lazy_expression(filter, solution_mappings, None, None, &tmp_context)
             .await?;
-        let SolutionMappings{ mappings, rdf_node_types } =
-            query_processing::graph_patterns::filter(solution_mappings, &tmp_context)?;
+        let SolutionMappings {
+            mappings,
+            rdf_node_types,
+        } = query_processing::graph_patterns::filter(solution_mappings, &tmp_context)?;
         Ok((mappings.collect().unwrap(), rdf_node_types))
     }
 

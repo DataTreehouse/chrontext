@@ -18,10 +18,10 @@ mod union_pattern;
 mod values_pattern;
 
 use super::TimeseriesQueryPrepper;
-use representation::solution_mapping::SolutionMappings;
-use representation::query_context::Context;
 use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
+use representation::query_context::Context;
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use std::collections::HashMap;
 

@@ -18,7 +18,7 @@ use std::thread::{sleep, JoinHandle};
 use std::{thread, time};
 use tokio::runtime::Builder;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT, wipe_database};
+use crate::common::{add_sparql_testdata, start_sparql_container, wipe_database, QUERY_ENDPOINT};
 use crate::opcua_data_provider::OPCUADataProvider;
 
 #[fixture]
@@ -176,7 +176,8 @@ fn test_basic_query(
     let runtime = builder.build().unwrap();
     let df = runtime
         .block_on(engine.execute_hybrid_query(query))
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_basic_query.csv");
     let file = File::open(file_path.as_path()).expect("Read file problem");
@@ -238,7 +239,8 @@ fn test_basic_no_end_time_query(
     let runtime = builder.build().unwrap();
     let df = runtime
         .block_on(engine.execute_hybrid_query(query))
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_basic_no_end_time_query.csv");
     let file = File::open(file_path.as_path()).expect("Read file problem");
@@ -300,7 +302,8 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     let runtime = builder.build().unwrap();
     let mut df = runtime
         .block_on(engine.execute_hybrid_query(query))
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     df = df
         .sort(vec!["w", "datetime_seconds"], false, false)
         .unwrap();
@@ -379,7 +382,8 @@ fn test_no_pushdown_because_of_filter_query(
     let runtime = builder.build().unwrap();
     let mut df = runtime
         .block_on(engine.execute_hybrid_query(query))
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     df = df
         .sort(vec!["w", "datetime_seconds"], false, false)
         .unwrap();

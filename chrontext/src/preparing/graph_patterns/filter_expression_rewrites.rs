@@ -1,8 +1,8 @@
 use crate::change_types::ChangeType;
 use crate::pushdown_setting::PushdownSetting;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Literal;
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
 use std::collections::HashSet;
 

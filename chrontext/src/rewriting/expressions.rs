@@ -11,10 +11,10 @@ mod unary_ordinary_expression;
 
 use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
-use representation::query_context::Context;
 use crate::rewriting::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::rewriting::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
 use oxrdf::Variable;
+use representation::query_context::Context;
 use spargebra::algebra::Expression;
 use std::collections::HashSet;
 

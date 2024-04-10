@@ -1,16 +1,16 @@
-use representation::query_context::{Context, PathEntry};
 use log::debug;
+use representation::query_context::{Context, PathEntry};
 use std::collections::{HashMap, HashSet};
 
 use super::TimeseriesQueryPrepper;
-use representation::solution_mapping::SolutionMappings;
 use crate::constants::GROUPING_COL;
 use crate::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
 use oxrdf::Variable;
-use polars::prelude::{DataFrameJoinOps, JoinArgs, JoinType, IntoLazy, UniqueKeepStrategy, Series};
+use polars::prelude::{DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, Series, UniqueKeepStrategy};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 
 impl TimeseriesQueryPrepper {

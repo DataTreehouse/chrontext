@@ -5,7 +5,7 @@ use crate::timeseries_database::timeseries_sql_rewrite::expression_rewrite::SPAR
 use crate::timeseries_database::timeseries_sql_rewrite::partitioning_support::add_partitioned_timestamp_conditions;
 use crate::timeseries_database::DatabaseType;
 use crate::timeseries_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery};
-use oxrdf::{Variable};
+use oxrdf::Variable;
 use polars::prelude::{AnyValue, DataFrame};
 use sea_query::extension::bigquery::{NamedField, Unnest};
 use sea_query::IntoIden;
@@ -432,10 +432,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
             let select_name = format!("other_{}", i);
             let mut conditions = vec![];
 
-            let mut col_conditions = vec![
-                groupby_col.clone(),
-                timestamp_col.clone(),
-            ];
+            let mut col_conditions = vec![groupby_col.clone(), timestamp_col.clone()];
             if self.partition_support {
                 col_conditions.push(YEAR_PARTITION_COLUMN_NAME.to_string());
                 col_conditions.push(MONTH_PARTITION_COLUMN_NAME.to_string());
@@ -723,7 +720,6 @@ fn check_partitioning_support(tables: &Vec<TimeseriesTable>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use representation::query_context::{Context, VariableInContext};
     use crate::timeseries_database::timeseries_sql_rewrite::{
         TimeseriesQueryToSQLTransformer, TimeseriesTable,
     };
@@ -733,7 +729,8 @@ mod tests {
     };
     use oxrdf::vocab::xsd;
     use oxrdf::{Literal, Variable};
-    use polars::prelude::{NamedFrom, DataFrame, Series};
+    use polars::prelude::{DataFrame, NamedFrom, Series};
+    use representation::query_context::{Context, VariableInContext};
     use sea_query::BigQueryQueryBuilder;
     use spargebra::algebra::{AggregateExpression, Expression, Function};
     use std::vec;

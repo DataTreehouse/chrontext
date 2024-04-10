@@ -1,17 +1,17 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
 use oxrdf::Variable;
+use query_processing::graph_patterns::extend;
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::graph_patterns::extend;
 
 impl Combiner {
     #[async_recursion]
@@ -61,7 +61,10 @@ impl Combiner {
             )
             .await?;
 
-        Ok(extend(output_solution_mappings, &expression_context, variable)?)
-
+        Ok(extend(
+            output_solution_mappings,
+            &expression_context,
+            variable,
+        )?)
     }
 }

@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, QUERY_ENDPOINT, wipe_database};
+use crate::common::{add_sparql_testdata, start_sparql_container, wipe_database, QUERY_ENDPOINT};
 
 #[fixture]
 fn use_logger() {
@@ -106,7 +106,8 @@ async fn test_simple_hybrid_query_sugar(
     let mut df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar.csv");
 
@@ -152,7 +153,8 @@ async fn test_simple_hybrid_query_sugar_timeseries_explicit_link(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0;
+        .expect("Hybrid error")
+        .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar.csv");
 
@@ -199,7 +201,10 @@ async fn test_simple_hybrid_query_sugar_agg_avg(
     let df = engine
         .execute_hybrid_query(query)
         .await
-        .expect("Hybrid error").0.sort(["w", "s", "timestamp"], false, false).unwrap();
+        .expect("Hybrid error")
+        .0
+        .sort(["w", "s", "timestamp"], false, false)
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar_agg_avg.csv");
 

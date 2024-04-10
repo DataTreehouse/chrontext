@@ -1,7 +1,7 @@
-use representation::query_context::Context;
 use crate::rewriting::graph_patterns::GPReturn;
 use crate::rewriting::StaticQueryRewriter;
 use oxrdf::Variable;
+use representation::query_context::Context;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 

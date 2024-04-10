@@ -1,14 +1,14 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
-use representation::query_context::{Context, PathEntry};
 use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
+use query_processing::graph_patterns::order_by;
+use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::graph_patterns::order_by;
 
 impl Combiner {
     #[async_recursion]
@@ -48,6 +48,10 @@ impl Combiner {
             inner_contexts.push(inner_context);
             asc_ordering.push(reverse);
         }
-        Ok(order_by(output_solution_mappings, &inner_contexts, asc_ordering)?)
+        Ok(order_by(
+            output_solution_mappings,
+            &inner_contexts,
+            asc_ordering,
+        )?)
     }
 }

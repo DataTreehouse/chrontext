@@ -1,8 +1,8 @@
 use super::StaticQueryRewriter;
 use crate::change_types::ChangeType;
-use representation::query_context::{Context, PathEntry};
 use crate::rewriting::graph_patterns::GPReturn;
 use oxrdf::Variable;
+use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::{Expression, GraphPattern};
 
 impl StaticQueryRewriter {

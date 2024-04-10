@@ -1,7 +1,7 @@
 use super::Combiner;
-use representation::solution_mapping::SolutionMappings;
 use crate::combiner::CombinerError;
 use representation::query_context::{Context, PathEntry};
+use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::OrderExpression;
 
 impl Combiner {
