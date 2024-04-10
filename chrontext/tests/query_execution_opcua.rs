@@ -8,8 +8,7 @@ use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADa
 use log::debug;
 use opcua::server::prelude::*;
 use polars::io::SerReader;
-use polars::prelude::CsvReader;
-use polars_core::frame::DataFrame;
+use polars::prelude::{CsvReader, DataFrame};
 use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;

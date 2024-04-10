@@ -6,8 +6,7 @@ use crate::timeseries_database::timeseries_sql_rewrite::partitioning_support::ad
 use crate::timeseries_database::DatabaseType;
 use crate::timeseries_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery};
 use oxrdf::{Variable};
-use polars_core::datatypes::AnyValue;
-use polars_core::frame::DataFrame;
+use polars::prelude::{AnyValue, DataFrame};
 use sea_query::extension::bigquery::{NamedField, Unnest};
 use sea_query::IntoIden;
 use sea_query::{
@@ -734,9 +733,7 @@ mod tests {
     };
     use oxrdf::vocab::xsd;
     use oxrdf::{Literal, Variable};
-    use polars_core::frame::DataFrame;
-    use polars_core::prelude::NamedFrom;
-    use polars_core::series::Series;
+    use polars::prelude::{NamedFrom, DataFrame, Series};
     use sea_query::BigQueryQueryBuilder;
     use spargebra::algebra::{AggregateExpression, Expression, Function};
     use std::vec;

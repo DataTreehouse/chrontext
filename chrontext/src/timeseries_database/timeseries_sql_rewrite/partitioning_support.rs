@@ -1,6 +1,6 @@
 use super::Name;
 use log::debug;
-use polars_core::export::chrono::Datelike;
+use polars::export::chrono::Datelike;
 use sea_query::{BinOper, ColumnRef, FunctionCall, IntoIden, SimpleExpr, Value};
 
 pub fn add_partitioned_timestamp_conditions(

@@ -15,7 +15,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BigQueryError {
-    TransportError(#[from] tonic::transport::Error),
     TranslationError(#[from] TimeseriesQueryToSQLError),
     PolarsError(#[from] PolarsError),
 }
@@ -23,9 +22,6 @@ pub enum BigQueryError {
 impl Display for BigQueryError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            BigQueryError::TransportError(err) => {
-                write!(f, "Error during transport: {}", err)
-            }
             BigQueryError::TranslationError(s) => {
                 write!(f, "Error during query translation: {}", s)
             }

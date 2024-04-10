@@ -8,14 +8,13 @@ use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{col, CsvReader, IntoLazy, SerReader};
+use polars::prelude::{col, CsvReader, IntoLazy, SerReader, DataType};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-use polars_core::prelude::DataType;
 
 use crate::common::{
     add_sparql_testdata, wipe_database, compare_all_solutions, start_sparql_container, QUERY_ENDPOINT,

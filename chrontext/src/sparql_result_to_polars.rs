@@ -1,6 +1,5 @@
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{as_struct, col, DataFrame, Expr, IntoLazy, lit};
-use polars_core::prelude::{AnyValue, NamedFrom, Series};
+use polars::prelude::{as_struct, col, DataFrame, Expr, IntoLazy, lit, AnyValue, Series};
 use representation::multitype::{all_multi_cols, MULTI_BLANK_DT, multi_has_this_type_column, MULTI_IRI_DT, MULTI_NONE_DT, non_multi_type_string};
 use representation::{BaseRDFNodeType, LANG_STRING_LANG_FIELD, LANG_STRING_VALUE_FIELD, RDFNodeType};
 use sparesults::QuerySolution;

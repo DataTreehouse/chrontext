@@ -11,11 +11,8 @@ use opcua::client::prelude::{
 use opcua::sync::RwLock;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, Variable};
-use polars::export::chrono::{DateTime as ChronoDateTime, Duration, NaiveDateTime, TimeZone, Utc};
-use polars::prelude::{concat, IntoLazy, UnionArgs};
-use polars_core::frame::DataFrame;
-use polars_core::prelude::{AnyValue, DataType, NamedFrom};
-use polars_core::series::Series;
+use polars::export::chrono::{DateTime as ChronoDateTime, Duration, TimeZone, Utc};
+use polars::prelude::{concat, IntoLazy, UnionArgs, DataFrame, AnyValue, DataType, NamedFrom, Series};
 use query_processing::constants::DATETIME_AS_SECONDS;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
@@ -25,6 +22,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
+use chrono::NaiveDateTime;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;
@@ -368,7 +366,7 @@ fn history_data_to_series_tuple(hd: HistoryData) -> (Series, Series) {
     let mut ts_value_vec = vec![];
     for data_value in data_values_vec {
         if let Some(ts) = data_value.source_timestamp {
-            let polars_datetime = NaiveDateTime::from_timestamp(ts.as_chrono().timestamp(), 0);
+            let polars_datetime = ChronoDateTime::from_timestamp(ts.as_chrono().timestamp(), 0).unwrap().naive_utc();
             ts_value_vec.push(polars_datetime);
         }
         if let Some(val) = data_value.value {

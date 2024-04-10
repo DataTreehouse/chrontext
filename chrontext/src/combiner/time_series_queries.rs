@@ -6,11 +6,9 @@ use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
-use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType};
-use polars_core::prelude::{CategoricalOrdering, DataFrame, DataType};
+use polars::prelude::{col, Expr, IntoLazy, JoinArgs, JoinType, CategoricalOrdering, DataFrame, DataType, Series};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
-use polars_core::series::Series;
 use representation::{BaseRDFNodeType, RDFNodeType};
 
 impl Combiner {

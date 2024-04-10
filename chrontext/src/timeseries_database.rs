@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use log::debug;
 use sea_query::{BigQueryQueryBuilder};
 use std::error::Error;
-use polars_core::prelude::DataFrame;
+use polars::prelude::DataFrame;
 use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
 use representation::RDFNodeType;
 use representation::solution_mapping::SolutionMappings;

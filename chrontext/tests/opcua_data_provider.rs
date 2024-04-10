@@ -1,11 +1,9 @@
 use opcua::server::prelude::*;
 use opcua::sync::RwLock;
-use polars::export::chrono::{DateTime as PolarsDateTime, Utc as PolarsUtc};
-use polars::export::chrono::{NaiveDateTime, Utc};
-use polars::prelude::{col, lit, DataType as PolarsDataType, IntoLazy};
-use polars_core::datatypes::AnyValue;
-use polars_core::frame::DataFrame;
-use polars_core::prelude::TimeUnit;
+use polars::export::chrono::{DateTime as ChronoDateTime, Utc as ChronoUtc};
+use polars::prelude::{
+    col, lit, AnyValue, DataFrame, DataType as PolarsDataType, IntoLazy, TimeUnit,
+};
 use std::collections::HashMap;
 use std::ops::{Div, Mul};
 use std::sync::Arc;
@@ -54,7 +52,7 @@ impl OPCUADataProvider {
                 let start = start_time
                     .as_chrono()
                     .to_string()
-                    .parse::<PolarsDateTime<PolarsUtc>>()
+                    .parse::<ChronoDateTime<ChronoUtc>>()
                     .unwrap()
                     .naive_utc();
                 lf = lf.filter(col("timestamp").gt_eq(lit(start)));
@@ -63,7 +61,7 @@ impl OPCUADataProvider {
                 let stop = end_time
                     .as_chrono()
                     .to_string()
-                    .parse::<PolarsDateTime<PolarsUtc>>()
+                    .parse::<ChronoDateTime<ChronoUtc>>()
                     .unwrap()
                     .naive_utc();
                 lf = lf.filter(col("timestamp").lt_eq(lit(stop)));
@@ -114,16 +112,22 @@ impl OPCUADataProvider {
 
                 let naive_date_time = match ts_iter.next().unwrap() {
                     AnyValue::Datetime(number, timeunit, _) => match timeunit {
-                        TimeUnit::Nanoseconds => NaiveDateTime::from_timestamp(
+                        TimeUnit::Nanoseconds => ChronoDateTime::from_timestamp(
                             number / 1_000_000_000,
                             (number % 1_000_000_000) as u32,
-                        ),
-                        TimeUnit::Microseconds => NaiveDateTime::from_timestamp(
+                        )
+                        .unwrap()
+                        .naive_utc(),
+                        TimeUnit::Microseconds => ChronoDateTime::from_timestamp(
                             number / 1_000_000,
                             (number % 1_000_000) as u32,
-                        ),
+                        )
+                        .unwrap()
+                        .naive_utc(),
                         TimeUnit::Milliseconds => {
-                            NaiveDateTime::from_timestamp(number / 1_000, (number % 1_000) as u32)
+                            ChronoDateTime::from_timestamp(number / 1_000, (number % 1_000) as u32)
+                                .unwrap()
+                                .naive_utc()
                         }
                     },
                     v => {
@@ -131,7 +135,7 @@ impl OPCUADataProvider {
                     }
                 };
 
-                let timestamp = DateTime::from(DateTimeUtc::from_utc(naive_date_time, Utc));
+                let timestamp = DateTime::from(naive_date_time.and_utc());
 
                 let dv = DataValue {
                     value: Some(value_variant),

@@ -9,7 +9,7 @@ use log::debug;
 use polars::frame::DataFrame;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use polars_core::enable_string_cache;
+use polars::enable_string_cache;
 use representation::RDFNodeType;
 use representation::solution_mapping::SolutionMappings;
 
