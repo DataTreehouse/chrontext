@@ -1,18 +1,18 @@
 [package]
 name = "py_chrontext"
-version = "0.8.14"
+version = "0.8.15"
 edition = "2021"
 
 [workspace]
 
 [dependencies]
 #representation = {path = "../../representation"}
-representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.5.0"}
+representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.5.3"}
 pyo3 = {version = "0.21.1", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.0"}
 #pydf_io = { path = "../../pydf_io" }
-thiserror="1.0.31"
+thiserror="1.0.58"
 polars = {version="0.38.3", features = ["lazy"]}
 oxrdf = "0.1.7"
 spargebra = "0.2.8"

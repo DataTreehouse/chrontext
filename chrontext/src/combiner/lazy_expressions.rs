@@ -501,7 +501,7 @@ impl Combiner {
                         &plus_context,
                     )
                     .await?;
-                unary_plus(output_solution_mappings, &plus_context, context)?
+                unary_plus(output_solution_mappings, context, &plus_context)?
             }
             Expression::UnaryMinus(inner) => {
                 let minus_context = context.extension_with(PathEntry::UnaryMinus);
@@ -514,7 +514,7 @@ impl Combiner {
                         &minus_context,
                     )
                     .await?;
-                unary_minus(output_solution_mappings, &minus_context, &context)?
+                unary_minus(output_solution_mappings, &context, &minus_context)?
             }
             Expression::Not(inner) => {
                 let not_context = context.extension_with(PathEntry::Not);
@@ -527,7 +527,7 @@ impl Combiner {
                         &not_context,
                     )
                     .await?;
-                not_expression(output_solution_mappings, &not_context, &context)?
+                not_expression(output_solution_mappings, &context, &not_context)?
             }
             Expression::Exists(inner) => {
                 let exists_context = context.extension_with(PathEntry::Exists);
@@ -563,11 +563,11 @@ impl Combiner {
                 exists(
                     output_solution_mappings,
                     exists_lf,
-                    &exists_context,
                     &context,
+                    &exists_context,
                 )?
             }
-            Expression::Bound(v) => bound(solution_mappings, v, &context)?,
+            Expression::Bound(v) => bound(solution_mappings, v, context)?,
             Expression::If(left, middle, right) => {
                 let left_context = context.extension_with(PathEntry::IfLeft);
                 let left_prepared_time_series_queries =
