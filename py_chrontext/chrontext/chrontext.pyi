@@ -1,5 +1,5 @@
 from typing import List
-from .semantic_dataframe import DataFrame
+from polars import DataFrame
 class Engine:
     """
     The hybrid query engine of chrontext.

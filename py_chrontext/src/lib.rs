@@ -358,6 +358,7 @@ fn file_metadata_string(p: &Path) -> Result<String, std::io::Error> {
 }
 
 #[pymodule]
+#[pyo3(name = "chrontext")]
 fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     let res = env_logger::try_init();
     match res {
@@ -380,7 +381,7 @@ fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
 }
 
 fn fix_cats_and_multicolumns(mut df: DataFrame, mut dts: HashMap<String, RDFNodeType>) -> (DataFrame, HashMap<String, RDFNodeType>)  {
-    let column_ordering: Vec<_> = df.get_column_names().iter().map(|x|x.to_string()).collect();;
+    let column_ordering: Vec<_> = df.get_column_names().iter().map(|x|x.to_string()).collect();
     for (c,_) in &dts {
         df = lf_column_from_categorical(df.lazy(), c, &dts).collect().unwrap();
     }
