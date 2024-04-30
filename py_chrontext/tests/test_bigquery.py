@@ -159,6 +159,7 @@ def test_get_inverter_dckw_sugar(engine):
             }
         ORDER BY ?block_code ?gen_code ?inv_code ?t
         """)
+    #print(df)
     assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
     assert df.height == 51900
 
