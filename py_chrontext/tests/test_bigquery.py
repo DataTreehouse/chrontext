@@ -165,6 +165,38 @@ def test_get_inverter_dckw_sugar(engine):
 
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(4)
+def test_get_simplified_inverter_dckw_sugar(engine):
+    df = engine.query("""
+        PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+    PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+    SELECT ?inv_path WHERE {
+        # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
+        ?site a rds:Site .
+        ?site rdfs:label "Metropolis" .
+        ?site rds:functionalAspect+ ?inv .    
+        ?inv a rds:TBB .                    # RDS code TBB: Inverter
+        ?inv rds:path ?inv_path .
+        
+        # Find the timeseries associated with the inverter
+        ?inv ct:hasTimeseries ?ts_pow .    
+        DT {
+            timestamp= ?t,
+            labels= (?ts_pow:"InvPDC_kW"),
+            interval= "10m",
+            from= "2018-12-25T00:00:00Z",
+            aggregation = "avg" }
+        }
+    ORDER BY ?inv_path ?t
+        """)
+    print(df)
+    assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
+    assert df.height == 51900
+
+
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(5)
 def test_get_inverter_dckw_sugar_no_static_results(engine):
     df = engine.query("""

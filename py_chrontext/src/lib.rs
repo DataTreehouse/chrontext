@@ -359,7 +359,7 @@ fn file_metadata_string(p: &Path) -> Result<String, std::io::Error> {
 
 #[pymodule]
 #[pyo3(name = "chrontext")]
-fn _chrontext(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let res = env_logger::try_init();
     match res {
         Ok(_) => {}

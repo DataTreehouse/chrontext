@@ -16,8 +16,7 @@ Chrontext is in pip, just use:
 ```shell
 pip install chrontext
 ```
-
-The API is documented HERE. 
+The API is documented [HERE](https://datatreehouse.github.io/chrontext/chrontext/chrontext.html). 
 
 ## Queries in python
 We can make queries in Python. The code assumes that we have a SPARQL-endpoint and BigQuery set up with time-series.
@@ -46,20 +45,16 @@ df = engine.query("""
     PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
     PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
-    SELECT ?site ?gen_code ?block_code ?inv_code WHERE {
+    SELECT ?inv_path WHERE {
+        # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
         ?site a rds:Site .
         ?site rdfs:label "Metropolis" .
-        ?site rds:functionalAspect ?block .
-        ?block rds:code ?block_code .
-        ?block a rds:A .
-        ?block rds:functionalAspect ?gen .
-        ?gen a rds:RG .
-        ?gen rds:code ?gen_code .
-        ?gen rds:functionalAspect ?inv .
-        ?inv a rds:TBB .
-        ?inv rds:code ?inv_code .
+        ?site rds:functionalAspect+ ?inv .    
+        ?inv a rds:TBB .                    # RDS code TBB: Inverter
+        ?inv rds:path ?inv_path .
         
-        ?inv ct:hasTimeseries ?ts_pow .
+        # Find the timeseries associated with the inverter
+        ?inv ct:hasTimeseries ?ts_pow .    
         DT {
             timestamp= ?t,
             labels= (?ts_pow:"InvPDC_kW"),
@@ -67,12 +62,23 @@ df = engine.query("""
             from= "2018-12-25T00:00:00Z",
             aggregation = "avg" }
         }
-    ORDER BY ?block_code ?gen_code ?inv_code ?t
+    ORDER BY ?inv_path ?t
 """)
 ```
 
 This produces the following DataFrame:
 
+| inv_path                  | t                   | ts_pow_value_avg |
+|---------------------------| ---                 | ---              |
+| str                       | datetime[ns]        | f64              |
+| =<Metropolis>.A1.RG1.TBB1 | 2018-12-25 00:00:00 | 0.0              |
+| …                         | …                   | …                |
+| =<Metropolis>.A5.RG9.TBB1 | 2019-01-01 04:50:00 | 0.0              |
+
+Not much power being produced at night in the middle of winter :-)
+
+## API
+The API is documented [HERE](https://datatreehouse.github.io/chrontext/chrontext/chrontext.html).
 
 ## References
 Chrontext is joint work by Magnus Bakken and Professor [Ahmet Soylu](https://www.oslomet.no/om/ansatt/ahmetsoy/) at OsloMet.

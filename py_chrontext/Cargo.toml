@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 #representation = {path = "../../representation"}
 representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.5.3"}
-pyo3 = {version = "0.21.1", features = ["extension-module"]}
+pyo3 = {version = "0.21.2", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.0"}
 #pydf_io = { path = "../../pydf_io" }
@@ -26,9 +26,6 @@ filesize = "0.2.0"
 [lib]
 name = "chrontext"
 crate-type = ["cdylib"]
-
-[package.metadata.maturin]
-python-source = "python"
 
 # Conditional dependency specification of mimalloc and jemallocator copied from: https://github.com/pola-rs/polars/blob/main/py-polars/Cargo.toml
 # It has the following license
