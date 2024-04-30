@@ -57,9 +57,10 @@ df = engine.query("""
         ?inv ct:hasTimeseries ?ts_pow .
         ?ts_pow rdfs:label "InvPDC_kW" .    
         DT {
-            timestamp= ?t,
-            interval= "10m",
-            from= "2018-12-25T00:00:00Z",
+            timestamp = ?t,
+            timeseries = ?ts_pow, 
+            interval = "10m",
+            from = "2018-12-25T00:00:00Z",
             aggregation = "avg" }
         }
     ORDER BY ?inv_path ?t
