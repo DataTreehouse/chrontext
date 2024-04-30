@@ -68,12 +68,12 @@ df = engine.query("""
 
 This produces the following DataFrame:
 
-| inv_path                  | t                   | ts_pow_value_avg |
-|---------------------------| ---                 | ---              |
-| str                       | datetime[ns]        | f64              |
-| =<Metropolis>.A1.RG1.TBB1 | 2018-12-25 00:00:00 | 0.0              |
-| …                         | …                   | …                |
-| =<Metropolis>.A5.RG9.TBB1 | 2019-01-01 04:50:00 | 0.0              |
+| inv_path                    | t                   | ts_pow_value_avg |
+|-----------------------------| ---                 | ---              |
+| str                         | datetime[ns]        | f64              |
+| =\<Metropolis\>.A1.RG1.TBB1 | 2018-12-25 00:00:00 | 0.0              |
+| …                           | …                   | …                |
+| =\<Metropolis\>.A5.RG9.TBB1 | 2019-01-01 04:50:00 | 0.0              |
 
 Not much power being produced at night in the middle of winter :-)
 
