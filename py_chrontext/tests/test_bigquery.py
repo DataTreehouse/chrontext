@@ -181,10 +181,10 @@ def test_get_simplified_inverter_dckw_sugar(engine):
         ?inv rds:path ?inv_path .
         
         # Find the timeseries associated with the inverter
-        ?inv ct:hasTimeseries ?ts_pow .    
+        ?inv ct:hasTimeseries ?ts_pow .
+        ?ts_pow rdfs:label "InvPDC_kW" .
         DT {
             timestamp= ?t,
-            labels= (?ts_pow:"InvPDC_kW"),
             interval= "10m",
             from= "2018-12-25T00:00:00Z",
             aggregation = "avg" }
@@ -192,7 +192,7 @@ def test_get_simplified_inverter_dckw_sugar(engine):
     ORDER BY ?inv_path ?t
         """)
     print(df)
-    assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
+    assert df.columns == ['inv_path', 't', 'ts_pow_value_avg']
     assert df.height == 51900
 
 
