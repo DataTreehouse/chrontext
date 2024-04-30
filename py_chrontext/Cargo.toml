@@ -13,9 +13,9 @@ chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.0"}
 #pydf_io = { path = "../../pydf_io" }
 thiserror="1.0.58"
-polars = {version="0.38.3", features = ["lazy"]}
+polars = {version="0.38.3", features = ["performant", "lazy"]}
 oxrdf = "0.1.7"
-spargebra = "0.2.8"
+spargebra = { version= "0.2.8"}
 simple-error = "0.3.0"
 tokio = "1.32.1"
 env_logger = "0.11.3"

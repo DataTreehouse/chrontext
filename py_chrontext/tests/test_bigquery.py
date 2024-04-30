@@ -9,7 +9,6 @@ from chrontext import *
 dotenv.load_dotenv("bq.env")
 SCHEMA = os.getenv("SCHEMA")
 BIGQUERY_CONN = os.getenv("BIGQUERY_CONN")
-print(BIGQUERY_CONN)
 skip = SCHEMA is None
 
 
@@ -150,9 +149,9 @@ def test_get_inverter_dckw_sugar(engine):
             ?inv a rds:TBB .
             ?inv rds:code ?inv_code .
             ?inv ct:hasTimeseries ?ts_pow .
+            ?ts_pow rdfs:label "InvPDC_kW" .
             DT {
                 timestamp= ?t,
-                labels= (?ts_pow:"InvPDC_kW"),
                 interval= "10m",
                 from= "2018-12-25T00:00:00Z",
                 aggregation = "avg" }
@@ -192,7 +191,6 @@ def test_get_simplified_inverter_dckw_sugar(engine):
         }
     ORDER BY ?inv_path ?t
         """)
-    print(df)
     assert df.columns == ['inv_path', 't', 'ts_pow_value_avg']
     assert df.height == 51900
 
@@ -218,9 +216,9 @@ def test_get_inverter_dckw_sugar_no_static_results(engine):
             ?inv a rds:TBB .
             ?inv rds:code ?inv_code .
             ?inv ct:hasTimeseries ?ts_pow .
+            ?ts_pow rdfs:label "InvPDC_kW" .
             DT {
                 timestamp= ?t,
-                labels= (?ts_pow:"InvPDC_kW"),
                 interval= "10m",
                 from= "2018-12-25T00:00:00Z",
                 aggregation = "avg" }
@@ -246,9 +244,9 @@ def test_get_inverter_dckw_sugar_path(engine):
             ?inv a rds:TBB .
             ?inv rds:path ?path .
             ?inv ct:hasTimeseries ?ts_pow .
+            ?ts_pow rdfs:label "InvPDC_kW" .
             DT {
                 timestamp= ?t,
-                labels= (?ts_pow:"InvPDC_kW"),
                 interval= "10m",
                 from= "2018-12-25T00:00:00Z",
                 aggregation = "avg" }
@@ -274,13 +272,15 @@ SELECT ?path WHERE {
     ?site rds:functionalAspect ?block .
     ?block a rds:A .
     ?block ct:hasTimeseries ?ts_irr .
+    ?ts_irr rdfs:label "RefCell1_Wm2" .
     ?block rds:functionalAspect+ ?inv .
     ?inv a rds:TBB .
     ?inv rds:path ?path .
     ?inv ct:hasTimeseries ?ts_pow .
+    ?ts_pow rdfs:label "InvPDC_kW" .
     DT {
         timestamp= ?t,
-        labels= (?ts_pow:"InvPDC_kW"),(?ts_irr:"RefCell1_Wm2"),
+        timeseries = ?ts_pow, ?ts_irr,
         interval= "10m",
         from= "2018-12-25T00:00:00Z",
         aggregation = "avg" }
