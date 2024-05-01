@@ -9,7 +9,7 @@ use crate::timeseries_database::timeseries_sql_rewrite::{
 use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
-use polars::prelude::DataFrame;
+use polars::prelude::{DataFrame, DataType};
 use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
@@ -63,14 +63,19 @@ pub trait TimeseriesSQLQueryable {
 pub fn get_datatype_map(df: &DataFrame) -> HashMap<String, RDFNodeType> {
     let mut map = HashMap::new();
     for c in df.columns(df.get_column_names()).unwrap() {
-        map.insert(
-            c.name().to_string(),
-            RDFNodeType::Literal(
-                primitive_polars_type_to_literal_type(c.dtype())
-                    .unwrap()
-                    .into_owned(),
-            ),
-        );
+        let dtype = c.dtype();
+        if let &DataType::Null = dtype {
+            map.insert(c.name().to_string(), RDFNodeType::None);
+        } else {
+            map.insert(
+                c.name().to_string(),
+                RDFNodeType::Literal(
+                    primitive_polars_type_to_literal_type(dtype)
+                        .unwrap()
+                        .into_owned(),
+                ),
+            );
+        }
     }
     map
 }

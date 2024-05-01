@@ -162,6 +162,40 @@ def test_get_inverter_dckw_sugar(engine):
     assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
     assert df.height == 51900
 
+@pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(4)
+def test_get_inverter_dckw_sugar(engine):
+    df = engine.query("""
+        PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+        PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+        PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+        SELECT ?site ?gen_code ?block_code ?inv_code WHERE {
+            ?site a rds:Site .
+            ?site rdfs:label "Metropolis" .
+            ?site rds:functionalAspect ?block .
+            ?block rds:code ?block_code .
+            ?block a rds:A .
+            ?block rds:functionalAspect ?gen .
+            ?gen a rds:RG .
+            ?gen rds:code ?gen_code .
+            ?gen rds:functionalAspect ?inv .
+            ?inv a rds:TBB .
+            ?inv rds:code ?inv_code .
+            ?inv ct:hasTimeseries ?ts_pow .
+            ?ts_pow rdfs:label "InvPDC_kW" .
+            DT {
+                timestamp= ?t,
+                interval= "10m",
+                from= "2018-12-25T00:00:00Z",
+                aggregation = "avg" }
+            }
+        ORDER BY ?block_code ?gen_code ?inv_code ?t
+        """)
+    #print(df)
+    assert df.columns == ['site', 'gen_code', 'block_code', 'inv_code', 't', 'ts_pow_value_avg']
+    assert df.height == 51900
+
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(4)
@@ -193,6 +227,69 @@ def test_get_simplified_inverter_dckw_sugar(engine):
         """)
     assert df.columns == ['inv_path', 't', 'ts_pow_value_avg']
     assert df.height == 51900
+
+@pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(4)
+def test_get_simplified_inverter_dckw_sugar_no_dynamic_results(engine):
+    df = engine.query("""
+        PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+    PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+    SELECT ?inv_path WHERE {
+        # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
+        ?site a rds:Site .
+        ?site rdfs:label "Metropolis" .
+        ?site rds:functionalAspect+ ?inv .    
+        ?inv a rds:TBB .                    # RDS code TBB: Inverter
+        ?inv rds:path ?inv_path .
+        
+        # Find the timeseries associated with the inverter
+        ?inv ct:hasTimeseries ?ts_pow .
+        ?ts_pow rdfs:label "InvPDC_kW" .
+        DT {
+            timestamp = ?t,
+            timeseries = ?ts_pow,
+            interval = "10m",
+            from = "2028-12-25T00:00:00Z",
+            aggregation = "avg" }
+        }
+    ORDER BY ?inv_path ?t
+        """)
+    assert df.columns == ['inv_path', 't', 'ts_pow_value_avg']
+    assert df.height == 0
+
+@pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(4)
+def test_get_simplified_inverter_dckw_sugar_multiagg(engine):
+    df = engine.query("""
+        PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+    PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+    SELECT ?inv_path WHERE {
+        # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
+        ?site a rds:Site .
+        ?site rdfs:label "Metropolis" .
+        ?site rds:functionalAspect+ ?inv .    
+        ?inv a rds:TBB .                    # RDS code TBB: Inverter
+        ?inv rds:path ?inv_path .
+        
+        # Find the timeseries associated with the inverter
+        ?inv ct:hasTimeseries ?ts_pow .
+        ?ts_pow rdfs:label "InvPDC_kW" .
+        DT {
+            timestamp = ?t,
+            timeseries = ?ts_pow,
+            interval = "10m",
+            from = "2018-12-25T00:00:00Z",
+            aggregation = "avg", "min" }
+        }
+    ORDER BY ?inv_path ?t
+        """)
+    assert df.columns == ['inv_path', 't', 'ts_pow_value_avg', 'ts_pow_value_min']
+    assert df.height == 51900
+
 
 
 @pytest.mark.skipif(skip, reason="Environment vars not present")

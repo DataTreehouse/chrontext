@@ -1,5 +1,6 @@
 use super::Combiner;
 use crate::combiner::CombinerError;
+use crate::preparing::grouping_col_type;
 use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
@@ -7,6 +8,7 @@ use oxrdf::Term;
 use polars::prelude::{
     col, CategoricalOrdering, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType, Series,
 };
+use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use representation::{BaseRDFNodeType, RDFNodeType};
@@ -67,13 +69,13 @@ impl Combiner {
 
         let SolutionMappings {
             mappings,
-            rdf_node_types,
+            mut rdf_node_types,
         } = self
             .time_series_database
             .execute(tsq)
             .await
             .map_err(|x| CombinerError::TimeseriesQueryError(x))?;
-        let ts_df = mappings.collect().unwrap();
+        let mut ts_df = mappings.collect().unwrap();
         debug!("Time series query results: \n{}", ts_df);
         tsq.validate(&ts_df)
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
@@ -84,6 +86,23 @@ impl Combiner {
         if let Some(colname) = tsq.get_groupby_column() {
             on = vec![colname.to_string()];
             to_cat_col = None;
+            //When there are no results we need to cast to the appropriate type
+            if let Some(&RDFNodeType::None) = rdf_node_types.get(colname) {
+                let coltype = grouping_col_type();
+                rdf_node_types.insert(
+                    colname.to_string(),
+                    RDFNodeType::Literal(
+                        primitive_polars_type_to_literal_type(&coltype)
+                            .unwrap()
+                            .into_owned(),
+                    ),
+                );
+                ts_df = ts_df
+                    .lazy()
+                    .with_column(col(colname).cast(coltype.clone()))
+                    .collect()
+                    .unwrap();
+            };
         } else {
             let idvars: Vec<String> = tsq
                 .get_identifier_variables()
@@ -91,10 +110,31 @@ impl Combiner {
                 .map(|x| x.as_str().to_string())
                 .collect();
             assert_eq!(idvars.len(), 1);
-            to_cat_col = Some(idvars.get(0).unwrap().clone());
+            let idvar = idvars.get(0).unwrap().clone();
+            to_cat_col = Some(idvar.clone());
             on = idvars;
+            //When there are no results we need to cast to the appropriate type
+            if let Some(&RDFNodeType::None) = rdf_node_types.get(&idvar) {
+                if let Some(e) = solution_mappings.rdf_node_types.get(&idvar) {
+                    if e != &RDFNodeType::None {
+                        let coltype = DataType::String;
+                        ts_df = ts_df
+                            .lazy()
+                            .with_column(col(&idvar).cast(coltype.clone()))
+                            .collect()
+                            .unwrap();
+                        rdf_node_types.insert(
+                            idvar,
+                            RDFNodeType::Literal(
+                                primitive_polars_type_to_literal_type(&coltype)
+                                    .unwrap()
+                                    .into_owned(),
+                            ),
+                        );
+                    };
+                }
+            }
         }
-
         //In order to join on timestamps when multiple synchronized tsqs.
         for c in solution_mappings.rdf_node_types.keys() {
             if ts_df.get_column_names().contains(&c.as_str()) && !on.contains(c) {

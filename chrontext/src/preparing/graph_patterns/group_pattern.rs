@@ -12,6 +12,7 @@ use oxrdf::Variable;
 use polars::prelude::{DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, Series, UniqueKeepStrategy};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
+use crate::preparing::grouping_col_type;
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_group(
@@ -100,6 +101,7 @@ impl TimeseriesQueryPrepper {
             .unwrap();
         let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(&grouping_col);
+        assert_eq!(series.dtype(), &grouping_col_type());
         df.with_column(series).unwrap();
         solution_mappings.mappings = solution_mappings
             .mappings

@@ -9,6 +9,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use polars::prelude::DataType;
 
 #[derive(Debug)]
 pub struct TimeseriesQueryPrepper {
@@ -45,4 +46,8 @@ impl TimeseriesQueryPrepper {
             panic!("Only support for Select");
         }
     }
+}
+
+pub fn grouping_col_type() -> DataType {
+    DataType::Int64
 }
