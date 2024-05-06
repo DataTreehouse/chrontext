@@ -205,26 +205,16 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                 Ok((use_select, columns))
             }
             TimeseriesQuery::InnerSynchronized(inner, synchronizers) => {
-                if synchronizers.iter().all(|x| {
-                    #[allow(irrefutable_let_patterns)]
-                    if let Synchronizer::Identity(_) = x {
-                        true
-                    } else {
-                        false
-                    }
-                }) {
-                    let mut selects = vec![];
-                    for s in inner {
-                        selects.push(self.create_query_nested(s, self.partition_support)?);
-                    }
-                    let groupby_col = tsq.get_groupby_column().unwrap();
-                    if let Some(Synchronizer::Identity(timestamp_col)) = &synchronizers.get(0) {
-                        Ok(self.inner_join_selects(selects, timestamp_col, groupby_col))
-                    } else {
-                        panic!()
-                    }
+                assert_eq!(synchronizers.len(), 1);
+                let mut selects = vec![];
+                for s in inner {
+                    selects.push(self.create_query_nested(s, self.partition_support)?);
+                }
+                let groupby_col = tsq.get_groupby_column().unwrap();
+                if let Some(Synchronizer::Identity(timestamp_col)) = &synchronizers.get(0) {
+                    Ok(self.inner_join_selects(selects, timestamp_col, groupby_col))
                 } else {
-                    todo!("Not implemented yet")
+                    todo!()
                 }
             }
             TimeseriesQuery::Grouped(grouped) => self.create_grouped_query(
@@ -417,6 +407,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         new_first_select.from_subquery(first_select, Alias::new(first_select_name));
         let mut sorted_cols: Vec<&String> = first_columns.iter().collect();
         sorted_cols.sort();
+
         for c in sorted_cols {
             new_first_select.expr_as(
                 SimpleExpr::Column(ColumnRef::TableColumn(
@@ -464,7 +455,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
             let mut sorted_cols: Vec<&String> = cols.iter().collect();
             sorted_cols.sort();
             for c in sorted_cols {
-                if c != timestamp_col {
+                if !first_columns.contains(c) {
                     first_select.expr_as(
                         SimpleExpr::Column(ColumnRef::TableColumn(
                             Name::Table(select_name.clone()).into_iden(),
@@ -476,7 +467,16 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                 }
             }
         }
-        (first_select, first_columns)
+        let mut outer_select = Query::select();
+        outer_select.from_subquery(first_select, Alias::new("inner_synchronized_selects"));
+        let mut sorted_cols: Vec<&String> = first_columns.iter().collect();
+        sorted_cols.sort();
+        for c in sorted_cols {
+            outer_select.expr(SimpleExpr::Column(ColumnRef::Column(
+                Name::Column(c.clone()).into_iden(),
+            )));
+        }
+        (outer_select, first_columns)
     }
 
     fn find_right_table<'a>(

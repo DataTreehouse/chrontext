@@ -355,7 +355,7 @@ def test_get_inverter_dckw_sugar_path(engine):
     assert df.height == 51900
 
 
-@pytest.mark.skipif(True, reason="Not working yet.. ")
+@pytest.mark.skipif(skip, reason="Environment vars not present")
 @pytest.mark.order(7)
 def test_get_inverter_dckw_sugar_multi(engine):
     df = engine.query("""
@@ -376,12 +376,18 @@ SELECT ?path WHERE {
     ?inv ct:hasTimeseries ?ts_pow .
     ?ts_pow rdfs:label "InvPDC_kW" .
     DT {
-        timestamp= ?t,
+        timestamp = ?t,
         timeseries = ?ts_pow, ?ts_irr,
         interval= "10m",
         from= "2018-12-25T00:00:00Z",
-        aggregation = "avg" }
+        aggregation = "avg", "min" }
     }
 """)
-    print(df)
+    #print(df)
+    assert df.columns == ['path',
+                          't',
+                          'ts_pow_value_avg',
+                          'ts_pow_value_min',
+                          'ts_irr_value_avg',
+                          'ts_irr_value_min']
     assert df.height == 51900
