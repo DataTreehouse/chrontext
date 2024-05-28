@@ -7,13 +7,13 @@ edition = "2021"
 
 [dependencies]
 #representation = {path = "../../representation"}
-representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.5.3"}
+representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.4"}
 pyo3 = {version = "0.21.2", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
-pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.0"}
+pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.6"}
 #pydf_io = { path = "../../pydf_io" }
 thiserror="1.0.58"
-polars = {version="0.38.3", features = ["performant", "lazy"]}
+polars = {version="0.40.0", features = ["performant", "cse", "nightly", "lazy"]}
 oxrdf = "0.1.7"
 spargebra = { version= "0.2.8"}
 simple-error = "0.3.0"
@@ -53,3 +53,8 @@ mimalloc = { version = "0.1.37", default-features = false }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 jemallocator = { version = "0.5.4", features = ["disable_initial_exec_tls"] }
+
+[patch.crates-io]
+polars = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce"}
+polars-core = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce"}
+polars-utils = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce"}

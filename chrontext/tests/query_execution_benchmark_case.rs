@@ -5,14 +5,15 @@ use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
-use polars::prelude::{CsvReader, SerReader};
+use polars::prelude::{CsvParseOptions, CsvReadOptions, SerReader, SortMultipleOptions};
 use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;
-use std::fs::File;
 use std::path::PathBuf;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, wipe_database, QUERY_ENDPOINT};
+use crate::common::{
+    add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
+};
 
 #[fixture]
 fn use_logger() {
@@ -60,13 +61,14 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
         let mut file_path = testdata_path.clone();
         file_path.push(t.to_string() + ".csv");
 
-        let file = File::open(file_path.as_path()).expect("could not open file");
-        let df = CsvReader::new(file)
-            .infer_schema(None)
-            .has_header(true)
-            .with_try_parse_dates(true)
+        let opts = CsvReadOptions::default()
+            .with_has_header(true)
+            .with_parse_options(CsvParseOptions::default().with_try_parse_dates(true));
+        let df = opts
+            .try_into_reader_with_file_path(Some(file_path))
+            .unwrap()
             .finish()
-            .expect("DF read error");
+            .unwrap();
         frames.insert(t.to_string(), df);
     }
     TimeseriesInMemoryDatabase { frames }
@@ -86,6 +88,7 @@ fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_should_pushdown_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -145,21 +148,14 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
                 "hour",
                 "minute_10",
             ],
-            false,
-            false,
+            SortMultipleOptions::default(),
         )
         .unwrap();
 
     let mut file_path = testdata_path.clone();
     file_path.push("expected_should_pushdown.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     for c in df.get_columns() {
         expected_df
             .with_column(
@@ -181,6 +177,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_multi_should_pushdown_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -251,21 +248,14 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
                 "hour",
                 "minute_10",
             ],
-            false,
-            false,
+            SortMultipleOptions::default(),
         )
         .unwrap();
 
     let mut file_path = testdata_path.clone();
     file_path.push("expected_multi_should_pushdown.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     for c in df.get_columns() {
         expected_df
             .with_column(

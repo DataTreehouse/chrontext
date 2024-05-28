@@ -10,7 +10,7 @@ use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
 use polars::prelude::{DataFrame, DataType};
-use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
+use representation::polars_to_sparql::polars_type_to_literal_type;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
 use sea_query::BigQueryQueryBuilder;
@@ -69,11 +69,7 @@ pub fn get_datatype_map(df: &DataFrame) -> HashMap<String, RDFNodeType> {
         } else {
             map.insert(
                 c.name().to_string(),
-                RDFNodeType::Literal(
-                    primitive_polars_type_to_literal_type(dtype)
-                        .unwrap()
-                        .into_owned(),
-                ),
+                polars_type_to_literal_type(dtype, None).unwrap().to_owned(),
             );
         }
     }

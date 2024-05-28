@@ -1,9 +1,15 @@
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{as_struct, col, lit, AnyValue, DataFrame, Expr, IntoLazy, Series};
+use polars::prelude::{
+    as_struct, col, lit, AnyValue, DataFrame, Expr, IntoLazy, LiteralValue,
+};
 use representation::literals::sparql_literal_to_any_value;
 use representation::multitype::{
     all_multi_cols, multi_has_this_type_column, non_multi_type_string, MULTI_BLANK_DT,
     MULTI_IRI_DT, MULTI_NONE_DT,
+};
+use representation::sparql_to_polars::{
+    polars_literal_values_to_series, sparql_blank_node_to_polars_literal_value,
+    sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
 };
 use representation::{
     BaseRDFNodeType, RDFNodeType, LANG_STRING_LANG_FIELD, LANG_STRING_VALUE_FIELD,
@@ -31,33 +37,33 @@ pub(crate) fn create_static_query_dataframe(
     let mut var_col_map = HashMap::new();
     for v in &column_variables {
         let mut i = 0;
-        let mut col_map: HashMap<String, Vec<AnyValue>> = HashMap::new();
+        let mut col_map: HashMap<String, Vec<LiteralValue>> = HashMap::new();
         for s in &static_query_solutions {
-            let (k, anyval) = if let Some(term) = s.get(v) {
+            let (k, litval) = if let Some(term) = s.get(v) {
                 match term {
                     Term::NamedNode(n) => {
-                        (MULTI_IRI_DT, AnyValue::StringOwned(n.to_string().into()))
+                        (MULTI_IRI_DT, sparql_named_node_to_polars_literal_value(n))
                     }
                     Term::BlankNode(b) => {
-                        (MULTI_BLANK_DT, AnyValue::StringOwned(b.to_string().into()))
+                        (MULTI_BLANK_DT, sparql_blank_node_to_polars_literal_value(b))
                     }
                     Term::Literal(l) => (
                         l.datatype().as_str(),
-                        sparql_literal_to_any_value(l.value(), l.language(), &Some(l.datatype())).0,
+                        sparql_literal_to_polars_literal_value(l),
                     ),
                     _ => {
                         todo!()
                     }
                 }
             } else {
-                (MULTI_NONE_DT, AnyValue::Null)
+                (MULTI_NONE_DT, LiteralValue::Null)
             };
 
             if let Some(v) = col_map.get_mut(k) {
-                v.push(anyval)
+                v.push(litval)
             } else if k != MULTI_NONE_DT {
-                let mut v: Vec<_> = (0..i).map(|_| AnyValue::Null).collect();
-                v.push(anyval);
+                let mut v: Vec<_> = (0..i).map(|_| LiteralValue::Null).collect();
+                v.push(litval);
                 col_map.insert(k.to_string(), v);
             }
             push_none_all_others(k, &mut col_map);
@@ -66,7 +72,7 @@ pub(crate) fn create_static_query_dataframe(
         if col_map.len() == 0 {
             col_map.insert(
                 MULTI_NONE_DT.to_string(),
-                (0..i).map(|_| AnyValue::Null).collect(),
+                (0..i).map(|_| LiteralValue::Null).collect(),
             );
         }
         let mut new_col_map = HashMap::new();
@@ -98,13 +104,7 @@ pub(crate) fn create_static_query_dataframe(
                 c.clone()
             };
 
-            let ser = Series::from_any_values_and_dtype(
-                &name,
-                v.as_slice(),
-                &t.polars_data_type(),
-                false,
-            )
-            .unwrap();
+            let ser = polars_literal_values_to_series(v, &name);
             if mlen > 1 && t.is_lang_string() {
                 series.push(
                     ser.struct_()
@@ -118,7 +118,10 @@ pub(crate) fn create_static_query_dataframe(
                         .field_by_name(LANG_STRING_LANG_FIELD)
                         .unwrap(),
                 );
-            } else {
+            } else if matches!(t, BaseRDFNodeType::None){
+                series.push(ser.cast(&t.polars_data_type()).unwrap());
+            }
+            else {
                 series.push(ser);
             }
             types.push(t);
@@ -194,10 +197,10 @@ fn get_projected_variables(g: &GraphPattern) -> Vec<Variable> {
     }
 }
 
-fn push_none_all_others(k_not: &str, map: &mut HashMap<String, Vec<AnyValue>>) {
+fn push_none_all_others(k_not: &str, map: &mut HashMap<String, Vec<LiteralValue>>) {
     for (k, v) in map.iter_mut() {
         if k != k_not {
-            v.push(AnyValue::Null);
+            v.push(LiteralValue::Null);
         }
     }
 }

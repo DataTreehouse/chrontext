@@ -6,13 +6,13 @@ use super::TimeseriesQueryPrepper;
 use crate::constants::GROUPING_COL;
 use crate::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
+use crate::preparing::grouping_col_type;
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
 use oxrdf::Variable;
 use polars::prelude::{DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, Series, UniqueKeepStrategy};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
-use crate::preparing::grouping_col_type;
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_group(

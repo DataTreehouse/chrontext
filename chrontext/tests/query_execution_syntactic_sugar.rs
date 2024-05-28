@@ -1,18 +1,18 @@
 mod common;
-
 use chrontext::engine::Engine;
 use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
-use polars::prelude::{CsvReader, SerReader};
+use polars::prelude::SortMultipleOptions;
 use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;
-use std::fs::File;
 use std::path::PathBuf;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, wipe_database, QUERY_ENDPOINT};
+use crate::common::{
+    add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
+};
 
 #[fixture]
 fn use_logger() {
@@ -56,13 +56,7 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
         let mut file_path = testdata_path.clone();
         file_path.push(t.to_string() + ".csv");
 
-        let file = File::open(file_path.as_path()).expect("could not open file");
-        let df = CsvReader::new(file)
-            .infer_schema(None)
-            .has_header(true)
-            .with_try_parse_dates(true)
-            .finish()
-            .expect("DF read error");
+        let df = read_csv(file_path);
         frames.insert(t.to_string(), df);
     }
     TimeseriesInMemoryDatabase { frames }
@@ -82,6 +76,7 @@ fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_simple_hybrid_query_sugar(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -103,7 +98,7 @@ async fn test_simple_hybrid_query_sugar(
         }
     }
     "#;
-    let mut df = engine
+    let df = engine
         .execute_hybrid_query(query)
         .await
         .expect("Hybrid error")
@@ -111,13 +106,7 @@ async fn test_simple_hybrid_query_sugar(
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let mut writer = CsvWriter::new(file);
@@ -128,12 +117,14 @@ async fn test_simple_hybrid_query_sugar(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_simple_hybrid_query_sugar_timeseries_explicit_link(
     #[future] with_testdata: (),
     mut engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
+    #[allow(path_statements)]
     use_logger;
     let _ = with_testdata.await;
     let query = r#"
@@ -158,13 +149,7 @@ async fn test_simple_hybrid_query_sugar_timeseries_explicit_link(
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let mut writer = CsvWriter::new(file);
@@ -175,12 +160,14 @@ async fn test_simple_hybrid_query_sugar_timeseries_explicit_link(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_simple_hybrid_query_sugar_agg_avg(
     #[future] with_testdata: (),
     mut engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
+    #[allow(path_statements)]
     use_logger;
     let _ = with_testdata.await;
     let query = r#"
@@ -203,18 +190,12 @@ async fn test_simple_hybrid_query_sugar_agg_avg(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "s", "timestamp"], false, false)
+        .sort(["w", "s", "timestamp"], SortMultipleOptions::default())
         .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid_sugar_agg_avg.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let mut writer = CsvWriter::new(file);

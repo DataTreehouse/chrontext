@@ -298,6 +298,9 @@ impl Combiner {
                 )?
             }
             Expression::In(left, right) => {
+                let solution_mappings = solution_mappings.as_eager();
+                let solution_mappings = solution_mappings.as_lazy();
+
                 let left_context = context.extension_with(PathEntry::InLeft);
                 let left_prepared_time_series_queries =
                     split_time_series_queries(&mut prepared_time_series_queries, &left_context);
@@ -501,7 +504,7 @@ impl Combiner {
                         &plus_context,
                     )
                     .await?;
-                unary_plus(output_solution_mappings, &plus_context,  context)?
+                unary_plus(output_solution_mappings, &plus_context, context)?
             }
             Expression::UnaryMinus(inner) => {
                 let minus_context = context.extension_with(PathEntry::UnaryMinus);

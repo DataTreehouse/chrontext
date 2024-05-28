@@ -5,6 +5,7 @@ use bollard::container::{
 use bollard::models::{ContainerSummary, HostConfig, PortBinding};
 use bollard::Docker;
 use oxrdf::Term;
+use polars::prelude::{CsvParseOptions, CsvReadOptions, DataFrame, SerReader};
 use reqwest::header::CONTENT_TYPE;
 use reqwest::StatusCode;
 use sparesults::QuerySolution;
@@ -184,4 +185,16 @@ pub fn compare_all_solutions(mut expected: Vec<QuerySolution>, mut actual: Vec<Q
         );
         i += 1;
     }
+}
+
+pub fn read_csv(file_path: PathBuf) -> DataFrame {
+    let opts = CsvReadOptions::default()
+        .with_has_header(true)
+        .with_parse_options(CsvParseOptions::default().with_try_parse_dates(true));
+    let df = opts
+        .try_into_reader_with_file_path(Some(file_path))
+        .unwrap()
+        .finish()
+        .unwrap();
+    df
 }

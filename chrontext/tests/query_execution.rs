@@ -8,16 +8,15 @@ use chrontext::splitter::parse_sparql_select_query;
 use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{col, CsvReader, DataType, IntoLazy, SerReader};
+use polars::prelude::{col, DataType, IntoLazy, SortMultipleOptions};
 use rstest::*;
 use serial_test::serial;
 use sparesults::QuerySolution;
 use std::collections::HashMap;
-use std::fs::File;
 use std::path::PathBuf;
 
 use crate::common::{
-    add_sparql_testdata, compare_all_solutions, start_sparql_container, wipe_database,
+    add_sparql_testdata, compare_all_solutions, read_csv, start_sparql_container, wipe_database,
     QUERY_ENDPOINT,
 };
 
@@ -62,14 +61,12 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
     for t in ["ts1", "ts2"] {
         let mut file_path = testdata_path.clone();
         file_path.push(t.to_string() + ".csv");
-
-        let file = File::open(file_path.as_path()).expect("could not open file");
-        let df = CsvReader::new(file)
-            .infer_schema(None)
-            .has_header(true)
-            .with_try_parse_dates(true)
-            .finish()
-            .expect("DF read error");
+        //Important to cast to int32 for equality to work as datatypes must match exactly.
+        let df = read_csv(file_path)
+            .lazy()
+            .with_column(col("value").cast(DataType::Int32))
+            .collect()
+            .unwrap();
         frames.insert(t.to_string(), df);
     }
     TimeseriesInMemoryDatabase { frames }
@@ -89,6 +86,7 @@ fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_static_query(#[future] with_testdata: (), use_logger: ()) {
     use_logger;
     let _ = with_testdata.await;
@@ -133,12 +131,14 @@ async fn test_static_query(#[future] with_testdata: (), use_logger: ()) {
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_simple_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
+    #[allow(path_statements)]
     use_logger;
     let _ = with_testdata.await;
     let query = r#"
@@ -163,13 +163,7 @@ async fn test_simple_hybrid_query(
     let mut file_path = testdata_path.clone();
     file_path.push("expected_simple_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);
@@ -180,6 +174,7 @@ async fn test_simple_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_simple_hybrid_no_tsq_matches_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -213,6 +208,7 @@ async fn test_simple_hybrid_no_tsq_matches_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_complex_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -249,13 +245,7 @@ async fn test_complex_hybrid_query(
     let mut file_path = testdata_path.clone();
     file_path.push("expected_complex_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);
@@ -266,6 +256,7 @@ async fn test_complex_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_group_by_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -292,19 +283,13 @@ async fn test_pushdown_group_by_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w"], vec![false], false)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -316,6 +301,7 @@ async fn test_pushdown_group_by_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_group_by_second_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -348,19 +334,13 @@ async fn test_pushdown_group_by_second_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "sum_v"], vec![false], false)
+        .sort(["w", "sum_v"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_second_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "sum_v"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "sum_v"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -372,12 +352,14 @@ async fn test_pushdown_group_by_second_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_group_by_second_having_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
+    #[allow(path_statements)]
     use_logger;
     let _ = with_testdata.await;
     let query = r#"
@@ -405,19 +387,13 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "sum_v"], vec![false], false)
+        .sort(["w", "sum_v"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_second_having_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "sum_v"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "sum_v"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -429,6 +405,7 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_union_of_two_groupby_queries(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -488,23 +465,15 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
         ])
         .sort_by_exprs(
             [col("w"), col("kind"), col("second_5")],
-            vec![false],
-            false,
-            false,
+            SortMultipleOptions::default(),
         )
         .collect()
         .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_union_of_two_groupby.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "kind", "second_5"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "kind", "second_5"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -516,6 +485,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_group_by_concat_agg_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -543,19 +513,13 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "seconds_5"], vec![false], false)
+        .sort(["w", "seconds_5"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_concat_agg_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "seconds_5"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "seconds_5"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -567,6 +531,7 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_groupby_exists_something_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -594,19 +559,13 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "seconds_3"], vec![false], false)
+        .sort(["w", "seconds_3"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_exists_something_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "seconds_3"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "seconds_3"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -618,6 +577,7 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -645,19 +605,13 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w"], vec![false], false)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_exists_timeseries_value_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -669,6 +623,7 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -699,19 +654,13 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w"], vec![false], false)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_exists_aggregated_timeseries_value_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -723,6 +672,7 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -753,19 +703,13 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w"], vec![false], false)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_not_exists_aggregated_timeseries_value_hybrid.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w"], SortMultipleOptions::default())
         .expect("Sort error");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -777,6 +721,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_path_group_by_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -802,13 +747,7 @@ async fn test_path_group_by_query(
     let mut file_path = testdata_path.clone();
     file_path.push("expected_path_group_by_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);
@@ -819,6 +758,7 @@ async fn test_path_group_by_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_optional_clause_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -851,18 +791,14 @@ async fn test_optional_clause_query(
         .collect()
         .unwrap();
 
-    df = df.sort(["w", "v", "greater"], vec![false], false).unwrap();
+    df = df
+        .sort(["w", "v", "greater"], SortMultipleOptions::default())
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_optional_clause_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "v", "greater"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "v", "greater"], SortMultipleOptions::default())
         .unwrap();
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -874,6 +810,7 @@ async fn test_optional_clause_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_minus_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -908,19 +845,13 @@ async fn test_minus_query(
         .collect()
         .unwrap();
     df = df
-        .sort(["w", "v"], vec![false, false], true)
+        .sort(["w", "v"], SortMultipleOptions::default())
         .expect("Sort error");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_minus_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "v"], vec![false, false], true)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "v"], SortMultipleOptions::default())
         .expect("Sort error");
 
     assert_eq!(expected_df, df);
@@ -929,6 +860,7 @@ async fn test_minus_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_in_expression_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -944,7 +876,7 @@ async fn test_in_expression_query(
     SELECT ?w ?v WHERE {
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasValue ?v .
-        FILTER(?v IN ((300+4), (304-3), 307))
+        FILTER(?v IN (("300"^^xsd:int + "4"^^xsd:int), ("304"^^xsd:int - "3"^^xsd:int), "307"^^xsd:int))
     }
     "#;
     let df = engine
@@ -955,13 +887,7 @@ async fn test_in_expression_query(
     let mut file_path = testdata_path.clone();
     file_path.push("expected_in_expression.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let expected_df = read_csv(file_path);
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
     // let writer = CsvWriter::new(file);
@@ -972,6 +898,7 @@ async fn test_in_expression_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_values_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -988,7 +915,7 @@ async fn test_values_query(
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasValue ?v .
         VALUES ?v2 { 301 304 307 }
-        FILTER(?v = ?v2)
+        FILTER(xsd:integer(?v) = xsd:integer(?v2))
     }
     "#;
     let mut df = engine
@@ -996,19 +923,15 @@ async fn test_values_query(
         .await
         .expect("Hybrid error")
         .0;
-    df = df.sort(&["v", "w"], vec![true, true], false).unwrap();
+    df = df
+        .sort(&["v", "w"], SortMultipleOptions::default())
+        .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_values_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     expected_df = expected_df
-        .sort(&["v", "w"], vec![true, true], false)
+        .sort(&["v", "w"], SortMultipleOptions::default())
         .unwrap();
 
     assert_eq!(expected_df, df);
@@ -1021,6 +944,7 @@ async fn test_values_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_if_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -1043,19 +967,13 @@ async fn test_if_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "v_with_min"], vec![false], false)
+        .sort(["w", "v_with_min"], SortMultipleOptions::default())
         .expect("Sort problem");
     let mut file_path = testdata_path.clone();
     file_path.push("expected_if_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "v_with_min"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "v_with_min"], SortMultipleOptions::default())
         .expect("Sort problem");
 
     assert_eq!(expected_df, df);
@@ -1068,6 +986,7 @@ async fn test_if_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_distinct_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -1090,19 +1009,13 @@ async fn test_distinct_query(
         .await
         .expect("Hybrid error")
         .0
-        .sort(["w", "v_with_min"], vec![false], false)
+        .sort(["w", "v_with_min"], SortMultipleOptions::default())
         .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_distinct_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "v_with_min"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "v_with_min"], SortMultipleOptions::default())
         .unwrap();
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");
@@ -1114,6 +1027,7 @@ async fn test_distinct_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_union_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -1147,21 +1061,15 @@ async fn test_union_query(
     df = df
         .lazy()
         .with_columns([col("w").cast(DataType::String)])
-        .sort_by_exprs([col("w"), col("v")], vec![false], true, false)
+        .sort_by_exprs([col("w"), col("v")], SortMultipleOptions::default())
         .collect()
         .unwrap();
 
     let mut file_path = testdata_path.clone();
     file_path.push("expected_union_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["w", "v"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["w", "v"], SortMultipleOptions::default())
         .expect("Sort problem");
 
     assert_eq!(expected_df, df);
@@ -1174,6 +1082,7 @@ async fn test_union_query(
 #[rstest]
 #[tokio::test]
 #[serial]
+#[allow(path_statements)]
 async fn test_coalesce_query(
     #[future] with_testdata: (),
     mut engine: Engine,
@@ -1209,20 +1118,14 @@ async fn test_coalesce_query(
         .collect()
         .unwrap();
     df = df
-        .sort(["s1", "t1", "v1", "v2"], vec![false], false)
+        .sort(["s1", "t1", "v1", "v2"], SortMultipleOptions::default())
         .expect("Sort problem");
 
     let mut file_path = testdata_path.clone();
     file_path.push("expected_coalesce_query.csv");
 
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error")
-        .sort(["s1", "t1", "v1", "v2"], vec![false], false)
+    let expected_df = read_csv(file_path)
+        .sort(["s1", "t1", "v1", "v2"], SortMultipleOptions::default())
         .expect("Sort problem");
     assert_eq!(expected_df, df);
     // let file = File::create(file_path.as_path()).expect("could not open file");

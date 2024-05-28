@@ -9,12 +9,12 @@ use crate::timeseries_query::{
 use async_recursion::async_recursion;
 use async_trait::async_trait;
 use polars::frame::DataFrame;
-use polars::prelude::DataFrameJoinOps;
-use polars::prelude::{col, concat, lit, IntoLazy, JoinArgs, JoinType, UnionArgs};
+use polars::prelude::{col, lit, IntoLazy, JoinArgs, JoinType};
+use polars::prelude::{CategoricalOrdering, DataFrameJoinOps, DataType};
 use query_processing::aggregates::AggregateReturn;
-use query_processing::graph_patterns::extend;
+use query_processing::graph_patterns::{extend, union};
 use representation::query_context::{Context, PathEntry};
-use representation::solution_mapping::SolutionMappings;
+use representation::solution_mapping::{EagerSolutionMappings, SolutionMappings};
 use representation::RDFNodeType;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
@@ -107,7 +107,7 @@ impl TimeseriesInMemoryDatabase {
         &self,
         btsq: &BasicTimeseriesQuery,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
-        let mut lfs = vec![];
+        let mut sms = vec![];
         for id in btsq.ids.as_ref().unwrap() {
             if let Some(df) = self.frames.get(id) {
                 assert!(btsq.identifier_variable.is_some());
@@ -127,17 +127,26 @@ impl TimeseriesInMemoryDatabase {
                 }
                 let mut lf = df.lazy();
                 lf = lf.with_column(
-                    lit(id.to_string()).alias(btsq.identifier_variable.as_ref().unwrap().as_str()),
+                    lit(id.to_string())
+                        .cast(DataType::Categorical(None, CategoricalOrdering::Lexical))
+                        .alias(btsq.identifier_variable.as_ref().unwrap().as_str()),
                 );
-
-                lfs.push(lf);
+                let df = lf.collect().unwrap();
+                let dtypes = get_datatype_map(&df);
+                sms.push(SolutionMappings::new(df.lazy(), dtypes));
             } else {
                 panic!("Missing frame");
             }
         }
-        let out_df = concat(lfs, UnionArgs::default())?.collect().unwrap();
-        let dtypes = get_datatype_map(&out_df);
-        Ok((out_df, dtypes))
+        let mut sm = union(sms, false)?;
+        sm.mappings = sm.mappings.with_column(
+            col(btsq.identifier_variable.as_ref().unwrap().as_str()).cast(DataType::String),
+        );
+        let EagerSolutionMappings {
+            mappings,
+            rdf_node_types,
+        } = sm.as_eager();
+        Ok((mappings, rdf_node_types))
     }
 
     #[async_recursion]

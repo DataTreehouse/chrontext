@@ -4,12 +4,12 @@ mod synchronization;
 
 use crate::pushdown_setting::PushdownSetting;
 use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
+use polars::prelude::DataType;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
-use polars::prelude::DataType;
 
 #[derive(Debug)]
 pub struct TimeseriesQueryPrepper {

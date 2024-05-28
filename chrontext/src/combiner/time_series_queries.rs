@@ -7,8 +7,9 @@ use oxrdf::vocab::xsd;
 use oxrdf::Term;
 use polars::prelude::{
     col, CategoricalOrdering, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType, Series,
+    SortMultipleOptions,
 };
-use representation::polars_to_sparql::primitive_polars_type_to_literal_type;
+use representation::polars_to_sparql::polars_type_to_literal_type;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use representation::{BaseRDFNodeType, RDFNodeType};
@@ -91,11 +92,9 @@ impl Combiner {
                 let coltype = grouping_col_type();
                 rdf_node_types.insert(
                     colname.to_string(),
-                    RDFNodeType::Literal(
-                        primitive_polars_type_to_literal_type(&coltype)
-                            .unwrap()
-                            .into_owned(),
-                    ),
+                    polars_type_to_literal_type(&coltype, None)
+                        .unwrap()
+                        .to_owned(),
                 );
                 ts_df = ts_df
                     .lazy()
@@ -125,11 +124,9 @@ impl Combiner {
                             .unwrap();
                         rdf_node_types.insert(
                             idvar,
-                            RDFNodeType::Literal(
-                                primitive_polars_type_to_literal_type(&coltype)
-                                    .unwrap()
-                                    .into_owned(),
-                            ),
+                            polars_type_to_literal_type(&coltype, None)
+                                .unwrap()
+                                .to_owned(),
                         );
                     };
                 }
@@ -158,13 +155,14 @@ impl Combiner {
             );
         }
         let on_reverse_false = vec![false].repeat(on_cols.len());
-        ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), on_reverse_false.as_slice(), true, false);
-        solution_mappings.mappings = solution_mappings.mappings.sort_by_exprs(
-            on_cols.as_slice(),
-            on_reverse_false,
-            true,
-            false,
-        );
+        let sort_opts = SortMultipleOptions::new()
+            .with_order_descendings(on_reverse_false)
+            .with_maintain_order(false)
+            .with_nulls_last(true);
+        ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), sort_opts.clone());
+        solution_mappings.mappings = solution_mappings
+            .mappings
+            .sort_by_exprs(on_cols.as_slice(), sort_opts);
 
         solution_mappings.mappings = solution_mappings
             .mappings

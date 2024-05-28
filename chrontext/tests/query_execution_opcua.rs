@@ -7,18 +7,18 @@ use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADatabase;
 use log::debug;
 use opcua::server::prelude::*;
-use polars::io::SerReader;
-use polars::prelude::{CsvReader, DataFrame};
+use polars::prelude::{DataFrame, SortMultipleOptions};
 use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;
-use std::fs::File;
 use std::path::PathBuf;
 use std::thread::{sleep, JoinHandle};
 use std::{thread, time};
 use tokio::runtime::Builder;
 
-use crate::common::{add_sparql_testdata, start_sparql_container, wipe_database, QUERY_ENDPOINT};
+use crate::common::{
+    add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
+};
 use crate::opcua_data_provider::OPCUADataProvider;
 
 #[fixture]
@@ -51,6 +51,7 @@ fn sparql_endpoint() {
 }
 
 #[fixture]
+#[allow(path_statements)]
 fn with_testdata(sparql_endpoint: (), testdata_path: PathBuf) {
     sparql_endpoint;
     let mut testdata_path = testdata_path.clone();
@@ -69,13 +70,7 @@ fn frames(testdata_path: PathBuf) -> HashMap<String, DataFrame> {
         let mut file_path = testdata_path.clone();
         file_path.push(t.to_string() + ".csv");
 
-        let file = File::open(file_path.as_path()).expect("could not open file");
-        let df = CsvReader::new(file)
-            .infer_schema(None)
-            .has_header(true)
-            .with_try_parse_dates(true)
-            .finish()
-            .expect("DF read error");
+        let df = read_csv(file_path);
         frames.insert(t.to_string(), df);
     }
     frames
@@ -146,6 +141,7 @@ fn engine() -> Engine {
 
 #[rstest]
 #[serial]
+#[allow(path_statements)]
 fn test_basic_query(
     with_testdata: (),
     use_logger: (),
@@ -180,13 +176,7 @@ fn test_basic_query(
         .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_basic_query.csv");
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     expected_df
         .with_column(
             expected_df
@@ -209,6 +199,7 @@ fn test_basic_query(
 
 #[rstest]
 #[serial]
+#[allow(path_statements)]
 fn test_basic_no_end_time_query(
     with_testdata: (),
     use_logger: (),
@@ -243,13 +234,7 @@ fn test_basic_no_end_time_query(
         .0;
     let mut file_path = testdata_path.clone();
     file_path.push("expected_basic_no_end_time_query.csv");
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     expected_df
         .with_column(
             expected_df
@@ -272,6 +257,7 @@ fn test_basic_no_end_time_query(
 
 #[rstest]
 #[serial]
+#[allow(path_statements)]
 fn test_pushdown_group_by_five_second_hybrid_query(
     with_testdata: (),
     use_logger: (),
@@ -305,7 +291,10 @@ fn test_pushdown_group_by_five_second_hybrid_query(
         .expect("Hybrid error")
         .0;
     df = df
-        .sort(vec!["w", "datetime_seconds"], false, false)
+        .sort(
+            vec!["w", "datetime_seconds"],
+            SortMultipleOptions::default(),
+        )
         .unwrap();
     df.with_column(
         df.column("datetime_seconds")
@@ -319,13 +308,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_pushdown_group_by_five_second_hybrid_query.csv");
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .with_try_parse_dates(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     expected_df
         .with_column(
             expected_df
@@ -339,7 +322,10 @@ fn test_pushdown_group_by_five_second_hybrid_query(
         )
         .unwrap();
     expected_df = expected_df
-        .sort(vec!["w", "datetime_seconds"], false, false)
+        .sort(
+            vec!["w", "datetime_seconds"],
+            SortMultipleOptions::default(),
+        )
         .unwrap();
 
     assert_eq!(expected_df, df);
@@ -352,6 +338,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
 
 #[rstest]
 #[serial]
+#[allow(path_statements)]
 fn test_no_pushdown_because_of_filter_query(
     with_testdata: (),
     use_logger: (),
@@ -385,18 +372,19 @@ fn test_no_pushdown_because_of_filter_query(
         .expect("Hybrid error")
         .0;
     df = df
-        .sort(vec!["w", "datetime_seconds"], false, false)
+        .sort(
+            vec!["w", "datetime_seconds"],
+            SortMultipleOptions::default(),
+        )
         .unwrap();
     let mut file_path = testdata_path.clone();
     file_path.push("expected_no_pushdown_because_of_filter_query.csv");
-    let file = File::open(file_path.as_path()).expect("Read file problem");
-    let mut expected_df = CsvReader::new(file)
-        .infer_schema(None)
-        .has_header(true)
-        .finish()
-        .expect("DF read error");
+    let mut expected_df = read_csv(file_path);
     expected_df = expected_df
-        .sort(vec!["w", "datetime_seconds"], false, false)
+        .sort(
+            vec!["w", "datetime_seconds"],
+            SortMultipleOptions::default(),
+        )
         .unwrap();
 
     assert_eq!(expected_df, df);
