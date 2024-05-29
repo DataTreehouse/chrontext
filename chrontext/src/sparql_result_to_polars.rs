@@ -1,8 +1,7 @@
 use oxrdf::{NamedNode, Term, Variable};
 use polars::prelude::{
-    as_struct, col, lit, AnyValue, DataFrame, Expr, IntoLazy, LiteralValue,
+    as_struct, col, lit, DataFrame, Expr, IntoLazy, LiteralValue,
 };
-use representation::literals::sparql_literal_to_any_value;
 use representation::multitype::{
     all_multi_cols, multi_has_this_type_column, non_multi_type_string, MULTI_BLANK_DT,
     MULTI_IRI_DT, MULTI_NONE_DT,
