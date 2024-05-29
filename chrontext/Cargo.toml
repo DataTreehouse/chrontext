@@ -22,9 +22,9 @@ log = "0.4.21"
 #spargebra = { path = "../../spargebra", features = ["rdf-star"]}
 spargebra = {git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8"}
 #query_processing = { path = "../../query_processing"}
-query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.3.6"}
+query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.3.7"}
 #representation = { path ="../../representation"}
-representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.5"}
+representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.6"}
 sparesults = {version="0.1.8"}
 oxrdf = {version="0.1.7"}
 reqwest= {version= "0.12.3", features=["stream"]}
