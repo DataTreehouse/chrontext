@@ -7,12 +7,12 @@ mod subqueries;
 
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::rewriting::expressions::ExReturn;
-use crate::timeseries_query::BasicTimeseriesQuery;
 use representation::query_context::Context;
 use spargebra::algebra::Expression;
 use spargebra::term::Variable;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use timeseries_query::BasicTimeseriesQuery;
 
 #[derive(Debug)]
 pub struct StaticQueryRewriter {

@@ -1,0 +1,27 @@
+[package]
+name = "timeseries_outpost"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+timeseries_query = { path="../timeseries_query" }
+representation = { workspace=true}
+polars = {workspace=true, features=[
+    "lazy",
+    "dtype-full",
+    "nightly",
+    "performant"] }
+#bigquery-polars = {path = "../../bigquery-polars/bigquery-polars"}
+bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars", tag="v0.2.3"}
+sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
+opcua = {version="0.12.0", features = ["vendored-openssl"]}
+async-trait = { workspace = true }
+log = { workspace = true }
+oxrdf = { workspace = true }
+query_processing = { workspace = true }
+spargebra = {workspace=true}
+chrono = { workspace = true, features = ["clock"] }
+reqwest = { workspace = true, features = ["stream"] }
+thiserror = { workspace = true }
+serde_json = { workspace = true }
+

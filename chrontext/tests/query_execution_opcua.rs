@@ -2,9 +2,7 @@ mod common;
 mod opcua_data_provider;
 
 use chrontext::engine::Engine;
-use chrontext::pushdown_setting::PushdownSetting;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADatabase;
 use log::debug;
 use opcua::server::prelude::*;
 use polars::prelude::{DataFrame, SortMultipleOptions};
@@ -12,8 +10,11 @@ use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::thread::{sleep, JoinHandle};
 use std::{thread, time};
+use timeseries_outpost::timeseries_opcua_database::TimeseriesOPCUADatabase;
+use timeseries_query::pushdown_setting::PushdownSetting;
 use tokio::runtime::Builder;
 
 use crate::common::{
@@ -132,8 +133,8 @@ fn engine() -> Engine {
 
     Engine::new(
         [PushdownSetting::GroupBy].into(),
-        Box::new(opcua_tsdb),
-        Box::new(SparqlEndpoint {
+        Arc::new(opcua_tsdb),
+        Arc::new(SparqlEndpoint {
             endpoint: QUERY_ENDPOINT.to_string(),
         }),
     )
@@ -147,7 +148,7 @@ fn test_basic_query(
     use_logger: (),
     opcua_server_fixture: JoinHandle<()>,
     testdata_path: PathBuf,
-    mut engine: Engine,
+    engine: Engine,
 ) {
     with_testdata;
     use_logger;
@@ -205,7 +206,7 @@ fn test_basic_no_end_time_query(
     use_logger: (),
     opcua_server_fixture: JoinHandle<()>,
     testdata_path: PathBuf,
-    mut engine: Engine,
+    engine: Engine,
 ) {
     with_testdata;
     use_logger;
@@ -263,7 +264,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     use_logger: (),
     opcua_server_fixture: JoinHandle<()>,
     testdata_path: PathBuf,
-    mut engine: Engine,
+    engine: Engine,
 ) {
     with_testdata;
     use_logger;
@@ -344,7 +345,7 @@ fn test_no_pushdown_because_of_filter_query(
     use_logger: (),
     opcua_server_fixture: JoinHandle<()>,
     testdata_path: PathBuf,
-    mut engine: Engine,
+    engine: Engine,
 ) {
     with_testdata;
     use_logger;

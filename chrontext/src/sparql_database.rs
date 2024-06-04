@@ -7,6 +7,6 @@ use spargebra::Query;
 use std::error::Error;
 
 #[async_trait]
-pub trait SparqlQueryable: Send {
-    async fn execute(&mut self, query: &Query) -> Result<Vec<QuerySolution>, Box<dyn Error>>;
+pub trait SparqlQueryable: Send + Sync {
+    async fn execute(&self, query: &Query) -> Result<Vec<QuerySolution>, Box<dyn Error>>;
 }

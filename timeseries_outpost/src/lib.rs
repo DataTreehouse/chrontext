@@ -1,12 +1,7 @@
 pub mod timeseries_bigquery_database;
-pub mod timeseries_in_memory_database;
 pub mod timeseries_opcua_database;
 pub mod timeseries_sql_rewrite;
 
-use crate::timeseries_database::timeseries_sql_rewrite::{
-    TimeseriesQueryToSQLError, TimeseriesQueryToSQLTransformer, TimeseriesTable,
-};
-use crate::timeseries_query::TimeseriesQuery;
 use async_trait::async_trait;
 use log::debug;
 use polars::prelude::{DataFrame, DataType};
@@ -16,12 +11,14 @@ use representation::RDFNodeType;
 use sea_query::BigQueryQueryBuilder;
 use std::collections::HashMap;
 use std::error::Error;
+use timeseries_query::{TimeseriesQuery, TimeseriesTable};
+use timeseries_sql_rewrite::{TimeseriesQueryToSQLError, TimeseriesQueryToSQLTransformer};
 
 #[async_trait]
-pub trait TimeseriesQueryable: Send {
+pub trait TimeseriesQueryable: Send + Sync {
     fn get_database_type(&self) -> DatabaseType;
 
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>>;
+    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>>;
     fn allow_compound_timeseries_queries(&self) -> bool;
 }
 

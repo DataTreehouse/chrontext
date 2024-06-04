@@ -3,7 +3,6 @@ use crate::combiner::lazy_graph_patterns::SolutionMappings;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
 use query_processing::graph_patterns::union;
@@ -11,6 +10,7 @@ use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
+use timeseries_query::TimeseriesQuery;
 
 impl Combiner {
     #[async_recursion]

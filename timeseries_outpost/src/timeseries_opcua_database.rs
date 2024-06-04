@@ -1,5 +1,4 @@
-use crate::timeseries_database::{get_datatype_map, DatabaseType, TimeseriesQueryable};
-use crate::timeseries_query::TimeseriesQuery;
+use crate::{get_datatype_map, DatabaseType, TimeseriesQueryable};
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use opcua::client::prelude::{
@@ -25,6 +24,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
+use timeseries_query::TimeseriesQuery;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;
@@ -98,7 +98,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
         DatabaseType::OPCUA
     }
 
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
         validate_tsq(tsq, true, false)?;
         let session = self.session.write();
         let start_time = find_time(tsq, &FindTime::Start);
@@ -316,6 +316,7 @@ fn validate_tsq(
             Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
         }
         TimeseriesQuery::ExpressionAs(t, _, _) => validate_tsq(t, false, inside_grouping),
+        TimeseriesQuery::Limited(_, _) => todo!(),
     }
 }
 

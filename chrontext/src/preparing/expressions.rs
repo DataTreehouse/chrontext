@@ -12,11 +12,11 @@ mod unary_ordinary_expression;
 use super::TimeseriesQueryPrepper;
 use crate::preparing::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::preparing::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
-use crate::timeseries_query::TimeseriesQuery;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
+use timeseries_query::TimeseriesQuery;
 
 #[derive(Debug)]
 pub struct EXPrepReturn {

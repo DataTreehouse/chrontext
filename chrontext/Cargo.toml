@@ -4,7 +4,9 @@ version = "0.4.0"
 edition = "2021"
 
 [dependencies]
-polars = {version="0.40.0", features=[
+timeseries_outpost = {path = "../timeseries_outpost"}
+timeseries_query = { path = "../timeseries_query" }
+polars = { workspace = true, features = [
     "lazy",
     "concat_str",
     "unique_counts",
@@ -17,37 +19,31 @@ polars = {version="0.40.0", features=[
     "cse",
     "nightly",
     "performant"] }
-tokio = {version="1.32.1", features=["rt-multi-thread", "rt"]}
-log = "0.4.21"
+tokio = { workspace = true, features = ["rt-multi-thread", "rt"] }
+log = { workspace = true }
 #spargebra = { path = "../../spargebra", features = ["rdf-star"]}
-spargebra = {git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8"}
-#query_processing = { path = "../../query_processing"}
-query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.3.7"}
-#representation = { path ="../../representation"}
-representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.6"}
-sparesults = {version="0.1.8"}
-oxrdf = {version="0.1.7"}
-reqwest= {version= "0.12.3", features=["stream"]}
-env_logger = "0.11.3"
-thiserror = "1.0.58"
-sea-query = { git="https://github.com/DataTreehouse/sea-query", branch="feature/bigquery_basic_support", features=["with-chrono", "backend-bigquery"]}
-async-trait = "0.1.78"
-base64 = "0.22.0"
-opcua = {version="0.12.0", features = ["vendored-openssl"]}
-async-recursion = "1.1.0"
-#bigquery-polars = {path = "../../bigquery-polars/bigquery-polars"}
-bigquery-polars = {git="https://github.com/DataTreehouse/bigquery-polars", tag="v0.2.3"}
-crossbeam = {version = "0.8.2"}
-serde_json = "1.0.105"
-oxigraph = "0.3.22"
-chrono = {version = "0.4.37", features = ["clock"]}
+spargebra = { workspace = true, features = ["rdf-star"] }
+representation = { workspace=true }
+query_processing = { workspace = true }
+sparesults = { workspace = true }
+oxrdf = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
+env_logger = { workspace = true }
+thiserror = { workspace = true }
+async-recursion = { workspace = true }
+async-trait = { workspace = true }
+oxigraph = { workspace = true }
+chrono = { workspace = true, features = ["clock"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+filesize = { workspace = true }
 
 [dev-dependencies]
 bollard = "0.15.0"
 rstest = "0.18.2"
-polars = {version="0.40.0", features=["lazy", "unique_counts"]}
-tokio = {version="1.32.1", features=["rt-multi-thread"]}
+polars = { version = "0.40.0", features = ["lazy", "unique_counts"] }
+tokio = { version = "1.32.1", features = ["rt-multi-thread"] }
 serial_test = "2.0.0"
 futures-util = "0.3.30"
-reqwest= {version= "0.12.4", features=["stream", "json"]}
-serde="1.0.199"
+reqwest = { workspace = true, features = ["stream", "json"] }
+opcua = {version="0.12.0", features = ["vendored-openssl"]}

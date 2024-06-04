@@ -2,7 +2,6 @@ use super::Combiner;
 use crate::combiner::static_subqueries::split_static_queries;
 use crate::combiner::time_series_queries::split_time_series_queries;
 use crate::combiner::CombinerError;
-use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use oxrdf::Variable;
 use query_processing::aggregates::AggregateReturn;
@@ -12,6 +11,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use timeseries_query::TimeseriesQuery;
 
 impl Combiner {
     pub(crate) async fn lazy_group(

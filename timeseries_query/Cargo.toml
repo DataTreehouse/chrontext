@@ -1,0 +1,17 @@
+[package]
+name = "timeseries_query"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+representation = { workspace = true }
+query_processing = { workspace = true }
+#representation = { workspace=true, tag="v0.6.6"}
+polars = {workspace=true, features=[
+    "lazy",
+    "dtype-full",
+    "nightly",
+    "performant"] }
+#spargebra = { path = "../../spargebra", features = ["rdf-star"]}
+spargebra = {workspace=true, features = ["rdf-star"]}
+serde = { workspace = true }

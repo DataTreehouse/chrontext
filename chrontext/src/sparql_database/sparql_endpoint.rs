@@ -45,7 +45,7 @@ pub struct SparqlEndpoint {
 }
 #[async_trait]
 impl SparqlQueryable for SparqlEndpoint {
-    async fn execute(&mut self, query: &Query) -> Result<Vec<QuerySolution>, Box<dyn Error>> {
+    async fn execute(&self, query: &Query) -> Result<Vec<QuerySolution>, Box<dyn Error>> {
         let client = reqwest::Client::new();
         let response = client
             .get(&self.endpoint)

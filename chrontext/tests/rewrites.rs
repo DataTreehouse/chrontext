@@ -1,10 +1,10 @@
 use chrontext::preprocessing::Preprocessor;
 use chrontext::rewriting::StaticQueryRewriter;
 use chrontext::splitter::parse_sparql_select_query;
-use chrontext::timeseries_query::BasicTimeseriesQuery;
 use representation::query_context::{Context, PathEntry, VariableInContext};
 use spargebra::term::Variable;
 use spargebra::Query;
+use timeseries_query::BasicTimeseriesQuery;
 
 #[test]
 fn test_simple_query() {

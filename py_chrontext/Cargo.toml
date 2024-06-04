@@ -6,8 +6,8 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-#representation = {path = "../../representation"}
-representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.6"}
+representation = {path = "../../representation"}
+#representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.6"}
 pyo3 = {version = "0.21.2", features = ["extension-module"]}
 chrontext = {path="../chrontext"}
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.6"}
@@ -15,13 +15,9 @@ pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag="v0.7.6"}
 thiserror="1.0.58"
 polars = {version="0.40.0", features = ["performant", "cse", "nightly", "lazy"]}
 oxrdf = "0.1.7"
-spargebra = { version= "0.2.8"}
-simple-error = "0.3.0"
 tokio = "1.32.1"
 env_logger = "0.11.3"
 log = "0.4.19"
-oxigraph="0.3.22"
-filesize = "0.2.0"
 
 [lib]
 name = "chrontext"

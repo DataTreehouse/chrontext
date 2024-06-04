@@ -1,7 +1,6 @@
 use super::Combiner;
 use crate::combiner::CombinerError;
 use crate::preparing::grouping_col_type;
-use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
@@ -15,6 +14,7 @@ use representation::solution_mapping::SolutionMappings;
 use representation::{BaseRDFNodeType, RDFNodeType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
+use timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
 
 impl Combiner {
     pub async fn execute_attach_time_series_query(

@@ -1,10 +1,5 @@
-use crate::timeseries_database::timeseries_sql_rewrite::{
-    TimeseriesQueryToSQLError, TimeseriesTable,
-};
-use crate::timeseries_database::{
-    get_datatype_map, DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable,
-};
-use crate::timeseries_query::TimeseriesQuery;
+use crate::timeseries_sql_rewrite::TimeseriesQueryToSQLError;
+use crate::{get_datatype_map, DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable};
 use async_trait::async_trait;
 use bigquery_polars::{BigQueryExecutor, Client};
 use polars::prelude::IntoLazy;
@@ -14,6 +9,7 @@ use reqwest::Url;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
+use timeseries_query::{TimeseriesQuery, TimeseriesTable};
 
 #[derive(Error, Debug)]
 pub enum BigQueryError {
@@ -55,7 +51,7 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
     fn get_database_type(&self) -> DatabaseType {
         DatabaseType::BigQuery
     }
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
         let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
 
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs

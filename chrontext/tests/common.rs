@@ -139,54 +139,6 @@ pub async fn add_sparql_testdata(testdata_path: PathBuf) {
     assert_eq!(put_response.status(), StatusCode::from_u16(204).unwrap());
 }
 
-#[allow(dead_code)]
-pub fn compare_terms(t1: &Term, t2: &Term) -> Ordering {
-    let t1_string = t1.to_string();
-    let t2_string = t2.to_string();
-    t1_string.cmp(&t2_string)
-}
-
-#[allow(dead_code)]
-pub fn compare_query_solutions(a: &QuerySolution, b: &QuerySolution) -> Ordering {
-    let mut first_unequal = None;
-    for (av, at) in a {
-        if let Some(bt) = b.get(av) {
-            let comparison = compare_terms(at, bt);
-            if Ordering::Equal != comparison {
-                first_unequal = Some(comparison);
-                break;
-            }
-        } else {
-            first_unequal = Some(Ordering::Greater);
-            break;
-        }
-    }
-    if let Some(ordering) = first_unequal {
-        return ordering;
-    }
-    for (bv, _) in b {
-        if a.get(bv).is_none() {
-            return Ordering::Less;
-        }
-    }
-    Ordering::Equal
-}
-
-#[allow(dead_code)]
-pub fn compare_all_solutions(mut expected: Vec<QuerySolution>, mut actual: Vec<QuerySolution>) {
-    assert_eq!(expected.len(), actual.len());
-    expected.sort_by(compare_query_solutions);
-    actual.sort_by(compare_query_solutions);
-    let mut i = 0;
-    for es in &expected {
-        assert_eq!(
-            compare_query_solutions(es, actual.get(i).unwrap()),
-            Ordering::Equal
-        );
-        i += 1;
-    }
-}
-
 pub fn read_csv(file_path: PathBuf) -> DataFrame {
     let opts = CsvReadOptions::default()
         .with_has_header(true)

@@ -1,10 +1,9 @@
 mod expression_rewrite;
 mod partitioning_support;
 
-use crate::timeseries_database::timeseries_sql_rewrite::expression_rewrite::SPARQLToSQLExpressionTransformer;
-use crate::timeseries_database::timeseries_sql_rewrite::partitioning_support::add_partitioned_timestamp_conditions;
-use crate::timeseries_database::DatabaseType;
-use crate::timeseries_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery};
+use crate::timeseries_sql_rewrite::expression_rewrite::SPARQLToSQLExpressionTransformer;
+use crate::timeseries_sql_rewrite::partitioning_support::add_partitioned_timestamp_conditions;
+use crate::DatabaseType;
 use oxrdf::Variable;
 use polars::prelude::{AnyValue, DataFrame};
 use sea_query::extension::bigquery::{NamedField, Unnest};
@@ -17,6 +16,7 @@ use spargebra::algebra::{AggregateExpression, Expression};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter, Write};
+use timeseries_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery, TimeseriesTable};
 
 const YEAR_PARTITION_COLUMN_NAME: &str = "year_partition_column_name";
 const MONTH_PARTITION_COLUMN_NAME: &str = "month_partition_column_name";
@@ -94,20 +94,6 @@ impl Iden for Name {
         )
         .unwrap();
     }
-}
-
-#[derive(Clone)]
-pub struct TimeseriesTable {
-    // Used to identify the table of the time series value
-    pub resource_name: String,
-    pub schema: Option<String>,
-    pub time_series_table: String,
-    pub value_column: String,
-    pub timestamp_column: String,
-    pub identifier_column: String,
-    pub year_column: Option<String>,
-    pub month_column: Option<String>,
-    pub day_column: Option<String>,
 }
 
 pub struct TimeseriesQueryToSQLTransformer<'a> {
@@ -229,6 +215,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
             TimeseriesQuery::ExpressionAs(tsq, v, e) => {
                 self.create_expression_as(tsq, project_date_partition, v, e)
             }
+            TimeseriesQuery::Limited(_, _) => todo!(),
         }
     }
 
@@ -390,7 +377,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         project_date_partition: bool,
     ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
         let table = self.find_right_table(btsq)?;
-        let (select, columns) = table.create_basic_query(btsq, project_date_partition)?;
+        let (select, columns) = create_basic_query(table, btsq, project_date_partition)?;
 
         Ok((select, columns))
     }
@@ -622,94 +609,92 @@ impl TimeseriesQueryToSQLTransformer<'_> {
     }
 }
 
-impl TimeseriesTable {
-    pub fn create_basic_query(
-        &self,
-        btsq: &BasicTimeseriesQuery,
-        project_date_partition: bool,
-    ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
-        let mut basic_query = Query::select();
-        let mut variable_column_name_map = HashMap::new();
-        variable_column_name_map.insert(
-            btsq.identifier_variable
-                .as_ref()
-                .unwrap()
-                .as_str()
-                .to_string(),
-            self.identifier_column.clone(),
+pub fn create_basic_query(
+    timeseries_table: &TimeseriesTable,
+    btsq: &BasicTimeseriesQuery,
+    project_date_partition: bool,
+) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
+    let mut basic_query = Query::select();
+    let mut variable_column_name_map = HashMap::new();
+    variable_column_name_map.insert(
+        btsq.identifier_variable
+            .as_ref()
+            .unwrap()
+            .as_str()
+            .to_string(),
+        timeseries_table.identifier_column.clone(),
+    );
+    variable_column_name_map.insert(
+        btsq.value_variable
+            .as_ref()
+            .unwrap()
+            .variable
+            .as_str()
+            .to_string(),
+        timeseries_table.value_column.clone(),
+    );
+    variable_column_name_map.insert(
+        btsq.timestamp_variable
+            .as_ref()
+            .unwrap()
+            .variable
+            .as_str()
+            .to_string(),
+        timeseries_table.timestamp_column.clone(),
+    );
+    let mut projection_column_name_map = HashMap::new();
+    if project_date_partition {
+        projection_column_name_map.insert(
+            YEAR_PARTITION_COLUMN_NAME.to_string(),
+            timeseries_table.year_column.as_ref().unwrap().clone(),
         );
-        variable_column_name_map.insert(
-            btsq.value_variable
-                .as_ref()
-                .unwrap()
-                .variable
-                .as_str()
-                .to_string(),
-            self.value_column.clone(),
+        projection_column_name_map.insert(
+            MONTH_PARTITION_COLUMN_NAME.to_string(),
+            timeseries_table.month_column.as_ref().unwrap().clone(),
         );
-        variable_column_name_map.insert(
-            btsq.timestamp_variable
-                .as_ref()
-                .unwrap()
-                .variable
-                .as_str()
-                .to_string(),
-            self.timestamp_column.clone(),
+        projection_column_name_map.insert(
+            DAY_PARTITION_COLUMN_NAME.to_string(),
+            timeseries_table.day_column.as_ref().unwrap().clone(),
         );
-        let mut projection_column_name_map = HashMap::new();
-        if project_date_partition {
-            projection_column_name_map.insert(
-                YEAR_PARTITION_COLUMN_NAME.to_string(),
-                self.year_column.as_ref().unwrap().clone(),
-            );
-            projection_column_name_map.insert(
-                MONTH_PARTITION_COLUMN_NAME.to_string(),
-                self.month_column.as_ref().unwrap().clone(),
-            );
-            projection_column_name_map.insert(
-                DAY_PARTITION_COLUMN_NAME.to_string(),
-                self.day_column.as_ref().unwrap().clone(),
-            );
-        }
-        let mut columns = HashSet::new();
-
-        let mut kvs: Vec<_> = variable_column_name_map.iter().collect();
-        kvs.sort();
-        for (k, v) in kvs {
-            basic_query.expr_as(SeaExpr::col(Name::Column(v.clone())), Alias::new(k));
-            columns.insert(k.clone());
-        }
-
-        let mut kvs: Vec<_> = projection_column_name_map.iter().collect();
-        kvs.sort();
-        for (k, v) in kvs {
-            basic_query.expr_as(
-                SeaExpr::col(Name::Column(v.clone())).as_enum(Alias::new("INTEGER")),
-                Alias::new(k),
-            );
-            columns.insert(k.clone());
-        }
-
-        if let Some(schema) = &self.schema {
-            basic_query.from((
-                Name::Schema(schema.clone()),
-                Name::Table(self.time_series_table.clone()),
-            ));
-        } else {
-            basic_query.from(Name::Table(self.time_series_table.clone()));
-        }
-
-        if let Some(ids) = &btsq.ids {
-            basic_query.and_where(
-                SeaExpr::col(Name::Column(self.identifier_column.clone())).is_in(
-                    ids.iter()
-                        .map(|x| Value::String(Some(Box::new(x.to_string())))),
-                ),
-            );
-        }
-
-        Ok((basic_query, columns))
     }
+    let mut columns = HashSet::new();
+
+    let mut kvs: Vec<_> = variable_column_name_map.iter().collect();
+    kvs.sort();
+    for (k, v) in kvs {
+        basic_query.expr_as(SeaExpr::col(Name::Column(v.clone())), Alias::new(k));
+        columns.insert(k.clone());
+    }
+
+    let mut kvs: Vec<_> = projection_column_name_map.iter().collect();
+    kvs.sort();
+    for (k, v) in kvs {
+        basic_query.expr_as(
+            SeaExpr::col(Name::Column(v.clone())).as_enum(Alias::new("INTEGER")),
+            Alias::new(k),
+        );
+        columns.insert(k.clone());
+    }
+
+    if let Some(schema) = &timeseries_table.schema {
+        basic_query.from((
+            Name::Schema(schema.clone()),
+            Name::Table(timeseries_table.time_series_table.clone()),
+        ));
+    } else {
+        basic_query.from(Name::Table(timeseries_table.time_series_table.clone()));
+    }
+
+    if let Some(ids) = &btsq.ids {
+        basic_query.and_where(
+            SeaExpr::col(Name::Column(timeseries_table.identifier_column.clone())).is_in(
+                ids.iter()
+                    .map(|x| Value::String(Some(Box::new(x.to_string())))),
+            ),
+        );
+    }
+
+    Ok((basic_query, columns))
 }
 
 fn check_partitioning_support(tables: &Vec<TimeseriesTable>) -> bool {
@@ -720,13 +705,8 @@ fn check_partitioning_support(tables: &Vec<TimeseriesTable>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::timeseries_database::timeseries_sql_rewrite::{
-        TimeseriesQueryToSQLTransformer, TimeseriesTable,
-    };
-    use crate::timeseries_database::DatabaseType;
-    use crate::timeseries_query::{
-        BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
-    };
+    use crate::timeseries_sql_rewrite::TimeseriesQueryToSQLTransformer;
+    use crate::DatabaseType;
     use oxrdf::vocab::xsd;
     use oxrdf::{Literal, Variable};
     use polars::prelude::{DataFrame, NamedFrom, Series};
@@ -734,6 +714,10 @@ mod tests {
     use sea_query::BigQueryQueryBuilder;
     use spargebra::algebra::{AggregateExpression, Expression, Function};
     use std::vec;
+    use timeseries_query::{
+        BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
+        TimeseriesTable,
+    };
 
     #[test]
     pub fn test_translate() {

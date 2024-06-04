@@ -1,11 +1,28 @@
-use crate::find_query_variables::find_all_used_variables_in_expression;
+pub mod pushdown_setting;
+
 use polars::frame::DataFrame;
+use query_processing::find_query_variables::find_all_used_variables_in_expression;
 use representation::query_context::{Context, VariableInContext};
+use serde::{Deserialize, Serialize};
 use spargebra::algebra::{AggregateExpression, Expression};
 use spargebra::term::Variable;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TimeseriesTable {
+    // Used to identify the table of the time series value
+    pub resource_name: String,
+    pub schema: Option<String>,
+    pub time_series_table: String,
+    pub value_column: String,
+    pub timestamp_column: String,
+    pub identifier_column: String,
+    pub year_column: Option<String>,
+    pub month_column: Option<String>,
+    pub day_column: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TimeseriesQuery {
@@ -15,6 +32,7 @@ pub enum TimeseriesQuery {
     InnerSynchronized(Vec<Box<TimeseriesQuery>>, Vec<Synchronizer>),
     ExpressionAs(Box<TimeseriesQuery>, Variable, Expression),
     Grouped(GroupedTimeseriesQuery),
+    Limited(Box<TimeseriesQuery>, usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -75,8 +93,9 @@ impl Display for TimeseriesValidationError {
 
 impl Error for TimeseriesValidationError {}
 
+//TODO: Redo these recursions in one method..
 impl TimeseriesQuery {
-    pub(crate) fn has_identifiers(&self) -> bool {
+    pub fn has_identifiers(&self) -> bool {
         match self {
             TimeseriesQuery::Basic(b) => {
                 if let Some(i) = &b.ids {
@@ -90,10 +109,11 @@ impl TimeseriesQuery {
             TimeseriesQuery::InnerSynchronized(i, _) => i.iter().any(|x| x.has_identifiers()),
             TimeseriesQuery::ExpressionAs(t, _, _) => t.has_identifiers(),
             TimeseriesQuery::Grouped(g) => g.tsq.has_identifiers(),
+            TimeseriesQuery::Limited(i, _) => i.has_identifiers(),
         }
     }
 
-    pub(crate) fn validate(&self, df: &DataFrame) -> Result<(), TimeseriesValidationError> {
+    pub fn validate(&self, df: &DataFrame) -> Result<(), TimeseriesValidationError> {
         let expected_columns = self.expected_columns();
         let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
         if expected_columns != df_columns {
@@ -113,7 +133,7 @@ impl TimeseriesQuery {
         }
     }
 
-    pub(crate) fn expected_columns<'a>(&'a self) -> HashSet<&'a str> {
+    pub fn expected_columns<'a>(&'a self) -> HashSet<&'a str> {
         match self {
             TimeseriesQuery::Basic(b) => b.expected_columns(),
             TimeseriesQuery::Filtered(inner, ..) => inner.expected_columns(),
@@ -148,14 +168,11 @@ impl TimeseriesQuery {
                 expected
             }
             TimeseriesQuery::ExpressionAs(t, ..) => t.expected_columns(),
+            TimeseriesQuery::Limited(inner, ..) => inner.expected_columns(),
         }
     }
 
-    pub(crate) fn has_equivalent_value_variable(
-        &self,
-        variable: &Variable,
-        context: &Context,
-    ) -> bool {
+    pub fn has_equivalent_value_variable(&self, variable: &Variable, context: &Context) -> bool {
         for value_variable in self.get_value_variables() {
             if value_variable.equivalent(variable, context) {
                 return true;
@@ -164,7 +181,7 @@ impl TimeseriesQuery {
         false
     }
 
-    pub(crate) fn get_ids(&self) -> Vec<&String> {
+    pub fn get_ids(&self) -> Vec<&String> {
         match self {
             TimeseriesQuery::Basic(b) => {
                 if let Some(ids) = &b.ids {
@@ -190,10 +207,11 @@ impl TimeseriesQuery {
                 }
             }
             TimeseriesQuery::ExpressionAs(tsq, ..) => tsq.get_ids(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_ids(),
         }
     }
 
-    pub(crate) fn get_value_variables(&self) -> Vec<&VariableInContext> {
+    pub fn get_value_variables(&self) -> Vec<&VariableInContext> {
         match self {
             TimeseriesQuery::Basic(b) => {
                 if let Some(val_var) = &b.value_variable {
@@ -219,10 +237,11 @@ impl TimeseriesQuery {
                 }
             }
             TimeseriesQuery::ExpressionAs(t, ..) => t.get_value_variables(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_value_variables(),
         }
     }
 
-    pub(crate) fn get_identifier_variables(&self) -> Vec<&Variable> {
+    pub fn get_identifier_variables(&self) -> Vec<&Variable> {
         match self {
             TimeseriesQuery::Basic(b) => {
                 if let Some(id_var) = &b.identifier_variable {
@@ -248,10 +267,11 @@ impl TimeseriesQuery {
                 }
             }
             TimeseriesQuery::ExpressionAs(t, ..) => t.get_identifier_variables(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_identifier_variables(),
         }
     }
 
-    pub(crate) fn get_resource_variables(&self) -> Vec<&Variable> {
+    pub fn get_resource_variables(&self) -> Vec<&Variable> {
         match self {
             TimeseriesQuery::Basic(b) => {
                 if let Some(res_var) = &b.resource_variable {
@@ -277,10 +297,11 @@ impl TimeseriesQuery {
                 }
             }
             TimeseriesQuery::ExpressionAs(t, ..) => t.get_resource_variables(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_resource_variables(),
         }
     }
 
-    pub(crate) fn has_equivalent_timestamp_variable(
+    pub fn has_equivalent_timestamp_variable(
         &self,
         variable: &Variable,
         context: &Context,
@@ -293,7 +314,7 @@ impl TimeseriesQuery {
         false
     }
 
-    pub(crate) fn get_timestamp_variables(&self) -> Vec<&VariableInContext> {
+    pub fn get_timestamp_variables(&self) -> Vec<&VariableInContext> {
         match self {
             TimeseriesQuery::Basic(b) => {
                 if let Some(v) = &b.timestamp_variable {
@@ -319,6 +340,7 @@ impl TimeseriesQuery {
                 }
             }
             TimeseriesQuery::ExpressionAs(t, ..) => t.get_timestamp_variables(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_timestamp_variables(),
         }
     }
 }
@@ -359,6 +381,7 @@ impl TimeseriesQuery {
             }
             TimeseriesQuery::ExpressionAs(tsq, ..) => tsq.get_groupby_column(),
             TimeseriesQuery::Grouped(grouped) => grouped.tsq.get_groupby_column(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_groupby_column(),
         }
     }
 
@@ -382,6 +405,7 @@ impl TimeseriesQuery {
             }
             TimeseriesQuery::ExpressionAs(tsq, ..) => tsq.get_groupby_mapping_df(),
             TimeseriesQuery::Grouped(grouped) => grouped.tsq.get_groupby_mapping_df(),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_groupby_mapping_df(),
         }
     }
 
@@ -422,6 +446,7 @@ impl TimeseriesQuery {
                 tsfs
             }
             TimeseriesQuery::Grouped(tsq, ..) => tsq.tsq.get_timeseries_functions(context),
+            TimeseriesQuery::Limited(inner, ..) => inner.get_timeseries_functions(context),
         }
     }
 }

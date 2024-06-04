@@ -1,10 +1,10 @@
 use crate::change_types::ChangeType;
-use crate::pushdown_setting::PushdownSetting;
-use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Literal;
 use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::Expression;
 use std::collections::HashSet;
+use timeseries_query::pushdown_setting::PushdownSetting;
+use timeseries_query::TimeseriesQuery;
 
 pub(crate) struct RecursiveRewriteReturn {
     pub expression: Option<Expression>,

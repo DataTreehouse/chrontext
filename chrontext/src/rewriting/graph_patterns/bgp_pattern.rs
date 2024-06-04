@@ -2,12 +2,12 @@ use super::StaticQueryRewriter;
 use crate::constants::{HAS_DATA_POINT, HAS_EXTERNAL_ID, HAS_RESOURCE, HAS_TIMESTAMP, HAS_VALUE};
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::rewriting::graph_patterns::GPReturn;
-use crate::timeseries_query::BasicTimeseriesQuery;
 use oxrdf::{NamedNode, Variable};
 use representation::query_context::{Context, PathEntry, VariableInContext};
 use spargebra::algebra::GraphPattern;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 use std::collections::{HashMap, HashSet};
+use timeseries_query::BasicTimeseriesQuery;
 
 impl StaticQueryRewriter {
     pub(crate) fn rewrite_bgp(

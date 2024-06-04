@@ -1,14 +1,7 @@
 pub mod errors;
 
 use representation::RDFNodeType;
-use filesize::PathExt;
-use std::collections::{HashMap, HashSet};
-use std::fs::{read_to_string, File};
-use std::io::BufReader;
-use std::io::Write;
-use std::path::Path;
-use std::thread;
-use std::time::SystemTime;
+use std::collections::HashMap;
 
 //The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
 //And has a MIT license:
@@ -46,25 +39,19 @@ static GLOBAL: Jemalloc = Jemalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyQueryError;
-use chrontext::engine::Engine as RustEngine;
-use chrontext::pushdown_setting::{all_pushdowns, PushdownSetting};
-use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraph;
-use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::sparql_database::SparqlQueryable;
-use chrontext::timeseries_database::timeseries_bigquery_database::TimeseriesBigQueryDatabase as RustBigQueryDatabase;
-use chrontext::timeseries_database::timeseries_opcua_database::TimeseriesOPCUADatabase as RustOPCUAHistoryRead;
+use chrontext::engine::{Engine as RustEngine, EngineConfig};
+use chrontext::sparql_database::sparql_embedded_oxigraph::{EmbeddedOxigraphConfig,
+};
 use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable as RustTimeseriesTable;
-use chrontext::timeseries_database::TimeseriesQueryable;
 use log::debug;
-use oxigraph::io::DatasetFormat;
-use oxrdf::{IriParseError};
+use oxrdf::IriParseError;
 use polars::prelude::{DataFrame, IntoLazy};
 use pydf_io::to_python::df_to_py_df;
 use pyo3::prelude::*;
-use representation::multitype::{compress_actual_multitypes, lf_column_from_categorical, multi_columns_to_string_cols};
+use representation::multitype::{
+    compress_actual_multitypes, lf_column_from_categorical, multi_columns_to_string_cols,
+};
 use tokio::runtime::Builder;
-
-const TTL_FILE_METADATA: &str = "ttl_file_data.txt";
 
 #[pyclass(unsendable)]
 pub struct Engine {
@@ -114,45 +101,56 @@ impl Engine {
     }
 
     pub fn init(&mut self) -> PyResult<()> {
-        let (pushdown_settings, time_series_db) = if let Some(db) = &self.timeseries_opcua_db {
-            create_opcua_history_read(&db.clone())?
-        } else if let Some(db) = &self.timeseries_bigquery_db {
-            create_bigquery_database(&db.clone())?
-        } else {
-            return Err(PyQueryError::MissingTimeseriesDatabaseError.into());
-        };
+        if self.engine.is_none() {
+            let (timeseries_opcua_endpoint, timeseries_opcua_namespace) =
+                if let Some(db) = &self.timeseries_opcua_db {
+                    (Some(db.endpoint.to_string()), Some(db.namespace))
+                } else {
+                    (None, None)
+                };
 
-        let sparql_db = if self.engine.is_some() {
-            self.engine.as_mut().unwrap().sparql_database.take()
-        } else {
-            None
-        };
+            let (timeseries_bigquery_tables, timeseries_bigquery_key_file) =
+                if let Some(db) = &self.timeseries_bigquery_db {
+                    let mut tables = vec![];
+                    for t in &db.tables {
+                        tables.push(
+                            t.to_rust_table()
+                                .map_err(|x| PyQueryError::DatatypeIRIParseError(x))?,
+                        );
+                    }
+                    (Some(tables), Some(db.key.clone()))
+                } else {
+                    (None, None)
+                };
 
-        let sparql_db = if let Some(sparql_db) = sparql_db {
-            sparql_db
-        } else if let Some(endpoint) = &self.sparql_endpoint {
-            Box::new(SparqlEndpoint {
-                endpoint: endpoint.to_string(),
-            })
-        } else if let Some(oxi) = &self.sparql_embedded_oxigraph {
-            create_oxigraph(oxi)?
-        } else {
-            return Err(PyQueryError::MissingSPARQLDatabaseError.into());
-        };
+            let sparql_endpoint = if let Some(endpoint) = &self.sparql_endpoint {
+                Some(endpoint.clone())
+            } else {
+                None
+            };
 
-        self.engine = Some(RustEngine::new(
-            pushdown_settings,
-            time_series_db,
-            sparql_db,
-        ));
+            let sparql_oxigraph_config = if let Some(oxi) = &self.sparql_embedded_oxigraph {
+                Some(oxi.as_config())
+            } else {
+                None
+            };
+
+            let config = EngineConfig {
+                sparql_oxigraph_config,
+                sparql_endpoint,
+                timeseries_bigquery_tables,
+                timeseries_bigquery_key_file,
+                timeseries_opcua_endpoint,
+                timeseries_opcua_namespace,
+            };
+
+            self.engine = Some(RustEngine::from_config(config).map_err(|x|PyQueryError::ChrontextError(x))?);
+        }
         Ok(())
     }
 
     pub fn query(&mut self, py: Python<'_>, sparql: &str) -> PyResult<PyObject> {
-        if self.engine.is_none()
-            || !self.engine.as_ref().unwrap().has_time_series_db()
-            || !self.engine.as_ref().unwrap().has_sparql_db()
-        {
+        if self.engine.is_none() {
             self.init()?;
         }
 
@@ -164,7 +162,7 @@ impl Engine {
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
             .map_err(|err| PyQueryError::QueryExecutionError(err))?;
 
-        (df,datatypes) = fix_cats_and_multicolumns(df, datatypes);
+        (df, datatypes) = fix_cats_and_multicolumns(df, datatypes);
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
@@ -175,6 +173,15 @@ impl Engine {
 pub struct SparqlEmbeddedOxigraph {
     path: Option<String>,
     ntriples_file: String,
+}
+
+impl SparqlEmbeddedOxigraph {
+    pub fn as_config(&self) -> EmbeddedOxigraphConfig {
+        EmbeddedOxigraphConfig {
+            path: self.path.clone(),
+            ntriples_file: self.ntriples_file.clone(),
+        }
+    }
 }
 
 #[pymethods]
@@ -191,8 +198,8 @@ impl SparqlEmbeddedOxigraph {
 #[pyclass]
 #[derive(Clone)]
 pub struct TimeseriesBigQueryDatabase {
-    tables: Vec<TimeseriesTable>,
-    key: String,
+    pub tables: Vec<TimeseriesTable>,
+    pub key: String,
 }
 
 #[pymethods]
@@ -219,73 +226,6 @@ impl TimeseriesOPCUADatabase {
             endpoint,
         }
     }
-}
-
-pub fn create_bigquery_database(
-    db: &TimeseriesBigQueryDatabase,
-) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeseriesQueryable>)> {
-    let mut new_tables = vec![];
-    for t in &db.tables {
-        new_tables.push(t.to_rust_table().map_err(PyQueryError::from)?);
-    }
-    let key = db.key.clone();
-    let db = thread::spawn(|| RustBigQueryDatabase::new(key, new_tables))
-        .join()
-        .unwrap();
-
-    Ok((all_pushdowns(), Box::new(db)))
-}
-
-fn create_opcua_history_read(
-    db: &TimeseriesOPCUADatabase,
-) -> PyResult<(HashSet<PushdownSetting>, Box<dyn TimeseriesQueryable>)> {
-    let actual_db = RustOPCUAHistoryRead::new(&db.endpoint, db.namespace);
-    Ok(([PushdownSetting::GroupBy].into(), Box::new(actual_db)))
-}
-
-fn create_oxigraph(db: &SparqlEmbeddedOxigraph) -> PyResult<Box<dyn SparqlQueryable>> {
-    let ntriples_path = Path::new(&db.ntriples_file);
-    let ntriples_file_metadata = file_metadata_string(ntriples_path)?;
-
-    let store = if let Some(p) = &db.path {
-        oxigraph::store::Store::open(Path::new(p))
-            .map_err(|x| PyQueryError::OxigraphStorageError(x))?
-    } else {
-        oxigraph::store::Store::new().unwrap()
-    };
-
-    let need_read_file = if let Some(p) = &db.path {
-        let mut pb = Path::new(p).to_path_buf();
-        pb.push(Path::new(TTL_FILE_METADATA));
-        let dbdata_path = pb.as_path();
-        if dbdata_path.exists() {
-            let existing_db_ntriples_metadata = read_to_string(dbdata_path)?;
-            existing_db_ntriples_metadata != ntriples_file_metadata
-        } else {
-            true
-        }
-    } else {
-        true
-    };
-
-    if need_read_file {
-        let file =
-            File::open(&db.ntriples_file).map_err(|x| PyQueryError::ReadNTriplesFileError(x))?;
-        let reader = BufReader::new(file);
-        store
-            .bulk_loader()
-            .load_dataset(reader, DatasetFormat::NQuads, None)
-            .map_err(|x| PyQueryError::OxigraphLoaderError(x))?;
-        if let Some(p) = &db.path {
-            let mut pb = Path::new(p).to_path_buf();
-            pb.push(TTL_FILE_METADATA);
-            let mut f = File::create(pb).unwrap();
-            write!(f, "{}", ntriples_file_metadata)?;
-        }
-    }
-    let oxi = EmbeddedOxigraph { store };
-
-    Ok(Box::new(oxi))
 }
 
 #[pyclass]
@@ -346,17 +286,6 @@ impl TimeseriesTable {
     }
 }
 
-fn file_metadata_string(p: &Path) -> Result<String, std::io::Error> {
-    let size = p.size_on_disk()?;
-    let changed = p
-        .metadata()?
-        .created()?
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    Ok(format!("{}_{}", size, changed))
-}
-
 #[pymodule]
 #[pyo3(name = "chrontext")]
 fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -380,13 +309,24 @@ fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
     map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
 }
 
-fn fix_cats_and_multicolumns(mut df: DataFrame, mut dts: HashMap<String, RDFNodeType>) -> (DataFrame, HashMap<String, RDFNodeType>)  {
-    let column_ordering: Vec<_> = df.get_column_names().iter().map(|x|x.to_string()).collect();
-    for (c,_) in &dts {
-        df = lf_column_from_categorical(df.lazy(), c, &dts).collect().unwrap();
+fn fix_cats_and_multicolumns(
+    mut df: DataFrame,
+    mut dts: HashMap<String, RDFNodeType>,
+) -> (DataFrame, HashMap<String, RDFNodeType>) {
+    let column_ordering: Vec<_> = df
+        .get_column_names()
+        .iter()
+        .map(|x| x.to_string())
+        .collect();
+    for (c, _) in &dts {
+        df = lf_column_from_categorical(df.lazy(), c, &dts)
+            .collect()
+            .unwrap();
     }
     (df, dts) = compress_actual_multitypes(df, dts);
-    df = multi_columns_to_string_cols(df.lazy(), &dts).collect().unwrap();
+    df = multi_columns_to_string_cols(df.lazy(), &dts)
+        .collect()
+        .unwrap();
     df = df.select(column_ordering.as_slice()).unwrap();
     (df, dts)
 }

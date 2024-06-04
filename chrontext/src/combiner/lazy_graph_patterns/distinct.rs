@@ -1,6 +1,5 @@
 use super::Combiner;
 use crate::combiner::CombinerError;
-use crate::timeseries_query::TimeseriesQuery;
 use async_recursion::async_recursion;
 use log::debug;
 use query_processing::graph_patterns::distinct;
@@ -9,6 +8,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
+use timeseries_query::TimeseriesQuery;
 
 impl Combiner {
     #[async_recursion]

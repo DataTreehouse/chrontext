@@ -1,11 +1,10 @@
 mod common;
+mod timeseries_in_memory_database;
 
 use chrontext::engine::Engine;
-use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use chrontext::sparql_database::SparqlQueryable;
 use chrontext::splitter::parse_sparql_select_query;
-use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use oxrdf::{NamedNode, Term, Variable};
 use polars::prelude::{col, DataType, IntoLazy, SortMultipleOptions};
@@ -14,11 +13,14 @@ use serial_test::serial;
 use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
+use timeseries_query::pushdown_setting::all_pushdowns;
 
 use crate::common::{
     add_sparql_testdata, compare_all_solutions, read_csv, start_sparql_container, wipe_database,
     QUERY_ENDPOINT,
 };
+use crate::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 
 #[fixture]
 fn use_logger() {
@@ -76,8 +78,8 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
 fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
-        Box::new(inmem_time_series_database),
-        Box::new(SparqlEndpoint {
+        Arc::new(inmem_time_series_database),
+        Arc::new(SparqlEndpoint {
             endpoint: QUERY_ENDPOINT.to_string(),
         }),
     )
@@ -87,54 +89,9 @@ fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
 #[tokio::test]
 #[serial]
 #[allow(path_statements)]
-async fn test_static_query(#[future] with_testdata: (), use_logger: ()) {
-    use_logger;
-    let _ = with_testdata.await;
-    let query = parse_sparql_select_query(
-        r#"
-    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
-    SELECT * WHERE {?a chrontext:hasTimeseries ?b }
-    "#,
-    )
-    .unwrap();
-    let mut ep = SparqlEndpoint {
-        endpoint: QUERY_ENDPOINT.to_string(),
-    };
-    let query_solns = ep.execute(&query).await.unwrap();
-    let expected_solutions = vec![
-        QuerySolution::from((
-            vec![Variable::new("a").unwrap(), Variable::new("b").unwrap()],
-            vec![
-                Some(Term::NamedNode(
-                    NamedNode::new("http://example.org/case#mySensor2").unwrap(),
-                )),
-                Some(Term::NamedNode(
-                    NamedNode::new("http://example.org/case#myTimeseries2").unwrap(),
-                )),
-            ],
-        )),
-        QuerySolution::from((
-            vec![Variable::new("a").unwrap(), Variable::new("b").unwrap()],
-            vec![
-                Some(Term::NamedNode(
-                    NamedNode::new("http://example.org/case#mySensor1").unwrap(),
-                )),
-                Some(Term::NamedNode(
-                    NamedNode::new("http://example.org/case#myTimeseries1").unwrap(),
-                )),
-            ],
-        )),
-    ];
-    compare_all_solutions(expected_solutions, query_solns);
-}
-
-#[rstest]
-#[tokio::test]
-#[serial]
-#[allow(path_statements)]
 async fn test_simple_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -177,7 +134,7 @@ async fn test_simple_hybrid_query(
 #[allow(path_statements)]
 async fn test_simple_hybrid_no_tsq_matches_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     use_logger: (),
 ) {
     use_logger;
@@ -211,7 +168,7 @@ async fn test_simple_hybrid_no_tsq_matches_query(
 #[allow(path_statements)]
 async fn test_complex_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -259,7 +216,7 @@ async fn test_complex_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_group_by_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -304,7 +261,7 @@ async fn test_pushdown_group_by_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_group_by_second_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -355,7 +312,7 @@ async fn test_pushdown_group_by_second_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_group_by_second_having_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -408,7 +365,7 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
 #[allow(path_statements)]
 async fn test_union_of_two_groupby_queries(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -488,7 +445,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
 #[allow(path_statements)]
 async fn test_pushdown_group_by_concat_agg_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -534,7 +491,7 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_groupby_exists_something_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -580,7 +537,7 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -626,7 +583,7 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -675,7 +632,7 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
 #[allow(path_statements)]
 async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -724,7 +681,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
 #[allow(path_statements)]
 async fn test_path_group_by_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -761,7 +718,7 @@ async fn test_path_group_by_query(
 #[allow(path_statements)]
 async fn test_optional_clause_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -813,7 +770,7 @@ async fn test_optional_clause_query(
 #[allow(path_statements)]
 async fn test_minus_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -863,7 +820,7 @@ async fn test_minus_query(
 #[allow(path_statements)]
 async fn test_in_expression_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -901,7 +858,7 @@ async fn test_in_expression_query(
 #[allow(path_statements)]
 async fn test_values_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -947,7 +904,7 @@ async fn test_values_query(
 #[allow(path_statements)]
 async fn test_if_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -989,7 +946,7 @@ async fn test_if_query(
 #[allow(path_statements)]
 async fn test_distinct_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -1030,7 +987,7 @@ async fn test_distinct_query(
 #[allow(path_statements)]
 async fn test_union_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -1085,7 +1042,7 @@ async fn test_union_query(
 #[allow(path_statements)]
 async fn test_coalesce_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {

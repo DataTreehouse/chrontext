@@ -1,13 +1,8 @@
-use crate::combiner::Combiner;
-use crate::constants::GROUPING_COL;
-use crate::pushdown_setting::all_pushdowns;
-use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
-use crate::timeseries_database::{get_datatype_map, DatabaseType, TimeseriesQueryable};
-use crate::timeseries_query::{
-    BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
-};
 use async_recursion::async_recursion;
 use async_trait::async_trait;
+use chrontext::combiner::Combiner;
+use chrontext::constants::GROUPING_COL;
+use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
 use polars::frame::DataFrame;
 use polars::prelude::{col, lit, IntoLazy, JoinArgs, JoinType};
 use polars::prelude::{CategoricalOrdering, DataFrameJoinOps, DataType};
@@ -19,6 +14,12 @@ use representation::RDFNodeType;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
+use timeseries_outpost::{get_datatype_map, DatabaseType, TimeseriesQueryable};
+use timeseries_query::pushdown_setting::all_pushdowns;
+use timeseries_query::{
+    BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
+};
 
 pub struct TimeseriesInMemoryDatabase {
     pub frames: HashMap<String, DataFrame>,
@@ -30,7 +31,7 @@ impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
         DatabaseType::InMemory
     }
 
-    async fn execute(&mut self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
         self.execute_query(tsq).await
     }
 
@@ -81,11 +82,11 @@ impl TimeseriesInMemoryDatabase {
                 let tmp_context = Context::from_path(vec![PathEntry::Coalesce(13)]);
                 let solution_mappings = SolutionMappings::new(df.lazy(), dtypes);
                 let mut combiner = Combiner::new(
-                    Box::new(SparqlEndpoint {
+                    Arc::new(SparqlEndpoint {
                         endpoint: "".to_string(),
                     }),
                     all_pushdowns(),
-                    Box::new(TimeseriesInMemoryDatabase {
+                    Arc::new(TimeseriesInMemoryDatabase {
                         frames: Default::default(),
                     }),
                     vec![],
@@ -100,6 +101,7 @@ impl TimeseriesInMemoryDatabase {
                 } = extend(sm, &tmp_context, v)?;
                 Ok((mappings.collect().unwrap(), rdf_node_types))
             }
+            TimeseriesQuery::Limited(_, _) => todo!(),
         }
     }
 
@@ -159,11 +161,11 @@ impl TimeseriesInMemoryDatabase {
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
         let mut solution_mappings = SolutionMappings::new(df.lazy(), dtypes);
         let mut combiner = Combiner::new(
-            Box::new(SparqlEndpoint {
+            Arc::new(SparqlEndpoint {
                 endpoint: "".to_string(),
             }),
             all_pushdowns(),
-            Box::new(TimeseriesInMemoryDatabase {
+            Arc::new(TimeseriesInMemoryDatabase {
                 frames: Default::default(),
             }),
             vec![],
@@ -188,11 +190,11 @@ impl TimeseriesInMemoryDatabase {
 
         let mut aggregation_exprs = vec![];
         let mut combiner = Combiner::new(
-            Box::new(SparqlEndpoint {
+            Arc::new(SparqlEndpoint {
                 endpoint: "".to_string(),
             }),
             all_pushdowns(),
-            Box::new(TimeseriesInMemoryDatabase {
+            Arc::new(TimeseriesInMemoryDatabase {
                 frames: Default::default(),
             }),
             vec![],

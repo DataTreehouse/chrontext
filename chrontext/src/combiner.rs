@@ -8,10 +8,7 @@ pub(crate) mod time_series_queries;
 use representation::query_context::Context;
 
 use crate::preparing::TimeseriesQueryPrepper;
-use crate::pushdown_setting::PushdownSetting;
 use crate::sparql_database::SparqlQueryable;
-use crate::timeseries_database::TimeseriesQueryable;
-use crate::timeseries_query::{BasicTimeseriesQuery, TimeseriesValidationError};
 use query_processing::errors::QueryProcessingError;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
@@ -19,7 +16,11 @@ use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
 use thiserror::Error;
+use timeseries_outpost::TimeseriesQueryable;
+use timeseries_query::pushdown_setting::PushdownSetting;
+use timeseries_query::{BasicTimeseriesQuery, TimeseriesValidationError};
 
 #[derive(Debug, Error)]
 pub enum CombinerError {
@@ -72,16 +73,16 @@ impl Display for CombinerError {
 
 pub struct Combiner {
     counter: u16,
-    pub sparql_database: Box<dyn SparqlQueryable>,
-    pub time_series_database: Box<dyn TimeseriesQueryable>,
+    pub sparql_database: Arc<dyn SparqlQueryable>,
+    pub time_series_database: Arc<dyn TimeseriesQueryable>,
     prepper: TimeseriesQueryPrepper,
 }
 
 impl Combiner {
     pub fn new(
-        sparql_database: Box<dyn SparqlQueryable>,
+        sparql_database: Arc<dyn SparqlQueryable>,
         pushdown_settings: HashSet<PushdownSetting>,
-        time_series_database: Box<dyn TimeseriesQueryable>,
+        time_series_database: Arc<dyn TimeseriesQueryable>,
         basic_time_series_queries: Vec<BasicTimeseriesQuery>,
         rewritten_filters: HashMap<Context, Expression>,
     ) -> Combiner {

@@ -1,6 +1,6 @@
-use crate::timeseries_query::{Synchronizer, TimeseriesQuery};
 use oxrdf::Variable;
 use std::collections::HashSet;
+use timeseries_query::{Synchronizer, TimeseriesQuery};
 
 pub fn create_identity_synchronized_queries(
     mut tsqs: Vec<TimeseriesQuery>,

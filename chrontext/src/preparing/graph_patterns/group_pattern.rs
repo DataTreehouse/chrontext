@@ -4,15 +4,15 @@ use std::collections::{HashMap, HashSet};
 
 use super::TimeseriesQueryPrepper;
 use crate::constants::GROUPING_COL;
-use crate::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::grouping_col_type;
-use crate::pushdown_setting::PushdownSetting;
-use crate::timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
 use oxrdf::Variable;
 use polars::prelude::{DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, Series, UniqueKeepStrategy};
+use query_processing::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
+use timeseries_query::pushdown_setting::PushdownSetting;
+use timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_group(
@@ -191,6 +191,14 @@ fn add_basic_groupby_mapping_values(
             )),
             v,
             e,
+        ),
+        TimeseriesQuery::Limited(inner, limit) => TimeseriesQuery::Limited(
+            Box::new(add_basic_groupby_mapping_values(
+                *inner,
+                solution_mappings,
+                grouping_col,
+            )),
+            limit,
         ),
         TimeseriesQuery::Grouped(_) => {
             panic!("Should never happen")

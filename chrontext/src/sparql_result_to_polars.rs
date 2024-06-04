@@ -1,7 +1,5 @@
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{
-    as_struct, col, lit, DataFrame, Expr, IntoLazy, LiteralValue,
-};
+use polars::prelude::{as_struct, col, lit, DataFrame, Expr, IntoLazy, LiteralValue};
 use representation::multitype::{
     all_multi_cols, multi_has_this_type_column, non_multi_type_string, MULTI_BLANK_DT,
     MULTI_IRI_DT, MULTI_NONE_DT,
@@ -117,10 +115,9 @@ pub(crate) fn create_static_query_dataframe(
                         .field_by_name(LANG_STRING_LANG_FIELD)
                         .unwrap(),
                 );
-            } else if matches!(t, BaseRDFNodeType::None){
+            } else if matches!(t, BaseRDFNodeType::None) {
                 series.push(ser.cast(&t.polars_data_type()).unwrap());
-            }
-            else {
+            } else {
                 series.push(ser);
             }
             types.push(t);

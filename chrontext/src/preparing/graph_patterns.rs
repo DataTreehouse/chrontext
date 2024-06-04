@@ -18,12 +18,12 @@ mod union_pattern;
 mod values_pattern;
 
 use super::TimeseriesQueryPrepper;
-use crate::timeseries_query::TimeseriesQuery;
 use log::debug;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use std::collections::HashMap;
+use timeseries_query::TimeseriesQuery;
 
 #[derive(Debug)]
 pub struct GPPrepReturn {
@@ -158,9 +158,18 @@ impl TimeseriesQueryPrepper {
             GraphPattern::Reduced { inner } => {
                 self.prepare_reduced(inner, try_groupby_complex_query, solution_mappings, context)
             }
-            GraphPattern::Slice { inner, .. } => {
-                self.prepare_slice(inner, try_groupby_complex_query, solution_mappings, context)
-            }
+            GraphPattern::Slice {
+                inner,
+                start,
+                length,
+            } => self.prepare_slice(
+                start.clone(),
+                length.clone(),
+                inner,
+                try_groupby_complex_query,
+                solution_mappings,
+                context,
+            ),
             GraphPattern::Group {
                 inner,
                 variables,

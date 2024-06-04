@@ -1,12 +1,12 @@
 use super::TimeseriesQueryPrepper;
-use crate::find_query_variables::find_all_used_variables_in_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
-use crate::timeseries_query::TimeseriesQuery;
 use oxrdf::Variable;
+use query_processing::find_query_variables::find_all_used_variables_in_expression;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashSet;
+use timeseries_query::TimeseriesQuery;
 
 impl TimeseriesQueryPrepper {
     pub(crate) fn prepare_extend(

@@ -1,19 +1,21 @@
 mod common;
+mod timeseries_in_memory_database;
 
 use chrontext::engine::Engine;
-use chrontext::pushdown_setting::all_pushdowns;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::timeseries_database::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 use log::debug;
 use polars::prelude::{CsvParseOptions, CsvReadOptions, SerReader, SortMultipleOptions};
 use rstest::*;
 use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
+use timeseries_query::pushdown_setting::all_pushdowns;
 
 use crate::common::{
     add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
 };
+use crate::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 
 #[fixture]
 fn use_logger() {
@@ -78,8 +80,8 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
 fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
-        Box::new(inmem_time_series_database),
-        Box::new(SparqlEndpoint {
+        Arc::new(inmem_time_series_database),
+        Arc::new(SparqlEndpoint {
             endpoint: QUERY_ENDPOINT.to_string(),
         }),
     )
@@ -91,7 +93,7 @@ fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
 #[allow(path_statements)]
 async fn test_should_pushdown_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
@@ -180,7 +182,7 @@ GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
 #[allow(path_statements)]
 async fn test_multi_should_pushdown_query(
     #[future] with_testdata: (),
-    mut engine: Engine,
+    engine: Engine,
     testdata_path: PathBuf,
     use_logger: (),
 ) {
