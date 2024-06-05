@@ -18,7 +18,7 @@ log = "0.4.21"
 #spargebra = { path = "../spargebra", features = ["rdf-star"]}
 spargebra = { git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8" }
 #query_processing = { path = "../query_processing" }
-query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.3.8"}
+query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.3.9"}
 #representation = { path = "../representation" }
 representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.7"}
 sparesults = { version = "0.1.8" }
