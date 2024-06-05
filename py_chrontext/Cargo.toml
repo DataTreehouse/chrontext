@@ -10,8 +10,8 @@ postgres = { path = "../postgres" }
 timeseries_query = {path="../timeseries_query"}
 chrontext = { path = "../chrontext" }
 
-representation = { path = "../../representation" }
-#representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.6"}
+#representation = { path = "../../representation" }
+representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.7"}
 pyo3 = { version = "0.21.2", features = ["extension-module"] }
 pydf_io = { git = "https://github.com/DataTreehouse/pydf_io", tag = "v0.7.6" }
 #pydf_io = { path = "../../pydf_io" }
