@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, TypeVar, Callable
 from polars import DataFrame
 class Engine:
     """
@@ -41,6 +41,13 @@ class Engine:
 
         :param query: The SPARQL query.
         :return: The query result.
+        """
+
+    def serve_postgres(self, catalog:Catalog):
+        """
+
+        :param catalog:
+        :return:
         """
 
 class SparqlEmbeddedOxigraph:
@@ -107,3 +114,45 @@ class TimeseriesTable:
         :param month_column: Optionally the column containing the day of the timestamp, used for parititioning.
         :param day_column: Optionally the column containing the day of the timestamp, used for parititioning.
         """
+
+class Catalog:
+    """
+    A Catalog maps SPARQL queries to virtual SQL tables.
+    """
+    def __init__(self, data_products:Dict[str, DataProduct]):
+        """
+        Create a new data product catalog, which defines virtual tables.
+
+        :param data_products: The data products in the catalog. Keys are the table names.
+        """
+
+
+class DataProduct:
+    """
+    A DataProduct is a SPARQL query which is annotated with types.
+    It defines a virtual SQL table.
+    """
+    def __init__(self, query:str, types:Dict[str, RDFType]):
+        """
+        Create a new data product from a SPARQL query and the types of the columns.
+        The SPARQL should be a SELECT query and should explicitly include projected variables (don't use *).
+
+        >>> dp1 = DataProduct(query=query, types={
+        ...     "farm_name":RDFType.Literal("http://www.w3.org/2001/XMLSchema#string"),
+        ...     "turbine_name":RDFType.Literal("http://www.w3.org/2001/XMLSchema#string"),
+        ...     "t":RDFType.Literal("http://www.w3.org/2001/XMLSchema#dateTime"),
+        ...     "v":RDFType.Literal("http://www.w3.org/2001/XMLSchema#double")})
+
+        :param query: The SPARQL SELECT Query that defines the data product
+        :param types: The types of each of the variables in the data product
+        """
+
+class RDFType:
+    """
+    The type of a column containing a RDF variable.
+    """
+    NamedNode:Callable[[], RDFType]
+    BlankNode:Callable[[], RDFType]
+    Literal:Callable[[str], RDFType]
+    Unknown:Callable[[], RDFType]
+

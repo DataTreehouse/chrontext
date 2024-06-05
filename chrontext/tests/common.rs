@@ -4,12 +4,9 @@ use bollard::container::{
 };
 use bollard::models::{ContainerSummary, HostConfig, PortBinding};
 use bollard::Docker;
-use oxrdf::Term;
 use polars::prelude::{CsvParseOptions, CsvReadOptions, DataFrame, SerReader};
 use reqwest::header::CONTENT_TYPE;
 use reqwest::StatusCode;
-use sparesults::QuerySolution;
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;

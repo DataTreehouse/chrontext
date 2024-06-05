@@ -1,8 +1,5 @@
 pub mod errors;
 
-use representation::RDFNodeType;
-use std::collections::HashMap;
-
 //The below snippet controlling alloc-library is from https://github.com/pola-rs/polars/blob/main/py-polars/src/lib.rs
 //And has a MIT license:
 //Copyright (c) 2020 Ritchie Vink
@@ -38,22 +35,25 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-use crate::errors::PyQueryError;
+use crate::errors::PyChrontextError;
 use chrontext::engine::{Engine as RustEngine, EngineConfig};
-use chrontext::sparql_database::sparql_embedded_oxigraph::{EmbeddedOxigraphConfig,
-};
-use chrontext::timeseries_database::timeseries_sql_rewrite::TimeseriesTable as RustTimeseriesTable;
+use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
 use log::debug;
-use oxrdf::IriParseError;
+use oxrdf::{IriParseError, NamedNode};
 use polars::prelude::{DataFrame, IntoLazy};
+use postgres::catalog::{Catalog as RustCatalog, DataProduct as RustDataProduct};
+use postgres::server::{start_server, Config};
 use pydf_io::to_python::df_to_py_df;
 use pyo3::prelude::*;
 use representation::multitype::{
     compress_actual_multitypes, lf_column_from_categorical, multi_columns_to_string_cols,
 };
+use representation::{BaseRDFNodeType as RustBaseRDFNodeType, RDFNodeType};
+use std::collections::HashMap;
+use timeseries_query::TimeseriesTable as RustTimeseriesTable;
 use tokio::runtime::Builder;
 
-#[pyclass(unsendable)]
+#[pyclass]
 pub struct Engine {
     timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
     timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
@@ -77,17 +77,17 @@ impl Engine {
             timeseries_bigquery_db.is_some() as usize + timeseries_opcua_db.is_some() as usize;
 
         if num_sparql == 0 {
-            return Err(PyQueryError::MissingSPARQLDatabaseError.into());
+            return Err(PyChrontextError::MissingSPARQLDatabaseError.into());
         }
         if num_sparql > 1 {
-            return Err(PyQueryError::MultipleSPARQLDatabases.into());
+            return Err(PyChrontextError::MultipleSPARQLDatabases.into());
         }
 
         if num_ts == 0 {
-            return Err(PyQueryError::MissingTimeseriesDatabaseError.into());
+            return Err(PyChrontextError::MissingTimeseriesDatabaseError.into());
         }
         if num_ts > 1 {
-            return Err(PyQueryError::MultipleTimeseriesDatabases.into());
+            return Err(PyChrontextError::MultipleTimeseriesDatabases.into());
         }
 
         let engine = Engine {
@@ -115,7 +115,7 @@ impl Engine {
                     for t in &db.tables {
                         tables.push(
                             t.to_rust_table()
-                                .map_err(|x| PyQueryError::DatatypeIRIParseError(x))?,
+                                .map_err(|x| PyChrontextError::DatatypeIRIParseError(x))?,
                         );
                     }
                     (Some(tables), Some(db.key.clone()))
@@ -144,7 +144,9 @@ impl Engine {
                 timeseries_opcua_namespace,
             };
 
-            self.engine = Some(RustEngine::from_config(config).map_err(|x|PyQueryError::ChrontextError(x))?);
+            self.engine = Some(
+                RustEngine::from_config(config).map_err(|x| PyChrontextError::ChrontextError(x))?,
+            );
         }
         Ok(())
     }
@@ -160,11 +162,27 @@ impl Engine {
             .build()
             .unwrap()
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
-            .map_err(|err| PyQueryError::QueryExecutionError(err))?;
+            .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
         (df, datatypes) = fix_cats_and_multicolumns(df, datatypes);
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
+    }
+
+    pub fn serve_postgres(&mut self, catalog: Catalog) -> PyResult<()> {
+        if self.engine.is_none() {
+            self.init()?;
+        }
+        let mut builder = Builder::new_multi_thread();
+        builder.enable_all();
+        let config = Config::default();
+        let catalog = catalog.to_rust()?;
+        let res = builder
+            .build()
+            .unwrap()
+            .block_on(start_server(self.engine.take().unwrap(), config, catalog))
+            .unwrap();
+        Ok(())
     }
 }
 
@@ -286,6 +304,97 @@ impl TimeseriesTable {
     }
 }
 
+#[pyclass]
+#[derive(Clone)]
+pub struct Catalog {
+    pub data_products: HashMap<String, DataProduct>,
+}
+
+#[pymethods]
+impl Catalog {
+    #[new]
+    pub fn new(data_products: HashMap<String, DataProduct>) -> Catalog {
+        Catalog { data_products }
+    }
+    //
+    // pub fn to_json(&self) -> String {
+    //     self.to_rust()?.to_json()
+    // }
+    //
+    // pub fn from_json_string(json_string:String) -> Catalog {
+    //
+    // }
+    //
+    // pub fn from_json()
+}
+
+impl Catalog {
+    pub fn to_rust(&self) -> Result<RustCatalog, PyChrontextError> {
+        let mut data_products = HashMap::new();
+        for (k, v) in &self.data_products {
+            data_products.insert(k.clone(), v.to_rust()?);
+        }
+        Ok(RustCatalog { data_products })
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct DataProduct {
+    pub query: String,
+    pub types: HashMap<String, RDFType>,
+}
+
+#[pymethods]
+impl DataProduct {
+    #[new]
+    pub fn new(query: String, types: HashMap<String, RDFType>) -> DataProduct {
+        DataProduct {
+            query,
+            types,
+        }
+    }
+}
+
+impl DataProduct {
+    pub fn to_rust(&self) -> Result<RustDataProduct, PyChrontextError> {
+        let mut rdf_node_types = HashMap::new();
+        for (k, v) in &self.types {
+            rdf_node_types.insert(k.clone(), v.to_rust()?);
+        }
+        let mut rdp = RustDataProduct {
+            query_string: self.query.clone(),
+            parsed_query: None,
+            rdf_node_types,
+        };
+        rdp.init()
+            .map_err(|x| PyChrontextError::DataProductQueryParseError(x))?;
+        Ok(rdp)
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub enum RDFType {
+    IRI {},
+    BlankNode {},
+    Literal { iri: String },
+    Unknown {},
+}
+
+impl RDFType {
+    pub fn to_rust(&self) -> Result<RustBaseRDFNodeType, PyChrontextError> {
+        Ok(match self {
+            RDFType::IRI { .. } => RustBaseRDFNodeType::IRI,
+            RDFType::BlankNode { .. } => RustBaseRDFNodeType::BlankNode,
+            RDFType::Literal { iri } => RustBaseRDFNodeType::Literal(
+                NamedNode::new(iri).map_err(|x| PyChrontextError::DatatypeIRIParseError(x))?,
+            ),
+            RDFType::Unknown { .. } => RustBaseRDFNodeType::None,
+        })
+    }
+}
+
 #[pymodule]
 #[pyo3(name = "chrontext")]
 fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -302,6 +411,9 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TimeseriesBigQueryDatabase>()?;
     m.add_class::<TimeseriesOPCUADatabase>()?;
     m.add_class::<SparqlEmbeddedOxigraph>()?;
+    m.add_class::<RDFType>()?;
+    m.add_class::<DataProduct>()?;
+    m.add_class::<Catalog>()?;
     Ok(())
 }
 

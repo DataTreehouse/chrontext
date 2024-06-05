@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+pgwire = "0.22.0"
+chrontext = { path = "../chrontext" }
+representation = { workspace = true }
+#representation = { git = "https://github.com/DataTreehouse/representation.git", tag="v0.6.6" }
+spargebra = { workspace = true, features = ["rdf-star"] }
+thiserror = { workspace = true }

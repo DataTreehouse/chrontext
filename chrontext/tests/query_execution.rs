@@ -3,22 +3,17 @@ mod timeseries_in_memory_database;
 
 use chrontext::engine::Engine;
 use chrontext::sparql_database::sparql_endpoint::SparqlEndpoint;
-use chrontext::sparql_database::SparqlQueryable;
-use chrontext::splitter::parse_sparql_select_query;
 use log::debug;
-use oxrdf::{NamedNode, Term, Variable};
 use polars::prelude::{col, DataType, IntoLazy, SortMultipleOptions};
 use rstest::*;
 use serial_test::serial;
-use sparesults::QuerySolution;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use timeseries_query::pushdown_setting::all_pushdowns;
 
 use crate::common::{
-    add_sparql_testdata, compare_all_solutions, read_csv, start_sparql_container, wipe_database,
-    QUERY_ENDPOINT,
+    add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
 };
 use crate::timeseries_in_memory_database::TimeseriesInMemoryDatabase;
 

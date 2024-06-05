@@ -1,12 +1,15 @@
-use oxrdf::IriParseError;
 use chrontext::errors::ChrontextError as RustChrontextError;
-use thiserror::Error;
+use oxrdf::IriParseError;
 use pyo3::{create_exception, exceptions::PyException, prelude::*};
+use spargebra::ParseError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum PyQueryError {
+pub enum PyChrontextError {
     #[error(transparent)]
     DatatypeIRIParseError(#[from] IriParseError),
+    #[error(transparent)]
+    DataProductQueryParseError(#[from] ParseError),
     #[error(transparent)]
     QueryExecutionError(Box<dyn std::error::Error>),
     #[error("Missing time series database")]
@@ -18,32 +21,36 @@ pub enum PyQueryError {
     #[error("Sparql database defined multiple times")]
     MultipleSPARQLDatabases,
     #[error(transparent)]
-    ChrontextError(RustChrontextError)
+    ChrontextError(RustChrontextError),
 }
 
-impl std::convert::From<PyQueryError> for PyErr {
-    fn from(pqe: PyQueryError) -> Self {
+impl std::convert::From<PyChrontextError> for PyErr {
+    fn from(pqe: PyChrontextError) -> Self {
         match pqe {
-            PyQueryError::ChrontextError(e) => {
-                ChrontextError::new_err(format!("{}", e))
-            }
-            PyQueryError::DatatypeIRIParseError(err) => {
+            PyChrontextError::ChrontextError(e) => ChrontextError::new_err(format!("{}", e)),
+            PyChrontextError::DatatypeIRIParseError(err) => {
                 DatatypeIRIParseError::new_err(format!("{}", err))
             }
-            PyQueryError::QueryExecutionError(err) => {
+            PyChrontextError::QueryExecutionError(err) => {
                 QueryExecutionError::new_err(format!("{}", err))
             }
-            PyQueryError::MissingTimeseriesDatabaseError => {
+            PyChrontextError::MissingTimeseriesDatabaseError => {
                 MissingTimeseriesDatabaseError::new_err("")
             }
-            PyQueryError::MultipleTimeseriesDatabases => MultipleTimeseriesDatabases::new_err(""),
-            PyQueryError::MissingSPARQLDatabaseError => MissingSPARQLDatabaseError::new_err(""),
-            PyQueryError::MultipleSPARQLDatabases => MultipleSPARQLDatabases::new_err(""),
+            PyChrontextError::MultipleTimeseriesDatabases => {
+                MultipleTimeseriesDatabases::new_err("")
+            }
+            PyChrontextError::MissingSPARQLDatabaseError => MissingSPARQLDatabaseError::new_err(""),
+            PyChrontextError::MultipleSPARQLDatabases => MultipleSPARQLDatabases::new_err(""),
+            PyChrontextError::DataProductQueryParseError(e) => {
+                DataProductQueryParseError::new_err(format!("{}", e))
+            }
         }
     }
 }
 
 create_exception!(exceptions, DatatypeIRIParseError, PyException);
+create_exception!(exceptions, DataProductQueryParseError, PyException);
 create_exception!(exceptions, QueryExecutionError, PyException);
 create_exception!(exceptions, MissingTimeseriesDatabaseError, PyException);
 create_exception!(exceptions, MultipleTimeseriesDatabases, PyException);
