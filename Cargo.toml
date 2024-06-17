@@ -40,6 +40,8 @@ serde_json = "1.0.117"
 backoff = "0.4.0"
 gcp-bigquery-client = "0.20.0"
 rayon = "1.10.0"
+opcua = {version="0.12.0", features = ["vendored-openssl"]}
+
 
 [patch.crates-io]
 polars = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
