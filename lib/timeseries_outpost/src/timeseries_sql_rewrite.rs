@@ -712,7 +712,7 @@ mod tests {
     use polars::prelude::{DataFrame, NamedFrom, Series};
     use representation::query_context::{Context, VariableInContext};
     use sea_query::BigQueryQueryBuilder;
-    use spargebra::algebra::{AggregateExpression, Expression, Function};
+    use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function};
     use std::vec;
     use timeseries_query::{
         BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
@@ -949,15 +949,17 @@ mod tests {
             aggregations: vec![
                 (
                     Variable::new_unchecked("f7ca5ee9058effba8691ac9c642fbe95"),
-                    AggregateExpression::Avg {
-                        expr: Box::new(Expression::Variable(Variable::new_unchecked("val_dir"))),
+                    AggregateExpression::FunctionCall {
+                        name: AggregateFunction::Avg,
+                        expr: Expression::Variable(Variable::new_unchecked("val_dir")),
                         distinct: false,
                     },
                 ),
                 (
                     Variable::new_unchecked("990362f372e4019bc151c13baf0b50d5"),
-                    AggregateExpression::Avg {
-                        expr: Box::new(Expression::Variable(Variable::new_unchecked("val_speed"))),
+                    AggregateExpression::FunctionCall {
+                        name: AggregateFunction::Avg,
+                        expr: Expression::Variable(Variable::new_unchecked("val_speed")),
                         distinct: false,
                     },
                 ),

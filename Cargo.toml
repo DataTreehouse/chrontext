@@ -1,39 +1,52 @@
 [workspace]
 resolver = "1"
 members = [
-    "chrontext",
-    "timeseries_outpost",
-    "postgres",
-    "timeseries_query"]
-
-[patch.crates-io]
-polars = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
-polars-core = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
-polars-utils = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
+    "lib/bigquery-polars",
+    "lib/chrontext",
+    "lib/timeseries_outpost",
+    "lib/postgres",
+    "lib/timeseries_query",
+    "py_chrontext"
+]
 
 [workspace.dependencies]
-polars = { version = "0.40.0" }
-tokio = { version = "1.32.1", features = ["rt-multi-thread", "rt"] }
+polars = "0.40.0"
+tokio = "1.32.1"
 log = "0.4.21"
-#spargebra = { path = "../spargebra", features = ["rdf-star"]}
-spargebra = { git = "https://github.com/DataTreehouse/spargebra", features = ["rdf-star"], tag = "v0.2.8" }
-#query_processing = { path = "../query_processing" }
-query_processing = { git = "https://github.com/DataTreehouse/query_processing", tag="v0.3.9"}
-#representation = { path = "../representation" }
-representation = { git = "https://github.com/DataTreehouse/representation", tag="v0.6.7"}
-sparesults = { version = "0.1.8" }
-oxrdf = { version = "0.1.7" }
-reqwest = { version = "0.12.3", features = ["stream"] }
+
+spargebra = { git = "https://github.com/DataTreehouse/maplib", features = ["rdf-star"] }
+query_processing = { git = "https://github.com/DataTreehouse/maplib" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib" }
+representation = { git = "https://github.com/DataTreehouse/maplib"}
+
+sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
+oxrdf = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
+oxigraph = "0.4.0-alpha.7"
+
+pyo3 = "0.21.2"
+reqwest = "0.12.3"
 env_logger = "0.11.3"
 thiserror = "1.0.58"
 base64 = "0.22.0"
 async-recursion = "1.1.0"
 async-trait = "0.1.80"
-crossbeam = { version = "0.8.2" }
-oxigraph = "0.3.22"
-chrono = { version = "0.4.37", features = ["clock"] }
+crossbeam = "0.8.2"
+chrono = "0.4.37"
 filesize = "0.2.0"
 futures = "0.3.30"
 tokio-stream = "0.1.15"
 serde = "1.0.203"
 serde_json = "1.0.117"
+backoff = "0.4.0"
+gcp-bigquery-client = "0.20.0"
+rayon = "1.10.0"
+
+[patch.crates-io]
+polars = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
+polars-core = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
+polars-utils = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
+polars-time = { git = 'https://github.com/pola-rs/polars.git', rev = "805acd81cfed82248d34fa69875cbe04730f74ce" }
+oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
+oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
+oxrdfio = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
+oxigraph = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}

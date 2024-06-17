@@ -1,10 +1,10 @@
 //Based on https://github.com/sunng87/pgwire/blob/master/examples/duckdb.rs
 //License found in licenses PGWIRE-LICENSE-*
 
-use chrontext::engine::Engine;
 use crate::catalog::Catalog;
 use crate::config::{PGDateOrder, PGDateTimeStyle};
 use crate::errors::ChrontextPGWireError;
+use chrontext::engine::Engine;
 
 pub async fn start_server(
     _engine: Engine,

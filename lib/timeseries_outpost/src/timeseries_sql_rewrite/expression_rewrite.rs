@@ -9,7 +9,7 @@ use spargebra::algebra::Expression;
 use crate::timeseries_sql_rewrite::{Name, TimeseriesQueryToSQLError};
 use crate::DatabaseType;
 use query_processing::constants::{
-    DATETIME_AS_SECONDS, FLOOR_DATETIME_TO_SECONDS_INTERVAL, SECONDS_AS_DATETIME,
+    DATETIME_AS_SECONDS, FLOOR_DATETIME_TO_SECONDS_INTERVAL, SECONDS_AS_DATETIME, TIME_BUCKET,
 };
 
 pub mod aggregate_expressions;

@@ -349,10 +349,7 @@ pub struct DataProduct {
 impl DataProduct {
     #[new]
     pub fn new(query: String, types: HashMap<String, RDFType>) -> DataProduct {
-        DataProduct {
-            query,
-            types,
-        }
+        DataProduct { query, types }
     }
 }
 

@@ -18,7 +18,7 @@ use polars::prelude::{
 use query_processing::constants::DATETIME_AS_SECONDS;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
-use spargebra::algebra::{AggregateExpression, Expression, Function};
+use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -403,50 +403,45 @@ fn find_aggregate_types(tsq: &TimeseriesQuery) -> Option<Vec<NodeId>> {
                 }
             };
             let aggfunc = match agg {
-                AggregateExpression::Count { expr, distinct } => {
+                AggregateExpression::CountSolutions { distinct } => {
                     assert!(!distinct);
-                    if let Some(e) = expr {
-                        assert!(expr_is_ok(e));
-                    }
                     NodeId {
                         namespace: 0,
                         identifier: Identifier::Numeric(OPCUA_AGG_FUNC_COUNT),
                     }
                 }
-                AggregateExpression::Sum { expr, distinct } => {
+                AggregateExpression::FunctionCall {
+                    name,
+                    expr,
+                    distinct,
+                } => {
                     assert!(!distinct);
                     assert!(expr_is_ok(expr));
-                    NodeId {
-                        namespace: 0,
-                        identifier: Identifier::Numeric(OPCUA_AGG_FUNC_TOTAL),
+                    match name {
+                        AggregateFunction::Count => NodeId {
+                            namespace: 0,
+                            identifier: Identifier::Numeric(OPCUA_AGG_FUNC_COUNT),
+                        },
+                        AggregateFunction::Sum => NodeId {
+                            namespace: 0,
+                            identifier: Identifier::Numeric(OPCUA_AGG_FUNC_TOTAL),
+                        },
+                        AggregateFunction::Avg => NodeId {
+                            namespace: 0,
+                            identifier: Identifier::Numeric(OPCUA_AGG_FUNC_AVERAGE),
+                        },
+                        AggregateFunction::Min => NodeId {
+                            namespace: 0,
+                            identifier: Identifier::Numeric(OPCUA_AGG_FUNC_MINIMUM),
+                        },
+                        AggregateFunction::Max => NodeId {
+                            namespace: 0,
+                            identifier: Identifier::Numeric(OPCUA_AGG_FUNC_MAXIMUM),
+                        },
+                        _ => {
+                            panic!("Not supported {:?}, should not happen", agg)
+                        }
                     }
-                }
-                AggregateExpression::Avg { expr, distinct } => {
-                    assert!(!distinct);
-                    assert!(expr_is_ok(expr));
-                    NodeId {
-                        namespace: 0,
-                        identifier: Identifier::Numeric(OPCUA_AGG_FUNC_AVERAGE),
-                    }
-                }
-                AggregateExpression::Min { expr, distinct } => {
-                    assert!(!distinct);
-                    assert!(expr_is_ok(expr));
-                    NodeId {
-                        namespace: 0,
-                        identifier: Identifier::Numeric(OPCUA_AGG_FUNC_MINIMUM),
-                    }
-                }
-                AggregateExpression::Max { expr, distinct } => {
-                    assert!(!distinct);
-                    assert!(expr_is_ok(expr));
-                    NodeId {
-                        namespace: 0,
-                        identifier: Identifier::Numeric(OPCUA_AGG_FUNC_MAXIMUM),
-                    }
-                }
-                _ => {
-                    panic!("Not supported {:?}, should not happen", agg)
                 }
             };
             nodes.push(aggfunc);
