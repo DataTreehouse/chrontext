@@ -480,79 +480,26 @@ impl Preprocessor {
         context: &Context,
     ) -> AggregateExpression {
         match aggregate_expression {
-            AggregateExpression::Count { expr, distinct } => {
-                let rewritten_expression = if let Some(e) = expr {
-                    Some(Box::new(self.preprocess_expression(
-                        e,
-                        &context.extension_with(PathEntry::AggregationOperation),
-                    )))
-                } else {
-                    None
-                };
-                AggregateExpression::Count {
+            AggregateExpression::CountSolutions { distinct } => {
+                AggregateExpression::CountSolutions {
+                    distinct: distinct.clone(),
+                }
+            }
+            AggregateExpression::FunctionCall {
+                name,
+                expr,
+                distinct,
+            } => {
+                let rewritten_expression = self.preprocess_expression(
+                    expr,
+                    &context.extension_with(PathEntry::AggregationOperation),
+                );
+                AggregateExpression::FunctionCall {
+                    name: name.clone(),
                     expr: rewritten_expression,
                     distinct: *distinct,
                 }
             }
-            AggregateExpression::Sum { expr, distinct } => AggregateExpression::Sum {
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-            },
-            AggregateExpression::Avg { expr, distinct } => AggregateExpression::Avg {
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-            },
-            AggregateExpression::Min { expr, distinct } => AggregateExpression::Min {
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-            },
-            AggregateExpression::Max { expr, distinct } => AggregateExpression::Max {
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-            },
-            AggregateExpression::GroupConcat {
-                expr,
-                distinct,
-                separator,
-            } => AggregateExpression::GroupConcat {
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-                separator: separator.clone(),
-            },
-            AggregateExpression::Sample { expr, distinct } => AggregateExpression::Sample {
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-            },
-            AggregateExpression::Custom {
-                name,
-                expr,
-                distinct,
-            } => AggregateExpression::Custom {
-                name: name.clone(),
-                expr: Box::new(self.preprocess_expression(
-                    expr,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                )),
-                distinct: *distinct,
-            },
         }
     }
     fn preprocess_order_expression(

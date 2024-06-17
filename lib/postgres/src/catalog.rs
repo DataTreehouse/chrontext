@@ -1,5 +1,5 @@
 use representation::BaseRDFNodeType;
-use spargebra::{ParseError, Query};
+use spargebra::{Query, SparqlSyntaxError};
 use std::collections::HashMap;
 
 pub struct Catalog {
@@ -12,7 +12,7 @@ pub struct DataProduct {
 }
 
 impl DataProduct {
-    pub fn init(&mut self) -> Result<(), ParseError> {
+    pub fn init(&mut self) -> Result<(), SparqlSyntaxError> {
         self.parsed_query = Some(Query::parse(&self.query_string, None)?);
         Ok(())
     }

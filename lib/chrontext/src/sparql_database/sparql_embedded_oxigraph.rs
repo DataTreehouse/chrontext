@@ -1,7 +1,7 @@
 use super::SparqlQueryable;
 use async_trait::async_trait;
 use filesize::PathExt;
-use oxigraph::io::DatasetFormat;
+use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::sparql::QueryResults;
 use oxigraph::store::Store;
 use serde::{Deserialize, Serialize};
@@ -105,10 +105,11 @@ impl EmbeddedOxigraph {
         if need_read_file {
             let file = File::open(&config.ntriples_file)
                 .map_err(|x| EmbeddedOxigraphError::ReadNTriplesFileError(x.to_string()))?;
-            let reader = BufReader::new(file);
+            let mut reader = BufReader::new(file);
             store
                 .bulk_loader()
-                .load_dataset(reader, DatasetFormat::NQuads, None)
+                .load_from_read(RdfParser::from_format(RdfFormat::NQuads).unchecked(),
+                                &mut reader)
                 .map_err(|x| EmbeddedOxigraphError::LoaderError(x.to_string()))?;
             if let Some(p) = &config.path {
                 let mut pb = Path::new(p).to_path_buf();

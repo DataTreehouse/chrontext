@@ -2,9 +2,7 @@ use super::SparqlQueryable;
 use async_trait::async_trait;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use reqwest::StatusCode;
-use sparesults::{
-    ParseError, QueryResultsFormat, QueryResultsParser, QueryResultsReader, QuerySolution,
-};
+use sparesults::{FromReadQueryResultsReader, QueryResultsFormat, QueryResultsParseError, QueryResultsParser, QuerySolution};
 use spargebra::Query;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -13,8 +11,8 @@ use std::fmt::{Display, Formatter};
 pub enum QueryExecutionError {
     RequestError(reqwest::Error),
     BadStatusCode(StatusCode),
-    ResultsParseError(ParseError),
-    SolutionParseError(ParseError),
+    ResultsParseError(QueryResultsParseError),
+    SolutionParseError(QueryResultsParseError),
     WrongResultType,
 }
 
@@ -64,11 +62,11 @@ impl SparqlQueryable for SparqlEndpoint {
                 } else {
                     let text = proper_response.text().await.expect("Read text error");
                     let json_parser = QueryResultsParser::from_format(QueryResultsFormat::Json);
-                    let parsed_results = json_parser.read_results(text.as_bytes());
+                    let parsed_results = json_parser.parse_read(text.as_bytes());
                     match parsed_results {
                         Ok(reader) => {
                             let mut solns = vec![];
-                            if let QueryResultsReader::Solutions(solutions) = reader {
+                            if let FromReadQueryResultsReader::Solutions(solutions) = reader {
                                 for s in solutions {
                                     match s {
                                         Ok(query_solution) => solns.push(query_solution),

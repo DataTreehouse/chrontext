@@ -1,7 +1,7 @@
 use chrontext::errors::ChrontextError as RustChrontextError;
 use oxrdf::IriParseError;
 use pyo3::{create_exception, exceptions::PyException, prelude::*};
-use spargebra::ParseError;
+use spargebra::SparqlSyntaxError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -9,7 +9,7 @@ pub enum PyChrontextError {
     #[error(transparent)]
     DatatypeIRIParseError(#[from] IriParseError),
     #[error(transparent)]
-    DataProductQueryParseError(#[from] ParseError),
+    DataProductQueryParseError(#[from] SparqlSyntaxError),
     #[error(transparent)]
     QueryExecutionError(Box<dyn std::error::Error>),
     #[error("Missing time series database")]

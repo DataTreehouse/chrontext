@@ -1,10 +1,10 @@
-use spargebra::{ParseError, Query};
+use spargebra::{Query, SparqlSyntaxError};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
 pub enum SelectQueryErrorKind {
-    Parse(ParseError),
+    Parse(SparqlSyntaxError),
     NotSelectQuery,
     Unsupported(String),
 }

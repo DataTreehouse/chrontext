@@ -7,7 +7,7 @@ use oxrdf::{Term, Variable};
 use polars::export::rayon::iter::{IntoParallelIterator, ParallelIterator};
 use polars::prelude::{col, Expr, IntoLazy, JoinType, UniqueKeepStrategy};
 use query_processing::graph_patterns::join;
-use representation::polars_to_sparql::{df_as_result, QuerySolutions};
+use representation::polars_to_rdf::{df_as_result, QuerySolutions};
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;

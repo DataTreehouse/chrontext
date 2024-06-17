@@ -4,9 +4,9 @@ use representation::multitype::{
     all_multi_cols, multi_has_this_type_column, non_multi_type_string, MULTI_BLANK_DT,
     MULTI_IRI_DT, MULTI_NONE_DT,
 };
-use representation::sparql_to_polars::{
-    polars_literal_values_to_series, sparql_blank_node_to_polars_literal_value,
-    sparql_literal_to_polars_literal_value, sparql_named_node_to_polars_literal_value,
+use representation::rdf_to_polars::{
+    polars_literal_values_to_series, rdf_blank_node_to_polars_literal_value,
+    rdf_literal_to_polars_literal_value, rdf_named_node_to_polars_literal_value,
 };
 use representation::{
     BaseRDFNodeType, RDFNodeType, LANG_STRING_LANG_FIELD, LANG_STRING_VALUE_FIELD,
@@ -38,15 +38,13 @@ pub(crate) fn create_static_query_dataframe(
         for s in &static_query_solutions {
             let (k, litval) = if let Some(term) = s.get(v) {
                 match term {
-                    Term::NamedNode(n) => {
-                        (MULTI_IRI_DT, sparql_named_node_to_polars_literal_value(n))
-                    }
+                    Term::NamedNode(n) => (MULTI_IRI_DT, rdf_named_node_to_polars_literal_value(n)),
                     Term::BlankNode(b) => {
-                        (MULTI_BLANK_DT, sparql_blank_node_to_polars_literal_value(b))
+                        (MULTI_BLANK_DT, rdf_blank_node_to_polars_literal_value(b))
                     }
                     Term::Literal(l) => (
                         l.datatype().as_str(),
-                        sparql_literal_to_polars_literal_value(l),
+                        rdf_literal_to_polars_literal_value(l),
                     ),
                     _ => {
                         todo!()

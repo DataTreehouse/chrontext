@@ -35,160 +35,12 @@ impl StaticQueryRewriter {
     ) -> AEReturn {
         let mut aer = AEReturn::new();
         match aggregate_expression {
-            AggregateExpression::Count { expr, distinct } => {
-                if let Some(expr) = expr {
-                    let mut expr_rewritten = self.rewrite_expression(
-                        expr,
-                        &ChangeType::NoChange,
-                        variables_in_scope,
-                        create_subquery,
-                        &context.extension_with(PathEntry::AggregationOperation),
-                    );
-                    if expr_rewritten.is_subquery {
-                        unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                    }
-                    if expr_rewritten.expression.is_some()
-                        && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                    {
-                        aer.with_aggregate_expression(AggregateExpression::Count {
-                            expr: Some(Box::new(expr_rewritten.expression.take().unwrap())),
-                            distinct: *distinct,
-                        });
-                    }
-                } else {
-                    aer.with_aggregate_expression(AggregateExpression::Count {
-                        expr: None,
-                        distinct: *distinct,
-                    });
-                }
+            AggregateExpression::CountSolutions { distinct } => {
+                aer.with_aggregate_expression(AggregateExpression::CountSolutions {
+                    distinct: *distinct,
+                });
             }
-            AggregateExpression::Sum { expr, distinct } => {
-                let mut expr_rewritten = self.rewrite_expression(
-                    expr,
-                    &ChangeType::NoChange,
-                    variables_in_scope,
-                    create_subquery,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                );
-                if expr_rewritten.is_subquery {
-                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                }
-                if expr_rewritten.expression.is_some()
-                    && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                {
-                    aer.with_aggregate_expression(AggregateExpression::Sum {
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
-                        distinct: *distinct,
-                    });
-                }
-            }
-            AggregateExpression::Avg { expr, distinct } => {
-                let mut expr_rewritten = self.rewrite_expression(
-                    expr,
-                    &ChangeType::NoChange,
-                    variables_in_scope,
-                    create_subquery,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                );
-                if expr_rewritten.is_subquery {
-                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                }
-                if expr_rewritten.expression.is_some()
-                    && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                {
-                    aer.with_aggregate_expression(AggregateExpression::Avg {
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
-                        distinct: *distinct,
-                    });
-                }
-            }
-            AggregateExpression::Min { expr, distinct } => {
-                let mut expr_rewritten = self.rewrite_expression(
-                    expr,
-                    &ChangeType::NoChange,
-                    variables_in_scope,
-                    create_subquery,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                );
-                if expr_rewritten.is_subquery {
-                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                }
-                if expr_rewritten.expression.is_some()
-                    && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                {
-                    aer.with_aggregate_expression(AggregateExpression::Min {
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
-                        distinct: *distinct,
-                    });
-                }
-            }
-            AggregateExpression::Max { expr, distinct } => {
-                let mut expr_rewritten = self.rewrite_expression(
-                    expr,
-                    &ChangeType::NoChange,
-                    variables_in_scope,
-                    create_subquery,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                );
-                if expr_rewritten.is_subquery {
-                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                }
-                if expr_rewritten.expression.is_some()
-                    && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                {
-                    aer.with_aggregate_expression(AggregateExpression::Max {
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
-                        distinct: *distinct,
-                    });
-                }
-            }
-            AggregateExpression::GroupConcat {
-                expr,
-                distinct,
-                separator,
-            } => {
-                let mut expr_rewritten = self.rewrite_expression(
-                    expr,
-                    &ChangeType::NoChange,
-                    variables_in_scope,
-                    create_subquery,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                );
-                if expr_rewritten.is_subquery {
-                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                }
-                if expr_rewritten.expression.is_some()
-                    && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                {
-                    aer.with_aggregate_expression(AggregateExpression::GroupConcat {
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
-                        distinct: *distinct,
-                        separator: separator.clone(),
-                    });
-                }
-            }
-            AggregateExpression::Sample { expr, distinct } => {
-                let mut expr_rewritten = self.rewrite_expression(
-                    expr,
-                    &ChangeType::NoChange,
-                    variables_in_scope,
-                    create_subquery,
-                    &context.extension_with(PathEntry::AggregationOperation),
-                );
-
-                if expr_rewritten.is_subquery {
-                    unimplemented!("Exists patterns containing time series values within aggregation is not supported")
-                }
-                if expr_rewritten.expression.is_some()
-                    && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                {
-                    aer.with_aggregate_expression(AggregateExpression::Sample {
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
-                        distinct: *distinct,
-                    });
-                }
-            }
-            AggregateExpression::Custom {
+            AggregateExpression::FunctionCall {
                 name,
                 expr,
                 distinct,
@@ -206,9 +58,9 @@ impl StaticQueryRewriter {
                 if expr_rewritten.expression.is_some()
                     && expr_rewritten.change_type.as_ref().unwrap() == &ChangeType::NoChange
                 {
-                    aer.with_aggregate_expression(AggregateExpression::Custom {
+                    aer.with_aggregate_expression(AggregateExpression::FunctionCall {
                         name: name.clone(),
-                        expr: Box::new(expr_rewritten.expression.take().unwrap()),
+                        expr: expr_rewritten.expression.take().unwrap(),
                         distinct: *distinct,
                     });
                 }

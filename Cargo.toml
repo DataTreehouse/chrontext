@@ -50,3 +50,4 @@ oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a369
 oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
 oxrdfio = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
 oxigraph = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
+sparesults = { git = 'https://github.com/magbak/oxigraph.git', rev = "2be51f4e0a0a3692ad6ca33589bee44eb62546b5"}
