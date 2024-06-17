@@ -36,10 +36,11 @@ class Engine:
         :return: 
         """
 
-    def query(self, query:str) -> DataFrame:
+    def query(self, query:str, multi_to_strings:bool=False) -> DataFrame:
         """
 
         :param query: The SPARQL query.
+        :param multi_to_strings: Convert columns with multiple types to strings, otherwise returns them as Polars structs.
         :return: The query result.
         """
 

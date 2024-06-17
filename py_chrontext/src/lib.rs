@@ -43,7 +43,7 @@ use oxrdf::{IriParseError, NamedNode};
 use polars::prelude::{DataFrame, IntoLazy};
 use postgres::catalog::{Catalog as RustCatalog, DataProduct as RustDataProduct};
 use postgres::server::{start_server, Config};
-use pydf_io::to_python::df_to_py_df;
+use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
 use representation::multitype::{
     compress_actual_multitypes, lf_column_from_categorical, multi_columns_to_string_cols,
@@ -151,7 +151,7 @@ impl Engine {
         Ok(())
     }
 
-    pub fn query(&mut self, py: Python<'_>, sparql: &str) -> PyResult<PyObject> {
+    pub fn query(&mut self, py: Python<'_>, sparql: &str, multi_to_strings: Option<bool>) -> PyResult<PyObject> {
         if self.engine.is_none() {
             self.init()?;
         }
@@ -164,7 +164,7 @@ impl Engine {
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
-        (df, datatypes) = fix_cats_and_multicolumns(df, datatypes);
+        (df, datatypes) = fix_cats_and_multicolumns(df, datatypes, multi_to_strings.unwrap_or(false));
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
@@ -412,30 +412,4 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<DataProduct>()?;
     m.add_class::<Catalog>()?;
     Ok(())
-}
-
-fn dtypes_map(map: HashMap<String, RDFNodeType>) -> HashMap<String, String> {
-    map.into_iter().map(|(x, y)| (x, y.to_string())).collect()
-}
-
-fn fix_cats_and_multicolumns(
-    mut df: DataFrame,
-    mut dts: HashMap<String, RDFNodeType>,
-) -> (DataFrame, HashMap<String, RDFNodeType>) {
-    let column_ordering: Vec<_> = df
-        .get_column_names()
-        .iter()
-        .map(|x| x.to_string())
-        .collect();
-    for (c, _) in &dts {
-        df = lf_column_from_categorical(df.lazy(), c, &dts)
-            .collect()
-            .unwrap();
-    }
-    (df, dts) = compress_actual_multitypes(df, dts);
-    df = multi_columns_to_string_cols(df.lazy(), &dts)
-        .collect()
-        .unwrap();
-    df = df.select(column_ordering.as_slice()).unwrap();
-    (df, dts)
 }
