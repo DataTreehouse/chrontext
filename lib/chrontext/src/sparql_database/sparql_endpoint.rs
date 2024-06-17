@@ -2,7 +2,10 @@ use super::SparqlQueryable;
 use async_trait::async_trait;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use reqwest::StatusCode;
-use sparesults::{FromReadQueryResultsReader, QueryResultsFormat, QueryResultsParseError, QueryResultsParser, QuerySolution};
+use sparesults::{
+    FromReadQueryResultsReader, QueryResultsFormat, QueryResultsParseError, QueryResultsParser,
+    QuerySolution,
+};
 use spargebra::Query;
 use std::error::Error;
 use std::fmt::{Display, Formatter};

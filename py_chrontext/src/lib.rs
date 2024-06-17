@@ -151,7 +151,12 @@ impl Engine {
         Ok(())
     }
 
-    pub fn query(&mut self, py: Python<'_>, sparql: &str, multi_to_strings: Option<bool>) -> PyResult<PyObject> {
+    pub fn query(
+        &mut self,
+        py: Python<'_>,
+        sparql: &str,
+        multi_to_strings: Option<bool>,
+    ) -> PyResult<PyObject> {
         if self.engine.is_none() {
             self.init()?;
         }
@@ -164,7 +169,8 @@ impl Engine {
             .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
-        (df, datatypes) = fix_cats_and_multicolumns(df, datatypes, multi_to_strings.unwrap_or(false));
+        (df, datatypes) =
+            fix_cats_and_multicolumns(df, datatypes, multi_to_strings.unwrap_or(false));
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
@@ -177,7 +183,7 @@ impl Engine {
         builder.enable_all();
         let config = Config::default();
         let catalog = catalog.to_rust()?;
-        let res = builder
+        builder
             .build()
             .unwrap()
             .block_on(start_server(self.engine.take().unwrap(), config, catalog))
