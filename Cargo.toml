@@ -15,10 +15,10 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="abaadfffd86211d5818ef295721477856d8de82e", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="abaadfffd86211d5818ef295721477856d8de82e" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="abaadfffd86211d5818ef295721477856d8de82e" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="abaadfffd86211d5818ef295721477856d8de82e", features = ["rdf-star"] }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="55015b6746189cefee8acfa28c23c70bcd7c24fb", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="55015b6746189cefee8acfa28c23c70bcd7c24fb" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="55015b6746189cefee8acfa28c23c70bcd7c24fb" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="55015b6746189cefee8acfa28c23c70bcd7c24fb", features = ["rdf-star"] }
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
 oxrdf = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
