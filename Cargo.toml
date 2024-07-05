@@ -16,7 +16,7 @@ members = [
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 
 spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="31dca65feea17fd59c1e70010671ed2d610519e8", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="31dca65feea17fd59c1e70010671ed2d610519e8", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="31dca65feea17fd59c1e70010671ed2d610519e8" }
 pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="31dca65feea17fd59c1e70010671ed2d610519e8" }
 representation = { git = "https://github.com/DataTreehouse/maplib", rev="31dca65feea17fd59c1e70010671ed2d610519e8", features = ["rdf-star"] }
 
