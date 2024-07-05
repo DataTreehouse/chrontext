@@ -150,9 +150,8 @@ impl Combiner {
                 col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)),
             );
         }
-        let on_reverse_false = vec![false].repeat(on_cols.len());
         let sort_opts = SortMultipleOptions::new()
-            .with_order_descendings(on_reverse_false)
+            .with_order_descending(false)
             .with_maintain_order(false)
             .with_nulls_last(true);
         ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), sort_opts.clone());

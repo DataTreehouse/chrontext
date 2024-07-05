@@ -1,4 +1,4 @@
 w,datetime_seconds,sum_v
-<http://example.org/case#myWidget1>,1654073215,1115
-<http://example.org/case#myWidget2>,1654073210,200
-<http://example.org/case#myWidget2>,1654073215,1016
+http://example.org/case#myWidget1,1654073215,1115
+http://example.org/case#myWidget2,1654073210,200
+http://example.org/case#myWidget2,1654073215,1016

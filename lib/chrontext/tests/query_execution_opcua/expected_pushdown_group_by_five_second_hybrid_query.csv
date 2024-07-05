@@ -1,5 +1,5 @@
 w,datetime_seconds,sum_v
-<http://example.org/case#myWidget1>,2022-06-01T08:46:50.000000000,110
-<http://example.org/case#myWidget1>,2022-06-01T08:46:55.000000000,1115
-<http://example.org/case#myWidget2>,2022-06-01T08:46:55.000000000,1016
-<http://example.org/case#myWidget2>,2022-06-01T08:46:50.000000000,220
+http://example.org/case#myWidget1,2022-06-01T08:46:50.000000000,110
+http://example.org/case#myWidget1,2022-06-01T08:46:55.000000000,1115
+http://example.org/case#myWidget2,2022-06-01T08:46:55.000000000,1016
+http://example.org/case#myWidget2,2022-06-01T08:46:50.000000000,220

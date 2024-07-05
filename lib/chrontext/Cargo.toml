@@ -21,8 +21,7 @@ polars = { workspace = true, features = [
     "performant"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "rt"] }
 log = { workspace = true }
-#spargebra = { path = "../../spargebra", features = ["rdf-star"]}
-spargebra = { workspace = true, features = ["rdf-star"] }
+spargebra = { workspace = true }
 representation = { workspace=true }
 query_processing = { workspace = true }
 sparesults = { workspace = true }
@@ -39,11 +38,11 @@ serde_json = { workspace = true }
 filesize = { workspace = true }
 
 [dev-dependencies]
-bollard = "0.15.0"
-rstest = "0.18.2"
-polars = { version = "0.40.0", features = ["lazy", "unique_counts"] }
-tokio = { version = "1.32.1", features = ["rt-multi-thread"] }
-serial_test = "2.0.0"
-futures-util = "0.3.30"
+bollard.workspace = true
+rstest.workspace = true
+polars = { workspace = true, features = ["lazy", "unique_counts"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+serial_test.workspace = true
+futures-util.workspace = true
 reqwest = { workspace = true, features = ["stream", "json"] }
-opcua = {version="0.12.0", features = ["vendored-openssl"]}
+opcua.workspace = true

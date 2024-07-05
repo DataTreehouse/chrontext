@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 chrontext = { path = "../chrontext" }
-representation = { workspace = true }
-spargebra = { workspace = true, features = ["rdf-star"] }
-thiserror = { workspace = true }
+representation.workspace = true
+spargebra.workspace = true
+thiserror.workspace = true

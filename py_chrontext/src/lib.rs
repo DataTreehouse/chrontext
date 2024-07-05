@@ -40,15 +40,11 @@ use chrontext::engine::{Engine as RustEngine, EngineConfig};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
 use log::debug;
 use oxrdf::{IriParseError, NamedNode};
-use polars::prelude::{DataFrame, IntoLazy};
 use postgres::catalog::{Catalog as RustCatalog, DataProduct as RustDataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use representation::multitype::{
-    compress_actual_multitypes, lf_column_from_categorical, multi_columns_to_string_cols,
-};
-use representation::{BaseRDFNodeType as RustBaseRDFNodeType, RDFNodeType};
+use representation::{BaseRDFNodeType as RustBaseRDFNodeType};
 use std::collections::HashMap;
 use timeseries_query::TimeseriesTable as RustTimeseriesTable;
 use tokio::runtime::Builder;
@@ -153,9 +149,9 @@ impl Engine {
 
     pub fn query(
         &mut self,
-        py: Python<'_>,
         sparql: &str,
-        multi_to_strings: Option<bool>,
+        native_dataframe: Option<bool>,
+        py: Python<'_>,
     ) -> PyResult<PyObject> {
         if self.engine.is_none() {
             self.init()?;
@@ -170,7 +166,7 @@ impl Engine {
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
         (df, datatypes) =
-            fix_cats_and_multicolumns(df, datatypes, multi_to_strings.unwrap_or(false));
+            fix_cats_and_multicolumns(df, datatypes, native_dataframe.unwrap_or(false));
         let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
         Ok(pydf)
     }
@@ -322,16 +318,6 @@ impl Catalog {
     pub fn new(data_products: HashMap<String, DataProduct>) -> Catalog {
         Catalog { data_products }
     }
-    //
-    // pub fn to_json(&self) -> String {
-    //     self.to_rust()?.to_json()
-    // }
-    //
-    // pub fn from_json_string(json_string:String) -> Catalog {
-    //
-    // }
-    //
-    // pub fn from_json()
 }
 
 impl Catalog {

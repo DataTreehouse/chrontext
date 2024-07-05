@@ -36,11 +36,12 @@ class Engine:
         :return: 
         """
 
-    def query(self, query:str, multi_to_strings:bool=False) -> DataFrame:
+    def query(self, query:str, native_dataframe:bool=False) -> DataFrame:
         """
+        Execute a query
 
         :param query: The SPARQL query.
-        :param multi_to_strings: Convert columns with multiple types to strings, otherwise returns them as Polars structs.
+        :param native_dataframe: Return columns with chrontext-native formatting. Useful for round-trips into e.g. maplib.
         :return: The query result.
         """
 
