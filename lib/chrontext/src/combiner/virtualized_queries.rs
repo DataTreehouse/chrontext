@@ -26,30 +26,17 @@ impl Combiner {
         if !vq.has_identifiers() {
             let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
             expected_cols.sort();
-            let timestamp_vars: Vec<_> = vq
-                .get_timestamp_variables()
-                .into_iter()
-                .map(|x| x.variable.as_str())
-                .collect();
             let drop_cols = get_drop_cols(vq);
             let mut series_vec = vec![];
             for e in expected_cols {
                 if !drop_cols.contains(e) {
-                    if timestamp_vars.contains(&e) {
-                        let dt = BaseRDFNodeType::Literal(xsd::DATE_TIME.into_owned());
-                        series_vec.push(Series::new_empty(e, &dt.polars_data_type()));
-                        solution_mappings
-                            .rdf_node_types
-                            .insert(e.to_string(), dt.as_rdf_node_type());
-                    } else {
-                        series_vec.push(Series::new_empty(
-                            e,
-                            &BaseRDFNodeType::None.polars_data_type(),
-                        ));
-                        solution_mappings
-                            .rdf_node_types
-                            .insert(e.to_string(), RDFNodeType::None);
-                    }
+                    series_vec.push(Series::new_empty(
+                        e,
+                        &BaseRDFNodeType::None.polars_data_type(),
+                    ));
+                    solution_mappings
+                        .rdf_node_types
+                        .insert(e.to_string(), RDFNodeType::None);
                 }
             }
             let df = DataFrame::new(series_vec).unwrap();
@@ -222,9 +209,7 @@ pub(crate) fn complete_basic_virtualized_queries(
     for basic_query in basic_virtualized_queries {
         let mut ids = HashSet::new();
         for sqs in static_query_solutions {
-            if let Some(Term::Literal(lit)) =
-                sqs.get(basic_query.identifier_variable.as_ref().unwrap())
-            {
+            if let Some(Term::Literal(lit)) = sqs.get(&basic_query.identifier_variable) {
                 if lit.datatype() == xsd::STRING {
                     ids.insert(lit.value().to_string());
                 } else {
@@ -233,33 +218,23 @@ pub(crate) fn complete_basic_virtualized_queries(
             }
         }
 
-        let get_basic_query_value_var_name = |x: &BasicVirtualizedQuery| {
-            if let Some(vv) = &x.value_variable {
-                vv.variable.as_str().to_string()
-            } else {
-                "(unknown value variable)".to_string()
-            }
-        };
-
-        if let Some(resource_var) = &basic_query.resource_variable {
-            for sqs in static_query_solutions {
-                if let Some(Term::Literal(lit)) = sqs.get(resource_var) {
-                    if basic_query.resource.is_none() {
-                        if lit.datatype() != xsd::STRING {
-                            return Err(CombinerError::ResourceIsNotString(
-                                get_basic_query_value_var_name(basic_query),
-                                lit.datatype().to_string(),
-                            ));
-                        }
-                        basic_query.resource = Some(lit.value().into());
-                    } else if let Some(res) = &basic_query.resource {
-                        if res != lit.value() {
-                            return Err(CombinerError::InconsistentResourceName(
-                                get_basic_query_value_var_name(basic_query),
-                                res.clone(),
-                                lit.value().to_string(),
-                            ));
-                        }
+        for sqs in static_query_solutions {
+            if let Some(Term::Literal(lit)) = sqs.get(&basic_query.resource_variable) {
+                if basic_query.resource.is_none() {
+                    if lit.datatype() != xsd::STRING {
+                        return Err(CombinerError::ResourceIsNotString(
+                            basic_query.query_source_context.as_str().to_string(),
+                            lit.datatype().to_string(),
+                        ));
+                    }
+                    basic_query.resource = Some(lit.value().into());
+                } else if let Some(res) = &basic_query.resource {
+                    if res != lit.value() {
+                        return Err(CombinerError::InconsistentResourceName(
+                            basic_query.query_source_context.as_str().to_string(),
+                            res.clone(),
+                            lit.value().to_string(),
+                        ));
                     }
                 }
             }

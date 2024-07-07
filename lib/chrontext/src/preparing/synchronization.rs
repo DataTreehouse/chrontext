@@ -9,22 +9,22 @@ pub fn create_identity_synchronized_queries(
     while vqs.len() > 1 {
         let mut queries_to_synchronize = vec![];
         let first_query = vqs.remove(0);
-        let first_query_timestamp_variables_set: HashSet<Variable> = HashSet::from_iter(
+        let first_query_virtualized_variables_set: HashSet<Variable> = HashSet::from_iter(
             first_query
-                .get_timestamp_variables()
+                .get_virtualized_variables()
                 .into_iter()
                 .map(|x| x.variable.clone()),
         );
         let mut keep_vqs = vec![];
         for other in vqs.into_iter() {
-            let other_query_timestamp_variables_set = HashSet::from_iter(
+            let other_query_virtualized_variables_set = HashSet::from_iter(
                 other
-                    .get_timestamp_variables()
+                    .get_virtualized_variables()
                     .into_iter()
                     .map(|x| x.variable.clone()),
             );
-            if !first_query_timestamp_variables_set
-                .is_disjoint(&other_query_timestamp_variables_set)
+            if !first_query_virtualized_variables_set
+                .is_disjoint(&other_query_virtualized_variables_set)
             {
                 queries_to_synchronize.push(Box::new(other))
             } else {
@@ -37,7 +37,7 @@ pub fn create_identity_synchronized_queries(
             out_queries.push(VirtualizedQuery::InnerSynchronized(
                 queries_to_synchronize,
                 vec![Synchronizer::Identity(
-                    first_query_timestamp_variables_set
+                    first_query_virtualized_variables_set
                         .iter()
                         .next()
                         .unwrap()

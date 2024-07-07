@@ -226,7 +226,7 @@ impl TimeseriesInMemoryDatabase {
                 .insert(v.as_str().to_string(), rdf_node_type);
         }
         let mut groupby = vec![col(grouped.vq.get_groupby_column().unwrap())];
-        let tsfuncs = grouped.vq.get_timeseries_functions(&grouped.context);
+        let tsfuncs = grouped.vq.get_virtualized_functions(&grouped.context);
         for b in &grouped.by {
             for (v, _) in &tsfuncs {
                 if b == *v {

@@ -1,16 +1,15 @@
 pub mod pushdown_setting;
 pub mod python;
 
+use polars::export::ahash::HashMap;
 use polars::frame::DataFrame;
 use query_processing::find_query_variables::find_all_used_variables_in_expression;
 use representation::query_context::{Context, VariableInContext};
-use serde::{Deserialize, Serialize};
 use spargebra::algebra::{AggregateExpression, Expression};
 use spargebra::term::Variable;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use polars::export::ahash::HashMap;
 use templates::ast::Template;
 
 #[derive(Clone, Debug)]
@@ -46,27 +45,29 @@ pub struct GroupedVirtualizedQuery {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BasicVirtualizedQuery {
-    pub identifier_variable: Option<Variable>,
-    pub timeseries_variable: Option<VariableInContext>,
-    pub data_point_variable: Option<VariableInContext>,
-    pub value_variable: Option<VariableInContext>,
-    pub resource_variable: Option<Variable>,
+    pub identifier_variable: Variable,
+    pub variable_mapping: HashMap<Variable, VariableInContext>,
+    pub resource_variable: Variable,
+    pub query_source_context: Context,
     pub resource: Option<String>,
-    pub timestamp_variable: Option<VariableInContext>,
     pub ids: Option<Vec<String>>,
 }
 
 impl BasicVirtualizedQuery {
     fn expected_columns(&self) -> HashSet<&str> {
-        let mut expected_columns = HashSet::new();
-        expected_columns.insert(self.identifier_variable.as_ref().unwrap().as_str());
-        if let Some(vv) = &self.value_variable {
-            expected_columns.insert(vv.variable.as_str());
+        let mut s = HashSet::new();
+        for v in self.variable_mapping.keys() {
+            s.insert(v.as_str());
         }
-        if let Some(tsv) = &self.timestamp_variable {
-            expected_columns.insert(tsv.variable.as_str());
+        s
+    }
+
+    pub fn get_virtualized_variables(&self) -> Vec<&VariableInContext> {
+        let mut virt = vec![];
+        for vc in self.variable_mapping.values() {
+            virt.push(vc);
         }
-        expected_columns
+        virt
     }
 }
 
@@ -110,26 +111,27 @@ impl VirtualizedQuery {
     }
 
     pub fn validate(&self, df: &DataFrame) -> Result<(), TimeseriesValidationError> {
-        let expected_columns = self.expected_columns();
-        let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
-        if expected_columns != df_columns {
-            let err = TimeseriesValidationError {
-                missing_columns: expected_columns
-                    .difference(&df_columns)
-                    .map(|x| x.to_string())
-                    .collect(),
-                extra_columns: df_columns
-                    .difference(&expected_columns)
-                    .map(|x| x.to_string())
-                    .collect(),
-            };
-            Err(err)
-        } else {
-            Ok(())
-        }
+        todo!()
+        // let expected_columns = self.expected_columns();
+        // let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
+        // if expected_columns != df_columns {
+        //     let err = TimeseriesValidationError {
+        //         missing_columns: expected_columns
+        //             .difference(&df_columns)
+        //             .map(|x| x.to_string())
+        //             .collect(),
+        //         extra_columns: df_columns
+        //             .difference(&expected_columns)
+        //             .map(|x| x.to_string())
+        //             .collect(),
+        //     };
+        //     Err(err)
+        // } else {
+        //     Ok(())
+        // }
     }
 
-    pub fn expected_columns<'a>(&'a self) -> HashSet<&'a str> {
+    pub fn expected_columns(&self) -> HashSet<&str> {
         match self {
             VirtualizedQuery::Basic(b) => b.expected_columns(),
             VirtualizedQuery::Filtered(inner, ..) => inner.expected_columns(),
@@ -144,7 +146,7 @@ impl VirtualizedQuery {
                 for (v, _) in &g.aggregations {
                     expected_columns.insert(v.as_str());
                 }
-                let tsfuncs = g.vq.get_timeseries_functions(&g.context);
+                let tsfuncs = g.vq.get_virtualized_functions(&g.context);
                 for b in &g.by {
                     for (v, _) in &tsfuncs {
                         if b == *v {
@@ -160,22 +162,22 @@ impl VirtualizedQuery {
             VirtualizedQuery::GroupedBasic(b, _, c) => {
                 let mut expected = b.expected_columns();
                 expected.insert(c.as_str());
-                expected.remove(b.identifier_variable.as_ref().unwrap().as_str());
+                expected.remove(b.identifier_variable.as_str());
                 expected
             }
             VirtualizedQuery::ExpressionAs(t, ..) => t.expected_columns(),
             VirtualizedQuery::Limited(inner, ..) => inner.expected_columns(),
         }
     }
-
-    pub fn has_equivalent_value_variable(&self, variable: &Variable, context: &Context) -> bool {
-        for value_variable in self.get_value_variables() {
-            if value_variable.equivalent(variable, context) {
-                return true;
-            }
-        }
-        false
-    }
+    //
+    // pub fn has_equivalent_value_variable(&self, variable: &Variable, context: &Context) -> bool {
+    //     for value_variable in self.get_value_variables() {
+    //         if value_variable.equivalent(variable, context) {
+    //             return true;
+    //         }
+    //     }
+    //     false
+    // }
 
     pub fn get_ids(&self) -> Vec<&String> {
         match self {
@@ -207,44 +209,28 @@ impl VirtualizedQuery {
         }
     }
 
-    pub fn get_value_variables(&self) -> Vec<&VariableInContext> {
+    pub fn get_virtualized_variables(&self) -> Vec<&VariableInContext> {
         match self {
-            VirtualizedQuery::Basic(b) => {
-                if let Some(val_var) = &b.value_variable {
-                    vec![val_var]
-                } else {
-                    vec![]
-                }
-            }
-            VirtualizedQuery::Filtered(inner, _) => inner.get_value_variables(),
+            VirtualizedQuery::Basic(b) => b.get_virtualized_variables(),
+            VirtualizedQuery::Filtered(inner, _) => inner.get_virtualized_variables(),
             VirtualizedQuery::InnerSynchronized(inners, _) => {
                 let mut vs = vec![];
                 for inner in inners {
-                    vs.extend(inner.get_value_variables())
+                    vs.extend(inner.get_virtualized_variables())
                 }
                 vs
             }
-            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_value_variables(),
-            VirtualizedQuery::GroupedBasic(b, ..) => {
-                if let Some(val_var) = &b.value_variable {
-                    vec![val_var]
-                } else {
-                    vec![]
-                }
-            }
-            VirtualizedQuery::ExpressionAs(t, ..) => t.get_value_variables(),
-            VirtualizedQuery::Limited(inner, ..) => inner.get_value_variables(),
+            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_virtualized_variables(),
+            VirtualizedQuery::GroupedBasic(b, ..) => b.get_virtualized_variables(),
+            VirtualizedQuery::ExpressionAs(t, ..) => t.get_virtualized_variables(),
+            VirtualizedQuery::Limited(inner, ..) => inner.get_virtualized_variables(),
         }
     }
 
     pub fn get_identifier_variables(&self) -> Vec<&Variable> {
         match self {
             VirtualizedQuery::Basic(b) => {
-                if let Some(id_var) = &b.identifier_variable {
-                    vec![id_var]
-                } else {
-                    vec![]
-                }
+                vec![&b.identifier_variable]
             }
             VirtualizedQuery::Filtered(inner, _) => inner.get_identifier_variables(),
             VirtualizedQuery::InnerSynchronized(inners, _) => {
@@ -256,11 +242,7 @@ impl VirtualizedQuery {
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_identifier_variables(),
             VirtualizedQuery::GroupedBasic(b, ..) => {
-                if let Some(id_var) = &b.identifier_variable {
-                    vec![id_var]
-                } else {
-                    vec![]
-                }
+                vec![&b.identifier_variable]
             }
             VirtualizedQuery::ExpressionAs(t, ..) => t.get_identifier_variables(),
             VirtualizedQuery::Limited(inner, ..) => inner.get_identifier_variables(),
@@ -270,11 +252,7 @@ impl VirtualizedQuery {
     pub fn get_resource_variables(&self) -> Vec<&Variable> {
         match self {
             VirtualizedQuery::Basic(b) => {
-                if let Some(res_var) = &b.resource_variable {
-                    vec![res_var]
-                } else {
-                    vec![]
-                }
+                vec![&b.resource_variable]
             }
             VirtualizedQuery::Filtered(inner, _) => inner.get_resource_variables(),
             VirtualizedQuery::InnerSynchronized(inners, _) => {
@@ -286,71 +264,35 @@ impl VirtualizedQuery {
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_resource_variables(),
             VirtualizedQuery::GroupedBasic(b, ..) => {
-                if let Some(res_var) = &b.resource_variable {
-                    vec![res_var]
-                } else {
-                    vec![]
-                }
+                vec![&b.resource_variable]
             }
             VirtualizedQuery::ExpressionAs(t, ..) => t.get_resource_variables(),
             VirtualizedQuery::Limited(inner, ..) => inner.get_resource_variables(),
         }
     }
 
-    pub fn has_equivalent_timestamp_variable(
-        &self,
-        variable: &Variable,
-        context: &Context,
-    ) -> bool {
-        for ts in self.get_timestamp_variables() {
+    pub fn has_equivalent_variable(&self, variable: &Variable, context: &Context) -> bool {
+        for ts in self.get_virtualized_variables() {
             if ts.equivalent(variable, context) {
                 return true;
             }
         }
         false
     }
-
-    pub fn get_timestamp_variables(&self) -> Vec<&VariableInContext> {
-        match self {
-            VirtualizedQuery::Basic(b) => {
-                if let Some(v) = &b.timestamp_variable {
-                    vec![v]
-                } else {
-                    vec![]
-                }
-            }
-            VirtualizedQuery::Filtered(t, _) => t.get_timestamp_variables(),
-            VirtualizedQuery::InnerSynchronized(ts, _) => {
-                let mut vs = vec![];
-                for t in ts {
-                    vs.extend(t.get_timestamp_variables())
-                }
-                vs
-            }
-            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_timestamp_variables(),
-            VirtualizedQuery::GroupedBasic(b, ..) => {
-                if let Some(v) = &b.timestamp_variable {
-                    vec![v]
-                } else {
-                    vec![]
-                }
-            }
-            VirtualizedQuery::ExpressionAs(t, ..) => t.get_timestamp_variables(),
-            VirtualizedQuery::Limited(inner, ..) => inner.get_timestamp_variables(),
-        }
-    }
 }
 
 impl BasicVirtualizedQuery {
-    pub fn new_empty() -> BasicVirtualizedQuery {
+    pub fn new(
+        query_source_context: Context,
+        identifier_variable: Variable,
+        resource_variable: Variable,
+    ) -> BasicVirtualizedQuery {
         BasicVirtualizedQuery {
-            identifier_variable: None,
-            timeseries_variable: None,
-            data_point_variable: None,
-            value_variable: None,
-            resource_variable: None,
+            identifier_variable,
+            variable_mapping: Default::default(),
+            resource_variable,
+            query_source_context,
             resource: None,
-            timestamp_variable: None,
             ids: None,
         }
     }
@@ -405,7 +347,7 @@ impl VirtualizedQuery {
         }
     }
 
-    pub fn get_timeseries_functions(&self, context: &Context) -> Vec<(&Variable, &Expression)> {
+    pub fn get_virtualized_functions(&self, context: &Context) -> Vec<(&Variable, &Expression)> {
         match self {
             VirtualizedQuery::Basic(..) => {
                 vec![]
@@ -413,11 +355,11 @@ impl VirtualizedQuery {
             VirtualizedQuery::GroupedBasic(..) => {
                 vec![]
             }
-            VirtualizedQuery::Filtered(vq, _) => vq.get_timeseries_functions(context),
+            VirtualizedQuery::Filtered(vq, _) => vq.get_virtualized_functions(context),
             VirtualizedQuery::InnerSynchronized(vqs, _) => {
                 let mut out_tsfs = vec![];
                 for vq in vqs {
-                    out_tsfs.extend(vq.get_timeseries_functions(context))
+                    out_tsfs.extend(vq.get_virtualized_functions(context))
                 }
                 out_tsfs
             }
@@ -425,24 +367,24 @@ impl VirtualizedQuery {
                 let mut tsfs = vec![];
                 let mut used_vars = HashSet::new();
                 find_all_used_variables_in_expression(e, &mut used_vars);
-                let mut exists_timeseries_var = false;
-                let mut all_are_timeseries_var = true;
+                let mut exists_virtalized_var = false;
+                let mut all_are_virtualized_var = true;
                 for v in &used_vars {
-                    if vq.has_equivalent_timestamp_variable(v, context) {
-                        exists_timeseries_var = true;
+                    if vq.has_equivalent_variable(v, context) {
+                        exists_virtalized_var = true;
                     } else {
-                        all_are_timeseries_var = false;
+                        all_are_virtualized_var = false;
                         break;
                     }
                 }
-                if exists_timeseries_var && all_are_timeseries_var {
+                if exists_virtalized_var && all_are_virtualized_var {
                     tsfs.push((v, e))
                 }
-                tsfs.extend(vq.get_timeseries_functions(context));
+                tsfs.extend(vq.get_virtualized_functions(context));
                 tsfs
             }
-            VirtualizedQuery::Grouped(vq, ..) => vq.vq.get_timeseries_functions(context),
-            VirtualizedQuery::Limited(inner, ..) => inner.get_timeseries_functions(context),
+            VirtualizedQuery::Grouped(vq, ..) => vq.vq.get_virtualized_functions(context),
+            VirtualizedQuery::Limited(inner, ..) => inner.get_virtualized_functions(context),
         }
     }
 }

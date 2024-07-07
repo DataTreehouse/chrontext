@@ -31,7 +31,9 @@ impl std::convert::From<PyChrontextError> for PyErr {
                 QueryExecutionError::new_err(format!("{}", err))
             }
             PyChrontextError::MissingSPARQLDatabaseError => MissingSPARQLDatabaseError::new_err(""),
-            PyChrontextError::MultipleSPARQLDatabasesError => MultipleSPARQLDatabasesError::new_err(""),
+            PyChrontextError::MultipleSPARQLDatabasesError => {
+                MultipleSPARQLDatabasesError::new_err("")
+            }
             PyChrontextError::DataProductQueryParseError(e) => {
                 DataProductQueryParseError::new_err(format!("{}", e))
             }

@@ -43,15 +43,18 @@ use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use std::collections::HashMap;
+use representation::python::PyRDFType;
 use representation::BaseRDFNodeType;
-use representation::python::{PyRDFType};
-use templates::python::{PyArgument, PyInstance, PyIRI, PyLiteral, PyParameter, PyPrefix, PyTemplate, PyVariable, py_triple, a, xsd};
+use std::collections::HashMap;
+use templates::python::{
+    a, py_triple, xsd, PyArgument, PyIRI, PyInstance, PyLiteral, PyParameter, PyPrefix, PyTemplate,
+    PyVariable,
+};
 use tokio::runtime::Builder;
 use virtualization::python::PyVirtualizedDatabase;
 use virtualization::VirtualizedDatabase;
 
-#[pyclass(name="Engine")]
+#[pyclass(name = "Engine")]
 pub struct PyEngine {
     engine: Option<Engine>,
     sparql_endpoint: Option<String>,
@@ -103,12 +106,14 @@ impl PyEngine {
                 None
             };
 
-            let virtualized_database  = VirtualizedDatabase::PyVirtualizedDatabase(self.vdb.clone());
+            let virtualized_database = VirtualizedDatabase::PyVirtualizedDatabase(self.vdb.clone());
             let mut virtualization_map = HashMap::new();
-            for (k,v) in &self.vrs {
+            for (k, v) in &self.vrs {
                 virtualization_map.insert(k.clone(), v.template.clone());
             }
-            let virtualization = Virtualization {resources:virtualization_map };
+            let virtualization = Virtualization {
+                resources: virtualization_map,
+            };
 
             let config = EngineConfig {
                 sparql_oxigraph_config,
@@ -117,9 +122,8 @@ impl PyEngine {
                 virtualization,
             };
 
-            self.engine = Some(
-                Engine::from_config(config).map_err(|x| PyChrontextError::ChrontextError(x))?,
-            );
+            self.engine =
+                Some(Engine::from_config(config).map_err(|x| PyChrontextError::ChrontextError(x))?);
         }
         Ok(())
     }
@@ -166,7 +170,7 @@ impl PyEngine {
 }
 
 #[derive(Clone)]
-#[pyclass(name="SparqlEmbeddedOxigraph")]
+#[pyclass(name = "SparqlEmbeddedOxigraph")]
 pub struct PySparqlEmbeddedOxigraph {
     path: Option<String>,
     ntriples_file: String,
@@ -192,7 +196,7 @@ impl PySparqlEmbeddedOxigraph {
     }
 }
 
-#[pyclass(name="Catalog")]
+#[pyclass(name = "Catalog")]
 #[derive(Clone)]
 pub struct PyCatalog {
     pub data_products: HashMap<String, PyDataProduct>,
@@ -216,7 +220,7 @@ impl PyCatalog {
     }
 }
 
-#[pyclass(name="DataProduct")]
+#[pyclass(name = "DataProduct")]
 #[derive(Clone)]
 pub struct PyDataProduct {
     pub query: String,
@@ -235,7 +239,10 @@ impl PyDataProduct {
     pub fn to_rust(&self) -> Result<DataProduct, PyChrontextError> {
         let mut rdf_node_types = HashMap::new();
         for (k, v) in &self.types {
-            rdf_node_types.insert(k.clone(), BaseRDFNodeType::from_rdf_node_type(&v.as_rdf_node_type()?));
+            rdf_node_types.insert(
+                k.clone(),
+                BaseRDFNodeType::from_rdf_node_type(&v.as_rdf_node_type()?),
+            );
         }
         let mut rdp = DataProduct {
             query_string: self.query.clone(),

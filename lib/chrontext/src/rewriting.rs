@@ -7,6 +7,7 @@ mod subqueries;
 
 use crate::constraints::{Constraint, VariableConstraints};
 use crate::rewriting::expressions::ExReturn;
+use oxrdf::NamedNode;
 use representation::query_context::Context;
 use spargebra::algebra::Expression;
 use spargebra::term::Variable;
@@ -17,24 +18,29 @@ use virtualized_query::BasicVirtualizedQuery;
 #[derive(Debug)]
 pub struct StaticQueryRewriter {
     variable_counter: u16,
-    additional_projections: HashSet<Variable>,
     variable_constraints: VariableConstraints,
+    additional_projections: HashSet<Variable>,
     basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
+    first_level_virtualized_predicates: HashSet<NamedNode>,
     static_subqueries: HashMap<Context, Query>,
     rewritten_filters: HashMap<Context, Expression>,
     is_hybrid: bool,
 }
 
 impl StaticQueryRewriter {
-    pub fn new(variable_constraints: &VariableConstraints) -> StaticQueryRewriter {
+    pub fn new(
+        variable_constraints: VariableConstraints,
+        first_level_virtualized_predicates: HashSet<NamedNode>,
+    ) -> StaticQueryRewriter {
         StaticQueryRewriter {
             variable_counter: 0,
             additional_projections: Default::default(),
-            variable_constraints: variable_constraints.clone(),
+            variable_constraints,
+            first_level_virtualized_predicates,
             basic_virtualized_queries: vec![],
             static_subqueries: HashMap::new(),
             rewritten_filters: HashMap::new(),
-            is_hybrid: variable_constraints.has_datapoints(),
+            is_hybrid: true, //TODO!
         }
     }
 
@@ -88,11 +94,7 @@ impl StaticQueryRewriter {
 
     fn rewrite_variable(&self, v: &Variable, context: &Context) -> Option<Variable> {
         if let Some(ctr) = self.variable_constraints.get_constraint(v, context) {
-            if !(ctr == &Constraint::ExternalDataPoint
-                || ctr == &Constraint::ExternalDataValue
-                || ctr == &Constraint::ExternalTimestamp
-                || ctr == &Constraint::ExternallyDerived)
-            {
+            if !(ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived) {
                 Some(v.clone())
             } else {
                 None

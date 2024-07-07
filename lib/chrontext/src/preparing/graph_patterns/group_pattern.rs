@@ -50,9 +50,8 @@ impl TimeseriesQueryPrepper {
 
                     if in_scope {
                         let grouping_col = self.add_grouping_col(solution_mappings, by);
-                        vq =
-                            add_basic_groupby_mapping_values(vq, solution_mappings, &grouping_col);
-                        let tsfuncs = vq.get_timeseries_functions(context);
+                        vq = add_basic_groupby_mapping_values(vq, solution_mappings, &grouping_col);
+                        let tsfuncs = vq.get_virtualized_functions(context);
                         let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
                         for v in by {
                             for (v2, _) in &tsfuncs {
@@ -129,9 +128,7 @@ fn check_aggregations_are_in_scope(
         let mut used_vars = HashSet::new();
         find_all_used_variables_in_aggregate_expression(ae, &mut used_vars);
         for v in &used_vars {
-            if vq.has_equivalent_timestamp_variable(v, context) {
-                continue;
-            } else if vq.has_equivalent_value_variable(v, context) {
+            if vq.has_equivalent_variable(v, context) {
                 continue;
             } else {
                 debug!("Variable {:?} in aggregate expression not in scope", v);
@@ -149,10 +146,7 @@ fn add_basic_groupby_mapping_values(
 ) -> VirtualizedQuery {
     match vq {
         VirtualizedQuery::Basic(b) => {
-            let by_vec = vec![
-                grouping_col,
-                b.identifier_variable.as_ref().unwrap().as_str(),
-            ];
+            let by_vec = vec![grouping_col, b.identifier_variable.as_str()];
             solution_mappings.mappings =
                 solution_mappings.mappings.clone().collect().unwrap().lazy();
             let mapping_values = solution_mappings

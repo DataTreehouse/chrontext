@@ -1,38 +1,39 @@
-pub mod python;
 pub mod errors;
+pub mod python;
 
-use async_trait::async_trait;
-use polars::prelude::{DataFrame, DataType};
-use representation::polars_to_rdf::polars_type_to_literal_type;
-use representation::solution_mapping::{EagerSolutionMappings, SolutionMappings};
-use representation::RDFNodeType;
-use std::collections::{HashMap, HashSet};
-use std::error::Error;
-use pyo3::Python;
-use virtualized_query::{VirtualizedQuery};
-use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use crate::errors::VirtualizedDatabaseError;
 use crate::python::PyVirtualizedDatabase;
+use polars::prelude::{DataFrame, DataType};
+use representation::polars_to_rdf::polars_type_to_literal_type;
+use representation::solution_mapping::EagerSolutionMappings;
+use representation::RDFNodeType;
+use std::collections::{HashMap, HashSet};
+use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
+use virtualized_query::VirtualizedQuery;
 
 #[derive(Debug)]
 pub enum VirtualizedDatabase {
-    PyVirtualizedDatabase(PyVirtualizedDatabase)
+    PyVirtualizedDatabase(PyVirtualizedDatabase),
 }
 
 impl VirtualizedDatabase {
     pub fn pushdown_settings(&self) -> HashSet<PushdownSetting> {
-        match self { VirtualizedDatabase::PyVirtualizedDatabase(_) => {
-            all_pushdowns()
-        } }
-
+        match self {
+            VirtualizedDatabase::PyVirtualizedDatabase(_) => all_pushdowns(),
+        }
     }
 
-    pub async fn query(&self, vq: &VirtualizedQuery) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
-        match self { VirtualizedDatabase::PyVirtualizedDatabase(pyvdb) => {
-            let df = pyvdb.query(vq).map_err(VirtualizedDatabaseError::from)?;
-            let rdf_node_types = get_datatype_map(&df);
-            Ok(EagerSolutionMappings::new(df, rdf_node_types))
-        } }
+    pub async fn query(
+        &self,
+        vq: &VirtualizedQuery,
+    ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
+        match self {
+            VirtualizedDatabase::PyVirtualizedDatabase(pyvdb) => {
+                let df = pyvdb.query(vq).map_err(VirtualizedDatabaseError::from)?;
+                let rdf_node_types = get_datatype_map(&df);
+                Ok(EagerSolutionMappings::new(df, rdf_node_types))
+            }
+        }
     }
 }
 

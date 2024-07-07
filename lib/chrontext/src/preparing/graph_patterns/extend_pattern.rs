@@ -36,9 +36,7 @@ impl TimeseriesQueryPrepper {
                     let mut found_all = true;
                     let mut found_some = false;
                     for expression_var in &expression_vars {
-                        if vq.has_equivalent_value_variable(expression_var, context) {
-                            found_some = true;
-                        } else if vq.has_equivalent_timestamp_variable(expression_var, context) {
+                        if vq.has_equivalent_variable(expression_var, context) {
                             found_some = true;
                         } else {
                             found_all = false;

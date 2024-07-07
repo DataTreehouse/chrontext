@@ -82,14 +82,14 @@ pub(crate) fn try_recursive_rewrite_expression(
             );
         }
         Expression::Variable(v) => {
-            if vq.has_equivalent_timestamp_variable(v, context) {
+            if vq.has_equivalent_variable(v, context) {
                 return RecursiveRewriteReturn::new(
                     Some(Expression::Variable(v.clone())),
                     Some(ChangeType::NoChange),
                     false,
                 );
             } else if vq
-                .get_value_variables()
+                .get_virtualized_variables()
                 .into_iter()
                 .find(|x| &x.variable == v)
                 .is_some()

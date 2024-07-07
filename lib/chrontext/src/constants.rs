@@ -1,3 +1,4 @@
+pub const ID_VARIABLE_NAME: &str = "id";
 pub const HAS_TIMESTAMP: &str = "https://github.com/DataTreehouse/chrontext#hasTimestamp";
 pub const HAS_TIMESERIES: &str = "https://github.com/DataTreehouse/chrontext#hasTimeseries";
 pub const HAS_DATA_POINT: &str = "https://github.com/DataTreehouse/chrontext#hasDataPoint";

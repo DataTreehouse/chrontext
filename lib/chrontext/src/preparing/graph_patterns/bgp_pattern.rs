@@ -14,10 +14,8 @@ impl TimeseriesQueryPrepper {
         let mut local_vqs = vec![];
         let bgp_context = context.extension_with(PathEntry::BGP);
         for vq in &self.basic_virtualized_queries {
-            if let Some(dp_ctx) = &vq.data_point_variable {
-                if &dp_ctx.context == &bgp_context {
-                    local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
-                }
+            if &vq.query_source_context == &bgp_context {
+                local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
             }
         }
         if try_groupby_complex_query {

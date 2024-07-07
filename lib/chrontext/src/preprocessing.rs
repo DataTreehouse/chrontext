@@ -1,5 +1,5 @@
-use crate::constants::{HAS_DATA_POINT, HAS_TIMESERIES, HAS_TIMESTAMP, HAS_VALUE};
 use crate::constraints::{Constraint, VariableConstraints};
+use oxrdf::NamedNode;
 use query_processing::find_query_variables::{
     find_all_used_variables_in_aggregate_expression, find_all_used_variables_in_expression,
 };
@@ -15,14 +15,21 @@ pub struct Preprocessor {
     counter: u16,
     blank_node_rename: HashMap<BlankNode, Variable>,
     variable_constraints: VariableConstraints,
+    virtual_predicate_iris: HashSet<NamedNode>,
+    first_level_virtual_predicate_iris: HashSet<NamedNode>,
 }
 
 impl Preprocessor {
-    pub fn new() -> Preprocessor {
+    pub fn new(
+        virtual_predicate_iris: HashSet<NamedNode>,
+        first_level_virtual_predicate_iris: HashSet<NamedNode>,
+    ) -> Preprocessor {
         Preprocessor {
             counter: 0,
             blank_node_rename: Default::default(),
             variable_constraints: VariableConstraints::new(),
+            virtual_predicate_iris,
+            first_level_virtual_predicate_iris,
         }
     }
 
@@ -158,10 +165,7 @@ impl Preprocessor {
                 find_all_used_variables_in_expression(expression, &mut used_vars);
                 for v in used_vars.drain() {
                     if let Some(ctr) = self.variable_constraints.get_constraint(&v, context) {
-                        if ctr == &Constraint::ExternalDataValue
-                            || ctr == &Constraint::ExternalTimestamp
-                            || ctr == &Constraint::ExternallyDerived
-                        {
+                        if ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived {
                             if !self.variable_constraints.contains(variable, context) {
                                 self.variable_constraints.insert(
                                     variable.clone(),
@@ -279,9 +283,7 @@ impl Preprocessor {
                     find_all_used_variables_in_aggregate_expression(agg, &mut used_vars);
                     for v in used_vars.drain() {
                         if let Some(ctr) = self.variable_constraints.get_constraint(&v, context) {
-                            if ctr == &Constraint::ExternalDataValue
-                                || ctr == &Constraint::ExternalTimestamp
-                                || ctr == &Constraint::ExternallyDerived
+                            if ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived
                             {
                                 self.variable_constraints.insert(
                                     variable.clone(),
@@ -345,48 +347,22 @@ impl Preprocessor {
                 TermPattern::Variable(new_object_variable),
             ) = (&new_subject, &new_object)
             {
-                if named_predicate_node == &HAS_TIMESERIES {
+                if self.virtual_predicate_iris.contains(named_predicate_node) {
                     self.variable_constraints.insert(
                         new_object_variable.clone(),
                         context.clone(),
-                        Constraint::ExternalTimeseries,
+                        Constraint::External,
                     );
-                }
-                if named_predicate_node == &HAS_TIMESTAMP {
-                    self.variable_constraints.insert(
-                        new_object_variable.clone(),
-                        context.clone(),
-                        Constraint::ExternalTimestamp,
-                    );
-                    self.variable_constraints.insert(
-                        new_subject_variable.clone(),
-                        context.clone(),
-                        Constraint::ExternalDataPoint,
-                    );
-                }
-                if named_predicate_node == &HAS_VALUE {
-                    self.variable_constraints.insert(
-                        new_object_variable.clone(),
-                        context.clone(),
-                        Constraint::ExternalDataValue,
-                    );
-                    self.variable_constraints.insert(
-                        new_subject_variable.clone(),
-                        context.clone(),
-                        Constraint::ExternalDataPoint,
-                    );
-                }
-                if named_predicate_node == &HAS_DATA_POINT {
-                    self.variable_constraints.insert(
-                        new_object_variable.clone(),
-                        context.clone(),
-                        Constraint::ExternalDataPoint,
-                    );
-                    self.variable_constraints.insert(
-                        new_subject_variable.clone(),
-                        context.clone(),
-                        Constraint::ExternalTimeseries,
-                    );
+                    if !self
+                        .first_level_virtual_predicate_iris
+                        .contains(named_predicate_node)
+                    {
+                        self.variable_constraints.insert(
+                            new_subject_variable.clone(),
+                            context.clone(),
+                            Constraint::External,
+                        );
+                    }
                 }
             }
         }

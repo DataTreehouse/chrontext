@@ -17,12 +17,11 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
-use pyo3::Python;
 use thiserror::Error;
-use virtualized_query::pushdown_setting::PushdownSetting;
-use virtualized_query::{BasicVirtualizedQuery, TimeseriesValidationError};
 use virtualization::errors::VirtualizedDatabaseError;
 use virtualization::VirtualizedDatabase;
+use virtualized_query::pushdown_setting::PushdownSetting;
+use virtualized_query::{BasicVirtualizedQuery, TimeseriesValidationError};
 
 #[derive(Debug, Error)]
 pub enum CombinerError {
@@ -57,13 +56,13 @@ impl Display for CombinerError {
             CombinerError::ResourceIsNotString(value_var, actual_datatype) => {
                 write!(
                     f,
-                    "Resource variable for value variable {value_var} is not of type string, actual: {actual_datatype}"
+                    "Resource variable for context {value_var} is not of type string, actual: {actual_datatype}"
                 )
             }
             CombinerError::InconsistentResourceName(value_var, r1, r2) => {
                 write!(
                     f,
-                    "Resource variable for value variable {value_var} has conflicting values {r1} != {r2}"
+                    "Resource variable for context {value_var} has conflicting variables {r1} != {r2}"
                 )
             }
             CombinerError::QueryProcessingError(e) => {

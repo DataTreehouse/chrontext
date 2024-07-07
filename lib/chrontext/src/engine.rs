@@ -1,4 +1,5 @@
 use crate::combiner::Combiner;
+use crate::constants::ID_VARIABLE_NAME;
 use crate::errors::ChrontextError;
 use crate::preprocessing::Preprocessor;
 use crate::rewriting::StaticQueryRewriter;
@@ -7,6 +8,7 @@ use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
 use crate::sparql_database::SparqlQueryable;
 use crate::splitter::parse_sparql_select_query;
 use log::debug;
+use oxrdf::NamedNode;
 use polars::enable_string_cache;
 use polars::frame::DataFrame;
 use representation::solution_mapping::SolutionMappings;
@@ -14,10 +16,10 @@ use representation::RDFNodeType;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
-use pyo3::Python;
-use templates::ast::Template;
-use virtualized_query::pushdown_setting::{PushdownSetting};
+use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
+use templates::constants::OTTR_TRIPLE;
 use virtualization::VirtualizedDatabase;
+use virtualized_query::pushdown_setting::PushdownSetting;
 
 #[derive(Debug)]
 pub struct EngineConfig {
@@ -29,17 +31,57 @@ pub struct EngineConfig {
 
 #[derive(Debug)]
 pub struct Virtualization {
-    pub resources: HashMap<String, Template>
+    pub resources: HashMap<String, Template>,
 }
 
-pub struct QueryWithOptionalPy<'py> {
-    query: &'py str,
-    optional_py: Python<'py>
+impl Virtualization {
+    pub fn get_virtualized_iris(&self) -> HashSet<NamedNode> {
+        let mut nns = HashSet::new();
+        for t in self.resources.values() {
+            for i in &t.pattern_list {
+                assert_eq!(i.template_name.as_str(), OTTR_TRIPLE);
+                let a = i.argument_list.get(1).unwrap();
+                if let StottrTerm::ConstantTerm(ConstantTermOrList::ConstantTerm(
+                    ConstantTerm::Iri(nn),
+                )) = &a.term
+                {
+                    nns.insert(nn.clone());
+                } else {
+                    todo!("Handle this error")
+                }
+            }
+        }
+        nns
+    }
+    pub fn get_first_level_virtualized_iris(&self) -> HashSet<NamedNode> {
+        let mut nns = HashSet::new();
+        for t in self.resources.values() {
+            for i in &t.pattern_list {
+                assert_eq!(i.template_name.as_str(), OTTR_TRIPLE);
+                let subj = i.argument_list.get(0).unwrap();
+                if let StottrTerm::Variable(v) = &subj.term {
+                    if &v.name == ID_VARIABLE_NAME {
+                        let a = i.argument_list.get(1).unwrap();
+                        if let StottrTerm::ConstantTerm(ConstantTermOrList::ConstantTerm(
+                            ConstantTerm::Iri(nn),
+                        )) = &a.term
+                        {
+                            nns.insert(nn.clone());
+                        } else {
+                            todo!("Handle this error")
+                        }
+                    }
+                }
+            }
+        }
+        nns
+    }
 }
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
     virtualized_database: Arc<VirtualizedDatabase>,
+    virtualization: Virtualization,
     pub sparql_database: Arc<dyn SparqlQueryable>,
 }
 
@@ -47,12 +89,14 @@ impl Engine {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
         virtualized_database: Arc<VirtualizedDatabase>,
+        virtualization: Virtualization,
         sparql_database: Arc<dyn SparqlQueryable>,
     ) -> Engine {
         Engine {
             pushdown_settings,
             virtualized_database: virtualized_database,
             sparql_database: sparql_database,
+            virtualization,
         }
     }
 
@@ -80,6 +124,7 @@ impl Engine {
         Ok(Engine::new(
             pushdown_settings,
             Arc::new(virtualized_database),
+            virtualization,
             sparql_queryable,
         ))
     }
@@ -92,10 +137,14 @@ impl Engine {
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", &parsed_query);
         debug!("Parsed query algebra: {:?}", &parsed_query);
-        let mut preprocessor = Preprocessor::new();
+        let virtualized_iris = self.virtualization.get_virtualized_iris();
+        let first_level_virtualized_iris = self.virtualization.get_first_level_virtualized_iris();
+
+        let mut preprocessor =
+            Preprocessor::new(virtualized_iris, first_level_virtualized_iris.clone());
         let (preprocessed_query, variable_constraints) = preprocessor.preprocess(&parsed_query);
         debug!("Constraints: {:?}", variable_constraints);
-        let rewriter = StaticQueryRewriter::new(&variable_constraints);
+        let rewriter = StaticQueryRewriter::new(variable_constraints, first_level_virtualized_iris);
         let (static_queries_map, basic_virtualized_queries, rewritten_filters) =
             rewriter.rewrite_query(preprocessed_query);
         debug!("Produced static rewrite: {:?}", static_queries_map);
