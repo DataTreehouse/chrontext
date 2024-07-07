@@ -8,8 +8,10 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
+use crate::engine::Virtualization;
 
 #[derive(Debug)]
 pub struct TimeseriesQueryPrepper {
@@ -17,6 +19,7 @@ pub struct TimeseriesQueryPrepper {
     pub(crate) basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
     grouping_counter: u16,
     rewritten_filters: HashMap<Context, Expression>,
+    virtualization: Arc<Virtualization>
 }
 
 impl TimeseriesQueryPrepper {
@@ -24,12 +27,14 @@ impl TimeseriesQueryPrepper {
         pushdown_settings: HashSet<PushdownSetting>,
         basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
         rewritten_filters: HashMap<Context, Expression>,
+        virtualization: Arc<Virtualization>,
     ) -> TimeseriesQueryPrepper {
         TimeseriesQueryPrepper {
             pushdown_settings,
             basic_virtualized_queries,
             grouping_counter: 0,
             rewritten_filters,
+            virtualization,
         }
     }
 

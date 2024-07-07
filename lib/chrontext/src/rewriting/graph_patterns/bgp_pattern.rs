@@ -24,8 +24,8 @@ impl StaticQueryRewriter {
         for t in patterns {
             if let NamedNodePattern::NamedNode(nn) = &t.predicate {
                 if self.first_level_virtualized_predicates.contains(nn) {
-                    if let TermPattern::Variable(ts_var) = &t.subject {
-                        if !external_ids_in_scope.contains_key(ts_var) {
+                    if let TermPattern::Variable(subj_var) = &t.subject {
+                        if !external_ids_in_scope.contains_key(subj_var) {
                             let external_id_var = Variable::new(
                                 "ts_external_id_".to_string()
                                     + self.variable_counter.to_string().as_str(),
@@ -40,19 +40,20 @@ impl StaticQueryRewriter {
 
                             let bvq = BasicVirtualizedQuery::new(
                                 context.clone(),
+                                subj_var.clone(),
                                 external_id_var.clone(),
                                 resource_var.clone(),
                             );
                             new_basic_vqs.push(bvq);
                             let new_external_id_triple = TriplePattern {
-                                subject: TermPattern::Variable(ts_var.clone()),
+                                subject: TermPattern::Variable(subj_var.clone()),
                                 predicate: NamedNodePattern::NamedNode(
                                     NamedNode::new(HAS_EXTERNAL_ID).unwrap(),
                                 ),
                                 object: TermPattern::Variable(external_id_var.clone()),
                             };
                             let new_resource_triple = TriplePattern {
-                                subject: TermPattern::Variable(ts_var.clone()),
+                                subject: TermPattern::Variable(subj_var.clone()),
                                 predicate: NamedNodePattern::NamedNode(NamedNode::new_unchecked(
                                     HAS_RESOURCE,
                                 )),
@@ -61,8 +62,8 @@ impl StaticQueryRewriter {
                             new_triples.push(new_external_id_triple);
                             new_triples.push(new_resource_triple);
                             external_ids_in_scope
-                                .insert(ts_var.clone(), vec![external_id_var.clone()]);
-                            resources_in_scope.insert(ts_var.clone(), vec![resource_var.clone()]);
+                                .insert(subj_var.clone(), vec![external_id_var.clone()]);
+                            resources_in_scope.insert(subj_var.clone(), vec![resource_var.clone()]);
                         }
                     }
                 }

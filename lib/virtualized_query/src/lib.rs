@@ -6,11 +6,13 @@ use polars::frame::DataFrame;
 use query_processing::find_query_variables::find_all_used_variables_in_expression;
 use representation::query_context::{Context, VariableInContext};
 use spargebra::algebra::{AggregateExpression, Expression};
-use spargebra::term::Variable;
+use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern, Variable};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use templates::ast::Template;
+use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
+
+pub const ID_VARIABLE_NAME: &str = "id";
 
 #[derive(Clone, Debug)]
 pub struct Virtualization {
@@ -46,26 +48,106 @@ pub struct GroupedVirtualizedQuery {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BasicVirtualizedQuery {
     pub identifier_variable: Variable,
-    pub variable_mapping: HashMap<Variable, VariableInContext>,
+    pub column_mapping: HashMap<String, TermPattern>,
     pub resource_variable: Variable,
     pub query_source_context: Context,
+    pub query_source_variable: Variable,
     pub resource: Option<String>,
     pub ids: Option<Vec<String>>,
 }
 
 impl BasicVirtualizedQuery {
+    pub fn finish_column_mapping(&mut self, patterns: &Vec<TriplePattern>, template: &Template) {
+        let mut new_mappings = vec![];
+        let mut visited_query_vars = HashSet::new();
+
+        let mut queue = vec![(&self.query_source_variable, ID_VARIABLE_NAME)];
+        while !queue.is_empty() {
+            let (current_query_var, current_template_var_name) = queue.pop().unwrap();
+            if !visited_query_vars.contains(&current_query_var) {
+                visited_query_vars.insert(current_query_var);
+                for p in patterns {
+                    match &p.predicate {
+                        NamedNodePattern::NamedNode(nn) => {
+                            if let TermPattern::Variable(v) = &p.subject {
+                                if current_query_var == v {
+                                    for tp in &template.pattern_list {
+                                        if let StottrTerm::ConstantTerm(
+                                            ConstantTermOrList::ConstantTerm(ConstantTerm::Iri(
+                                                template_nn,
+                                            )),
+                                        ) = &tp.argument_list.get(1).unwrap().term
+                                        {
+                                            if nn == template_nn {
+                                                match &tp.argument_list.get(0).unwrap().term {
+                                                    StottrTerm::Variable(tv) => {
+                                                        if tv.name.as_str()
+                                                            == current_template_var_name
+                                                        {
+                                                            match &tp
+                                                                .argument_list
+                                                                .get(2)
+                                                                .unwrap()
+                                                                .term
+                                                            {
+                                                                StottrTerm::Variable(tobj) => {
+                                                                    new_mappings.push((
+                                                                        tobj.name.clone(),
+                                                                        p.object.clone(),
+                                                                    ));
+                                                                    if let TermPattern::Variable(
+                                                                        obj,
+                                                                    ) = &p.object
+                                                                    {
+                                                                        queue.push((
+                                                                            obj,
+                                                                            tobj.name.as_str(),
+                                                                        ));
+                                                                    }
+                                                                }
+                                                                StottrTerm::ConstantTerm(_) => {}
+                                                                StottrTerm::List(_) => {}
+                                                            }
+                                                        }
+                                                    }
+                                                    StottrTerm::ConstantTerm(_) => {}
+                                                    StottrTerm::List(_) => {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        NamedNodePattern::Variable(_) => {
+                            //Need to check if subject is external.. and then do something..
+                        }
+                    }
+                }
+            }
+        }
+        self.column_mapping.extend(new_mappings);
+    }
+}
+
+impl BasicVirtualizedQuery {
     fn expected_columns(&self) -> HashSet<&str> {
         let mut s = HashSet::new();
-        for v in self.variable_mapping.keys() {
+        for v in self.column_mapping.keys() {
             s.insert(v.as_str());
         }
         s
     }
 
-    pub fn get_virtualized_variables(&self) -> Vec<&VariableInContext> {
+    pub fn get_virtualized_variables(&self) -> Vec<VariableInContext> {
         let mut virt = vec![];
-        for vc in self.variable_mapping.values() {
-            virt.push(vc);
+        for vc in self.column_mapping.values() {
+            if let TermPattern::Variable(vt) = vc {
+                virt.push(VariableInContext::new(
+                    vt.clone(),
+                    self.query_source_context.clone(),
+                ));
+            }
         }
         virt
     }
@@ -111,24 +193,23 @@ impl VirtualizedQuery {
     }
 
     pub fn validate(&self, df: &DataFrame) -> Result<(), TimeseriesValidationError> {
-        todo!()
-        // let expected_columns = self.expected_columns();
-        // let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
-        // if expected_columns != df_columns {
-        //     let err = TimeseriesValidationError {
-        //         missing_columns: expected_columns
-        //             .difference(&df_columns)
-        //             .map(|x| x.to_string())
-        //             .collect(),
-        //         extra_columns: df_columns
-        //             .difference(&expected_columns)
-        //             .map(|x| x.to_string())
-        //             .collect(),
-        //     };
-        //     Err(err)
-        // } else {
-        //     Ok(())
-        // }
+        let expected_columns = self.expected_columns();
+        let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
+        if expected_columns != df_columns {
+            let err = TimeseriesValidationError {
+                missing_columns: expected_columns
+                    .difference(&df_columns)
+                    .map(|x| x.to_string())
+                    .collect(),
+                extra_columns: df_columns
+                    .difference(&expected_columns)
+                    .map(|x| x.to_string())
+                    .collect(),
+            };
+            Err(err)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn expected_columns(&self) -> HashSet<&str> {
@@ -209,7 +290,7 @@ impl VirtualizedQuery {
         }
     }
 
-    pub fn get_virtualized_variables(&self) -> Vec<&VariableInContext> {
+    pub fn get_virtualized_variables(&self) -> Vec<VariableInContext> {
         match self {
             VirtualizedQuery::Basic(b) => b.get_virtualized_variables(),
             VirtualizedQuery::Filtered(inner, _) => inner.get_virtualized_variables(),
@@ -284,14 +365,16 @@ impl VirtualizedQuery {
 impl BasicVirtualizedQuery {
     pub fn new(
         query_source_context: Context,
+        query_source_variable: Variable,
         identifier_variable: Variable,
         resource_variable: Variable,
     ) -> BasicVirtualizedQuery {
         BasicVirtualizedQuery {
             identifier_variable,
-            variable_mapping: Default::default(),
+            column_mapping: Default::default(),
             resource_variable,
             query_source_context,
+            query_source_variable,
             resource: None,
             ids: None,
         }

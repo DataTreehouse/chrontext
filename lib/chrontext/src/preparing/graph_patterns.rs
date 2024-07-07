@@ -71,8 +71,8 @@ impl TimeseriesQueryPrepper {
             try_groupby_complex_query
         );
         match graph_pattern {
-            GraphPattern::Bgp { patterns: _ } => {
-                self.prepare_bgp(try_groupby_complex_query, context)
+            GraphPattern::Bgp { patterns } => {
+                self.prepare_bgp(try_groupby_complex_query, patterns, context)
             }
             GraphPattern::Path {
                 subject,

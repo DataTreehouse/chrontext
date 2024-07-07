@@ -22,6 +22,7 @@ use virtualization::errors::VirtualizedDatabaseError;
 use virtualization::VirtualizedDatabase;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{BasicVirtualizedQuery, TimeseriesValidationError};
+use crate::engine::Virtualization;
 
 #[derive(Debug, Error)]
 pub enum CombinerError {
@@ -86,11 +87,13 @@ impl Combiner {
         virtualized_database: Arc<VirtualizedDatabase>,
         basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
         rewritten_filters: HashMap<Context, Expression>,
+        virtualization: Arc<Virtualization>,
     ) -> Combiner {
         let prepper = TimeseriesQueryPrepper::new(
             pushdown_settings,
             basic_virtualized_queries,
             rewritten_filters,
+            virtualization
         );
         Combiner {
             counter: 0,

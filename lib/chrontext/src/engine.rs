@@ -1,5 +1,4 @@
 use crate::combiner::Combiner;
-use crate::constants::ID_VARIABLE_NAME;
 use crate::errors::ChrontextError;
 use crate::preprocessing::Preprocessor;
 use crate::rewriting::StaticQueryRewriter;
@@ -19,6 +18,7 @@ use std::sync::Arc;
 use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
 use templates::constants::OTTR_TRIPLE;
 use virtualization::VirtualizedDatabase;
+use virtualized_query::ID_VARIABLE_NAME;
 use virtualized_query::pushdown_setting::PushdownSetting;
 
 #[derive(Debug)]
@@ -81,7 +81,7 @@ impl Virtualization {
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
     virtualized_database: Arc<VirtualizedDatabase>,
-    virtualization: Virtualization,
+    virtualization: Arc<Virtualization>,
     pub sparql_database: Arc<dyn SparqlQueryable>,
 }
 
@@ -89,7 +89,7 @@ impl Engine {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
         virtualized_database: Arc<VirtualizedDatabase>,
-        virtualization: Virtualization,
+        virtualization: Arc<Virtualization>,
         sparql_database: Arc<dyn SparqlQueryable>,
     ) -> Engine {
         Engine {
@@ -124,7 +124,7 @@ impl Engine {
         Ok(Engine::new(
             pushdown_settings,
             Arc::new(virtualized_database),
-            virtualization,
+            Arc::new(virtualization),
             sparql_queryable,
         ))
     }
@@ -159,6 +159,7 @@ impl Engine {
             self.virtualized_database.clone(),
             basic_virtualized_queries,
             rewritten_filters,
+            self.virtualization.clone(),
         );
         let solution_mappings = combiner
             .combine_static_and_time_series_results(static_queries_map, &parsed_query)
