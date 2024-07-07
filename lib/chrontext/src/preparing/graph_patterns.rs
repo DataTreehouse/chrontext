@@ -23,35 +23,35 @@ use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 #[derive(Debug)]
 pub struct GPPrepReturn {
     pub fail_groupby_complex_query: bool,
-    pub time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>,
+    pub virtualized_queries: HashMap<Context, Vec<VirtualizedQuery>>,
 }
 
 impl GPPrepReturn {
-    fn new(time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>) -> GPPrepReturn {
+    fn new(virtualized_queries: HashMap<Context, Vec<VirtualizedQuery>>) -> GPPrepReturn {
         GPPrepReturn {
             fail_groupby_complex_query: false,
-            time_series_queries,
+            virtualized_queries,
         }
     }
 
     pub fn fail_groupby_complex_query() -> GPPrepReturn {
         GPPrepReturn {
             fail_groupby_complex_query: true,
-            time_series_queries: HashMap::new(),
+            virtualized_queries: HashMap::new(),
         }
     }
 
-    pub fn with_time_series_queries_from(&mut self, other: GPPrepReturn) {
-        for (c, v) in other.time_series_queries {
-            if let Some(myv) = self.time_series_queries.get_mut(&c) {
+    pub fn with_virtualized_queries_from(&mut self, other: GPPrepReturn) {
+        for (c, v) in other.virtualized_queries {
+            if let Some(myv) = self.virtualized_queries.get_mut(&c) {
                 myv.extend(v);
             } else {
-                self.time_series_queries.insert(c, v);
+                self.virtualized_queries.insert(c, v);
             }
         }
     }
@@ -66,7 +66,7 @@ impl TimeseriesQueryPrepper {
         context: &Context,
     ) -> GPPrepReturn {
         debug!(
-            "Preparing TSQ for graph pattern at context {}, try group by complex query: {}",
+            "Preparing vq for graph pattern at context {}, try group by complex query: {}",
             context.as_str(),
             try_groupby_complex_query
         );

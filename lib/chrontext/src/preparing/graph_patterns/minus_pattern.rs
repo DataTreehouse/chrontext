@@ -30,7 +30,7 @@ impl TimeseriesQueryPrepper {
                 solution_mappings,
                 &context.extension_with(PathEntry::MinusRightSide),
             );
-            left_prepare.with_time_series_queries_from(right_prepare);
+            left_prepare.with_virtualized_queries_from(right_prepare);
             left_prepare
         }
     }

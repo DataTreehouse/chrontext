@@ -1,11 +1,13 @@
 [package]
-name = "timeseries_query"
+name = "virtualized_query"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 representation.workspace = true
 query_processing.workspace = true
+templates.workspace = true
+
 polars = {workspace=true, features=[
     "lazy",
     "dtype-full",
@@ -13,3 +15,4 @@ polars = {workspace=true, features=[
     "performant"] }
 spargebra.workspace = true
 serde.workspace = true
+pyo3.workspace = true

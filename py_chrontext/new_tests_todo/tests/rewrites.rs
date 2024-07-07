@@ -4,7 +4,7 @@ use chrontext::splitter::parse_sparql_select_query;
 use representation::query_context::{Context, PathEntry, VariableInContext};
 use spargebra::term::Variable;
 use spargebra::Query;
-use timeseries_query::BasicTimeseriesQuery;
+use virtualized_query::BasicVirtualizedQuery;
 
 #[test]
 fn test_simple_query() {
@@ -344,7 +344,7 @@ fn test_fix_dropped_triple() {
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
+    let (static_rewrites_map, virtualized_queries, _) = rewriter.rewrite_query(preprocessed_query);
     assert_eq!(static_rewrites_map.len(), 1);
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
     let expected_str = r#"
@@ -361,7 +361,7 @@ fn test_fix_dropped_triple() {
     let expected_query = Query::parse(expected_str, None).unwrap();
     assert_eq!(static_rewrite, &expected_query);
 
-    let expected_time_series_queries = vec![BasicTimeseriesQuery {
+    let expected_virtualized_queries = vec![BasicVirtualizedQuery {
         identifier_variable: Some(Variable::new_unchecked("ts_external_id_0")),
         timeseries_variable: Some(VariableInContext::new(
             Variable::new_unchecked("ts"),
@@ -399,7 +399,7 @@ fn test_fix_dropped_triple() {
         )),
         ids: None,
     }];
-    assert_eq!(time_series_queries, expected_time_series_queries);
+    assert_eq!(virtualized_queries, expected_virtualized_queries);
 }
 
 #[test]
@@ -423,7 +423,7 @@ fn test_property_path_expression() {
     let mut preprocessor = Preprocessor::new();
     let (preprocessed_query, has_constraint) = preprocessor.preprocess(&parsed);
     let rewriter = StaticQueryRewriter::new(&has_constraint);
-    let (static_rewrites_map, time_series_queries, _) = rewriter.rewrite_query(preprocessed_query);
+    let (static_rewrites_map, virtualized_queries, _) = rewriter.rewrite_query(preprocessed_query);
     assert_eq!(static_rewrites_map.len(), 1);
     let static_rewrite = static_rewrites_map.get(&Context::new()).unwrap();
 
@@ -438,8 +438,8 @@ fn test_property_path_expression() {
      ?blank_replacement_1 <https://github.com/DataTreehouse/chrontext#hasResource> ?ts_resource_1 . }
     "#;
     let expected_query = Query::parse(expected_str, None).unwrap();
-    let expected_time_series_queries = vec![
-        BasicTimeseriesQuery {
+    let expected_virtualized_queries = vec![
+        BasicVirtualizedQuery {
             identifier_variable: Some(Variable::new_unchecked("ts_external_id_0")),
             timeseries_variable: Some(VariableInContext::new(
                 Variable::new_unchecked("blank_replacement_0"),
@@ -477,7 +477,7 @@ fn test_property_path_expression() {
             )),
             ids: None,
         },
-        BasicTimeseriesQuery {
+        BasicVirtualizedQuery {
             identifier_variable: Some(Variable::new_unchecked("ts_external_id_1")),
             timeseries_variable: Some(VariableInContext::new(
                 Variable::new_unchecked("blank_replacement_1"),
@@ -516,7 +516,7 @@ fn test_property_path_expression() {
             ids: None,
         },
     ];
-    assert_eq!(time_series_queries, expected_time_series_queries);
+    assert_eq!(virtualized_queries, expected_virtualized_queries);
     assert_eq!(static_rewrite, &expected_query);
 }
 

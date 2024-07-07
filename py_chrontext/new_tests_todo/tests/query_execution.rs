@@ -10,7 +10,7 @@ use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use timeseries_query::pushdown_setting::all_pushdowns;
+use virtualized_query::pushdown_setting::all_pushdowns;
 
 use crate::common::{
     add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
@@ -53,7 +53,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
 }
 
 #[fixture]
-fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
+fn inmem_virtualized_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
     let mut frames = HashMap::new();
     for t in ["ts1", "ts2"] {
         let mut file_path = testdata_path.clone();
@@ -70,10 +70,10 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
 }
 
 #[fixture]
-fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
+fn engine(inmem_virtualized_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
-        Arc::new(inmem_time_series_database),
+        Arc::new(inmem_virtualized_database),
         Arc::new(SparqlEndpoint {
             endpoint: QUERY_ENDPOINT.to_string(),
         }),
@@ -108,7 +108,7 @@ async fn test_simple_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -127,7 +127,7 @@ async fn test_simple_hybrid_query(
 #[tokio::test]
 #[serial]
 #[allow(path_statements)]
-async fn test_simple_hybrid_no_tsq_matches_query(
+async fn test_simple_hybrid_no_vq_matches_query(
     #[future] with_testdata: (),
     engine: Engine,
     use_logger: (),
@@ -149,7 +149,7 @@ async fn test_simple_hybrid_no_tsq_matches_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -190,7 +190,7 @@ async fn test_complex_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -231,7 +231,7 @@ async fn test_pushdown_group_by_hybrid_query(
     } GROUP BY ?w
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -282,7 +282,7 @@ async fn test_pushdown_group_by_second_hybrid_query(
     } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -335,7 +335,7 @@ async fn test_pushdown_group_by_second_having_hybrid_query(
     HAVING (SUM(?v)>100)
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -405,7 +405,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
 }
     "#;
     let mut df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -461,7 +461,7 @@ async fn test_pushdown_group_by_concat_agg_hybrid_query(
     } GROUP BY ?w ?seconds_5
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -507,7 +507,7 @@ async fn test_pushdown_groupby_exists_something_hybrid_query(
     } GROUP BY ?w ?seconds_3
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -553,7 +553,7 @@ async fn test_pushdown_groupby_exists_timeseries_value_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -602,7 +602,7 @@ async fn test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -651,7 +651,7 @@ async fn test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_que
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -692,7 +692,7 @@ async fn test_path_group_by_query(
         ORDER BY ASC(?max_v)
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -733,7 +733,7 @@ async fn test_optional_clause_query(
     }
     "#;
     let mut df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -787,7 +787,7 @@ async fn test_minus_query(
     }
     "#;
     let mut df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -832,7 +832,7 @@ async fn test_in_expression_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -871,7 +871,7 @@ async fn test_values_query(
     }
     "#;
     let mut df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -915,7 +915,7 @@ async fn test_if_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -957,7 +957,7 @@ async fn test_distinct_query(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -1006,7 +1006,7 @@ async fn test_union_query(
     }
     "#;
     let mut df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -1060,7 +1060,7 @@ async fn test_coalesce_query(
     }
     "#;
     let mut df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;

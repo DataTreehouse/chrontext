@@ -11,8 +11,8 @@ use polars::prelude::{DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, Series, Un
 use query_processing::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
-use timeseries_query::pushdown_setting::PushdownSetting;
-use timeseries_query::{GroupedTimeseriesQuery, TimeseriesQuery};
+use virtualized_query::pushdown_setting::PushdownSetting;
+use virtualized_query::{GroupedVirtualizedQuery, VirtualizedQuery};
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_group(
@@ -37,22 +37,22 @@ impl TimeseriesQueryPrepper {
         if !try_graph_pattern_prepare.fail_groupby_complex_query
             && self.pushdown_settings.contains(&PushdownSetting::GroupBy)
         {
-            if try_graph_pattern_prepare.time_series_queries.len() == 1 {
-                let (_c, mut tsqs) = try_graph_pattern_prepare
-                    .time_series_queries
+            if try_graph_pattern_prepare.virtualized_queries.len() == 1 {
+                let (_c, mut vqs) = try_graph_pattern_prepare
+                    .virtualized_queries
                     .drain()
                     .next()
                     .unwrap();
-                if tsqs.len() == 1 {
-                    let mut tsq = tsqs.remove(0);
+                if vqs.len() == 1 {
+                    let mut vq = vqs.remove(0);
                     let in_scope =
-                        check_aggregations_are_in_scope(&tsq, inner_context, aggregations);
+                        check_aggregations_are_in_scope(&vq, inner_context, aggregations);
 
                     if in_scope {
                         let grouping_col = self.add_grouping_col(solution_mappings, by);
-                        tsq =
-                            add_basic_groupby_mapping_values(tsq, solution_mappings, &grouping_col);
-                        let tsfuncs = tsq.get_timeseries_functions(context);
+                        vq =
+                            add_basic_groupby_mapping_values(vq, solution_mappings, &grouping_col);
+                        let tsfuncs = vq.get_timeseries_functions(context);
                         let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
                         for v in by {
                             for (v2, _) in &tsfuncs {
@@ -62,13 +62,13 @@ impl TimeseriesQueryPrepper {
                             }
                         }
                         //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
-                        tsq = TimeseriesQuery::Grouped(GroupedTimeseriesQuery {
+                        vq = VirtualizedQuery::Grouped(GroupedVirtualizedQuery {
                             context: context.clone(),
-                            tsq: Box::new(tsq),
+                            vq: Box::new(vq),
                             by: keep_by,
                             aggregations: aggregations.clone(),
                         });
-                        return GPPrepReturn::new(HashMap::from([(context.clone(), vec![tsq])]));
+                        return GPPrepReturn::new(HashMap::from([(context.clone(), vec![vq])]));
                     }
                 }
             }
@@ -121,7 +121,7 @@ impl TimeseriesQueryPrepper {
 }
 
 fn check_aggregations_are_in_scope(
-    tsq: &TimeseriesQuery,
+    vq: &VirtualizedQuery,
     context: &Context,
     aggregations: &Vec<(Variable, AggregateExpression)>,
 ) -> bool {
@@ -129,9 +129,9 @@ fn check_aggregations_are_in_scope(
         let mut used_vars = HashSet::new();
         find_all_used_variables_in_aggregate_expression(ae, &mut used_vars);
         for v in &used_vars {
-            if tsq.has_equivalent_timestamp_variable(v, context) {
+            if vq.has_equivalent_timestamp_variable(v, context) {
                 continue;
-            } else if tsq.has_equivalent_value_variable(v, context) {
+            } else if vq.has_equivalent_value_variable(v, context) {
                 continue;
             } else {
                 debug!("Variable {:?} in aggregate expression not in scope", v);
@@ -143,12 +143,12 @@ fn check_aggregations_are_in_scope(
 }
 
 fn add_basic_groupby_mapping_values(
-    tsq: TimeseriesQuery,
+    vq: VirtualizedQuery,
     solution_mappings: &mut SolutionMappings,
     grouping_col: &str,
-) -> TimeseriesQuery {
-    match tsq {
-        TimeseriesQuery::Basic(b) => {
+) -> VirtualizedQuery {
+    match vq {
+        VirtualizedQuery::Basic(b) => {
             let by_vec = vec![
                 grouping_col,
                 b.identifier_variable.as_ref().unwrap().as_str(),
@@ -162,37 +162,37 @@ fn add_basic_groupby_mapping_values(
                 .unwrap()
                 .select(by_vec)
                 .unwrap();
-            TimeseriesQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
+            VirtualizedQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
         }
-        TimeseriesQuery::Filtered(tsq, f) => TimeseriesQuery::Filtered(
+        VirtualizedQuery::Filtered(vq, f) => VirtualizedQuery::Filtered(
             Box::new(add_basic_groupby_mapping_values(
-                *tsq,
+                *vq,
                 solution_mappings,
                 grouping_col,
             )),
             f,
         ),
-        TimeseriesQuery::InnerSynchronized(inners, syncs) => {
-            let mut tsq_added = vec![];
-            for tsq in inners {
-                tsq_added.push(Box::new(add_basic_groupby_mapping_values(
-                    *tsq,
+        VirtualizedQuery::InnerSynchronized(inners, syncs) => {
+            let mut vq_added = vec![];
+            for vq in inners {
+                vq_added.push(Box::new(add_basic_groupby_mapping_values(
+                    *vq,
                     solution_mappings,
                     grouping_col,
                 )))
             }
-            TimeseriesQuery::InnerSynchronized(tsq_added, syncs)
+            VirtualizedQuery::InnerSynchronized(vq_added, syncs)
         }
-        TimeseriesQuery::ExpressionAs(tsq, v, e) => TimeseriesQuery::ExpressionAs(
+        VirtualizedQuery::ExpressionAs(vq, v, e) => VirtualizedQuery::ExpressionAs(
             Box::new(add_basic_groupby_mapping_values(
-                *tsq,
+                *vq,
                 solution_mappings,
                 grouping_col,
             )),
             v,
             e,
         ),
-        TimeseriesQuery::Limited(inner, limit) => TimeseriesQuery::Limited(
+        VirtualizedQuery::Limited(inner, limit) => VirtualizedQuery::Limited(
             Box::new(add_basic_groupby_mapping_values(
                 *inner,
                 solution_mappings,
@@ -200,10 +200,10 @@ fn add_basic_groupby_mapping_values(
             )),
             limit,
         ),
-        TimeseriesQuery::Grouped(_) => {
+        VirtualizedQuery::Grouped(_) => {
             panic!("Should never happen")
         }
-        TimeseriesQuery::GroupedBasic(_, _, _) => {
+        VirtualizedQuery::GroupedBasic(_, _, _) => {
             panic!("Should never happen")
         }
     }

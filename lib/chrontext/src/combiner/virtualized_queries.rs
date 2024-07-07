@@ -10,28 +10,28 @@ use polars::prelude::{
 };
 use representation::polars_to_rdf::polars_type_to_literal_type;
 use representation::query_context::Context;
-use representation::solution_mapping::SolutionMappings;
+use representation::solution_mapping::{EagerSolutionMappings, SolutionMappings};
 use representation::{BaseRDFNodeType, RDFNodeType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
-use timeseries_query::{BasicTimeseriesQuery, TimeseriesQuery};
+use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
 
 impl Combiner {
-    pub async fn execute_attach_time_series_query(
+    pub async fn execute_attach_virtualized_query(
         &mut self,
-        tsq: &TimeseriesQuery,
+        vq: &VirtualizedQuery,
         mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
-        debug!("Executing time series query: {:?}", tsq);
-        if !tsq.has_identifiers() {
-            let mut expected_cols: Vec<_> = tsq.expected_columns().into_iter().collect();
+        debug!("Executing time series query: {:?}", vq);
+        if !vq.has_identifiers() {
+            let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
             expected_cols.sort();
-            let timestamp_vars: Vec<_> = tsq
+            let timestamp_vars: Vec<_> = vq
                 .get_timestamp_variables()
                 .into_iter()
                 .map(|x| x.variable.as_str())
                 .collect();
-            let drop_cols = get_drop_cols(tsq);
+            let drop_cols = get_drop_cols(vq);
             let mut series_vec = vec![];
             for e in expected_cols {
                 if !drop_cols.contains(e) {
@@ -68,23 +68,22 @@ impl Combiner {
             return Ok(solution_mappings);
         }
 
-        let SolutionMappings {
-            mappings,
+        let EagerSolutionMappings {
+            mut mappings,
             mut rdf_node_types,
         } = self
-            .time_series_database
-            .execute(tsq)
+            .virtualized_database
+            .query(vq)
             .await
-            .map_err(|x| CombinerError::TimeseriesQueryError(x))?;
-        let mut ts_df = mappings.collect().unwrap();
-        debug!("Time series query results: \n{}", ts_df);
-        tsq.validate(&ts_df)
+            .map_err(|x| CombinerError::VirtualizedDatabaseError(x))?;
+        //debug!("Time series query results: \n{}", mappings);
+        vq.validate(&mappings)
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
 
         let mut on: Vec<String>;
         let to_cat_col: Option<String>;
-        let drop_cols = get_drop_cols(tsq);
-        if let Some(colname) = tsq.get_groupby_column() {
+        let drop_cols = get_drop_cols(vq);
+        if let Some(colname) = vq.get_groupby_column() {
             on = vec![colname.to_string()];
             to_cat_col = None;
             //When there are no results we need to cast to the appropriate type
@@ -94,14 +93,14 @@ impl Combiner {
                     colname.to_string(),
                     polars_type_to_literal_type(&coltype).unwrap().to_owned(),
                 );
-                ts_df = ts_df
+                mappings = mappings
                     .lazy()
                     .with_column(col(colname).cast(coltype.clone()))
                     .collect()
                     .unwrap();
             };
         } else {
-            let idvars: Vec<String> = tsq
+            let idvars: Vec<String> = vq
                 .get_identifier_variables()
                 .iter()
                 .map(|x| x.as_str().to_string())
@@ -115,7 +114,7 @@ impl Combiner {
                 if let Some(e) = solution_mappings.rdf_node_types.get(&idvar) {
                     if e != &RDFNodeType::None {
                         let coltype = DataType::String;
-                        ts_df = ts_df
+                        mappings = mappings
                             .lazy()
                             .with_column(col(&idvar).cast(coltype.clone()))
                             .collect()
@@ -128,9 +127,9 @@ impl Combiner {
                 }
             }
         }
-        //In order to join on timestamps when multiple synchronized tsqs.
+        //In order to join on timestamps when multiple synchronized vqs.
         for c in solution_mappings.rdf_node_types.keys() {
-            if ts_df.get_column_names().contains(&c.as_str()) && !on.contains(c) {
+            if mappings.get_column_names().contains(&c.as_str()) && !on.contains(c) {
                 on.push(c.to_string())
             }
         }
@@ -141,7 +140,7 @@ impl Combiner {
         }
 
         solution_mappings.mappings = solution_mappings.mappings.collect().unwrap().lazy();
-        let mut ts_lf = ts_df.lazy();
+        let mut ts_lf = mappings.lazy();
         if let Some(cat_col) = &to_cat_col {
             ts_lf = ts_lf.with_column(
                 col(cat_col).cast(DataType::Categorical(None, CategoricalOrdering::Physical)),
@@ -175,21 +174,21 @@ impl Combiner {
     }
 }
 
-pub(crate) fn split_time_series_queries(
-    time_series_queries: &mut Option<HashMap<Context, Vec<TimeseriesQuery>>>,
+pub(crate) fn split_virtualized_queries(
+    virtualized_queries: &mut Option<HashMap<Context, Vec<VirtualizedQuery>>>,
     context: &Context,
-) -> Option<HashMap<Context, Vec<TimeseriesQuery>>> {
-    if let Some(tsqs) = time_series_queries {
+) -> Option<HashMap<Context, Vec<VirtualizedQuery>>> {
+    if let Some(vqs) = virtualized_queries {
         let mut split_keys = vec![];
-        for k in tsqs.keys() {
+        for k in vqs.keys() {
             if k.path.iter().zip(&context.path).all(|(x, y)| x == y) {
                 split_keys.push(k.clone())
             }
         }
         let mut new_map = HashMap::new();
         for k in split_keys {
-            let tsq = tsqs.remove(&k).unwrap();
-            new_map.insert(k, tsq);
+            let vq = vqs.remove(&k).unwrap();
+            new_map.insert(k, vq);
         }
         Some(new_map)
     } else {
@@ -197,18 +196,18 @@ pub(crate) fn split_time_series_queries(
     }
 }
 
-fn get_drop_cols(tsq: &TimeseriesQuery) -> HashSet<String> {
+fn get_drop_cols(vq: &VirtualizedQuery) -> HashSet<String> {
     let mut drop_cols = HashSet::new();
-    if let Some(colname) = tsq.get_groupby_column() {
+    if let Some(colname) = vq.get_groupby_column() {
         drop_cols.insert(colname.to_string());
     } else {
         drop_cols.extend(
-            tsq.get_identifier_variables()
+            vq.get_identifier_variables()
                 .iter()
                 .map(|x| x.as_str().to_string()),
         );
         drop_cols.extend(
-            tsq.get_resource_variables()
+            vq.get_resource_variables()
                 .iter()
                 .map(|x| x.as_str().to_string()),
         );
@@ -216,11 +215,11 @@ fn get_drop_cols(tsq: &TimeseriesQuery) -> HashSet<String> {
     drop_cols
 }
 
-pub(crate) fn complete_basic_time_series_queries(
+pub(crate) fn complete_basic_virtualized_queries(
     static_query_solutions: &Vec<QuerySolution>,
-    basic_time_series_queries: &mut Vec<BasicTimeseriesQuery>,
+    basic_virtualized_queries: &mut Vec<BasicVirtualizedQuery>,
 ) -> Result<(), CombinerError> {
-    for basic_query in basic_time_series_queries {
+    for basic_query in basic_virtualized_queries {
         let mut ids = HashSet::new();
         for sqs in static_query_solutions {
             if let Some(Term::Literal(lit)) =
@@ -234,7 +233,7 @@ pub(crate) fn complete_basic_time_series_queries(
             }
         }
 
-        let get_basic_query_value_var_name = |x: &BasicTimeseriesQuery| {
+        let get_basic_query_value_var_name = |x: &BasicVirtualizedQuery| {
             if let Some(vv) = &x.value_variable {
                 vv.variable.as_str().to_string()
             } else {

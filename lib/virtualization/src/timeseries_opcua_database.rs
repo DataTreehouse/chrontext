@@ -24,7 +24,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::sync::Arc;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::TimeseriesQuery;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;
@@ -98,11 +98,11 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
         DatabaseType::OPCUA
     }
 
-    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
-        validate_tsq(tsq, true, false)?;
+    async fn execute(&self, vq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+        validate_vq(vq, true, false)?;
         let session = self.session.write();
-        let start_time = find_time(tsq, &FindTime::Start);
-        let end_time = find_time(tsq, &FindTime::End);
+        let start_time = find_time(vq, &FindTime::Start);
+        let end_time = find_time(vq, &FindTime::End);
 
         let mut processed_details = None;
         let mut timestamp_grouping_colname = None;
@@ -111,20 +111,20 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
         let mut colnames_identifiers = vec![];
         let mut grouping_col_lookup = HashMap::new();
         let mut grouping_col_name = None;
-        if let TimeseriesQuery::Grouped(grouped) = tsq {
+        if let TimeseriesQuery::Grouped(grouped) = vq {
             let (colname, processed_details_some) =
-                create_read_processed_details(tsq, start_time, end_time, &grouped.context);
+                create_read_processed_details(vq, start_time, end_time, &grouped.context);
             processed_details = Some(processed_details_some);
             timestamp_grouping_colname = colname;
-            for c in grouped.tsq.get_ids() {
+            for c in grouped.vq.get_ids() {
                 for (v, _) in &grouped.aggregations {
                     colnames_identifiers.push((v.as_str().to_string(), c.clone()));
                 }
             }
-            let mapping_df = grouped.tsq.get_groupby_mapping_df().unwrap();
-            grouping_col_name = Some(grouped.tsq.get_groupby_column().unwrap());
+            let mapping_df = grouped.vq.get_groupby_mapping_df().unwrap();
+            grouping_col_name = Some(grouped.vq.get_groupby_column().unwrap());
             let identifier_var = grouped
-                .tsq
+                .vq
                 .get_identifier_variables()
                 .get(0)
                 .unwrap()
@@ -151,9 +151,9 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
             }
         } else {
             raw_modified_details = Some(create_raw_details(start_time, end_time));
-            for c in tsq.get_ids() {
+            for c in vq.get_ids() {
                 colnames_identifiers.push((
-                    tsq.get_value_variables()
+                    vq.get_value_variables()
                         .get(0)
                         .as_ref()
                         .unwrap()
@@ -224,7 +224,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
                     ts.rename(grvar);
                 } else {
                     ts.rename(
-                        tsq.get_timestamp_variables()
+                        vq.get_timestamp_variables()
                             .get(0)
                             .unwrap()
                             .variable
@@ -255,7 +255,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
                     Series::new_empty(grouping_col, &DataType::Int64)
                 } else {
                     Series::new_empty(
-                        tsq.get_identifier_variables().get(0).unwrap().as_str(),
+                        vq.get_identifier_variables().get(0).unwrap().as_str(),
                         &DataType::String,
                     )
                 };
@@ -290,19 +290,19 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
     }
 }
 
-fn validate_tsq(
-    tsq: &TimeseriesQuery,
+fn validate_vq(
+    vq: &TimeseriesQuery,
     toplevel: bool,
     inside_grouping: bool,
 ) -> Result<(), OPCUAHistoryReadError> {
-    match tsq {
+    match vq {
         TimeseriesQuery::Basic(_) => Ok(()),
-        TimeseriesQuery::Filtered(f, _) => validate_tsq(f, false, inside_grouping),
+        TimeseriesQuery::Filtered(f, _) => validate_vq(f, false, inside_grouping),
         TimeseriesQuery::Grouped(g) => {
             if !toplevel {
                 Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
             } else {
-                validate_tsq(&g.tsq, false, true)
+                validate_vq(&g.vq, false, true)
             }
         }
         TimeseriesQuery::GroupedBasic(_, _, _) => {
@@ -315,7 +315,7 @@ fn validate_tsq(
         TimeseriesQuery::InnerSynchronized(_, _) => {
             Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
         }
-        TimeseriesQuery::ExpressionAs(t, _, _) => validate_tsq(t, false, inside_grouping),
+        TimeseriesQuery::ExpressionAs(t, _, _) => validate_vq(t, false, inside_grouping),
         TimeseriesQuery::Limited(_, _) => todo!(),
     }
 }
@@ -331,12 +331,12 @@ fn create_raw_details(start_time: DateTime, end_time: DateTime) -> ReadRawModifi
 }
 
 fn create_read_processed_details(
-    tsq: &TimeseriesQuery,
+    vq: &TimeseriesQuery,
     start_time: DateTime,
     end_time: DateTime,
     context: &Context,
 ) -> (Option<String>, ReadProcessedDetails) {
-    let aggregate_type = find_aggregate_types(tsq);
+    let aggregate_type = find_aggregate_types(vq);
 
     let config = AggregateConfiguration {
         use_server_capabilities_defaults: false,
@@ -345,7 +345,7 @@ fn create_read_processed_details(
         percent_data_good: 0,
         use_sloped_extrapolation: false,
     };
-    let interval_opt = find_grouping_interval(tsq, context);
+    let interval_opt = find_grouping_interval(vq, context);
     let (out_string, processing_interval) = if let Some((s, interval)) = interval_opt {
         (Some(s), interval)
     } else {
@@ -390,11 +390,11 @@ fn history_data_to_series_tuple(hd: HistoryData) -> (Series, Series) {
     (timestamps, values)
 }
 
-fn find_aggregate_types(tsq: &TimeseriesQuery) -> Option<Vec<NodeId>> {
-    if let TimeseriesQuery::Grouped(grouped) = tsq {
+fn find_aggregate_types(vq: &TimeseriesQuery) -> Option<Vec<NodeId>> {
+    if let TimeseriesQuery::Grouped(grouped) = vq {
         let mut nodes = vec![];
         for (_, agg) in &grouped.aggregations {
-            let value_var_str = tsq.get_value_variables().get(0).unwrap().variable.as_str();
+            let value_var_str = vq.get_value_variables().get(0).unwrap().variable.as_str();
             let expr_is_ok = |expr: &Expression| -> bool {
                 if let Expression::Variable(v) = expr {
                     v.as_str() == value_var_str
@@ -447,7 +447,7 @@ fn find_aggregate_types(tsq: &TimeseriesQuery) -> Option<Vec<NodeId>> {
             nodes.push(aggfunc);
         }
         let mut outnodes = vec![];
-        for _ in tsq.get_ids() {
+        for _ in vq.get_ids() {
             outnodes.extend_from_slice(nodes.as_slice())
         }
         Some(outnodes)
@@ -461,22 +461,22 @@ enum FindTime {
     End,
 }
 
-fn find_time(tsq: &TimeseriesQuery, find_time: &FindTime) -> DateTime {
+fn find_time(vq: &TimeseriesQuery, find_time: &FindTime) -> DateTime {
     let mut found_time = None;
-    let filter = if let TimeseriesQuery::Grouped(gr) = tsq {
-        if let TimeseriesQuery::Filtered(_, filter) = gr.tsq.as_ref() {
+    let filter = if let TimeseriesQuery::Grouped(gr) = vq {
+        if let TimeseriesQuery::Filtered(_, filter) = gr.vq.as_ref() {
             Some(filter)
         } else {
             None
         }
-    } else if let TimeseriesQuery::Filtered(_, filter) = tsq {
+    } else if let TimeseriesQuery::Filtered(_, filter) = vq {
         Some(filter)
     } else {
         None
     };
     if let Some(e) = filter {
         let found_time_opt = find_time_condition(
-            &tsq.get_timestamp_variables().get(0).unwrap().variable,
+            &vq.get_timestamp_variables().get(0).unwrap().variable,
             e,
             find_time,
         );
@@ -690,12 +690,12 @@ fn datetime_from_expression(
     }
 }
 
-fn find_grouping_interval(tsq: &TimeseriesQuery, context: &Context) -> Option<(String, f64)> {
-    if let TimeseriesQuery::Grouped(grouped) = tsq {
+fn find_grouping_interval(vq: &TimeseriesQuery, context: &Context) -> Option<(String, f64)> {
+    if let TimeseriesQuery::Grouped(grouped) = vq {
         let mut tsf = None;
         let mut grvar = None;
         for v in &grouped.by {
-            for (t, e) in tsq.get_timeseries_functions(context) {
+            for (t, e) in vq.get_timeseries_functions(context) {
                 if t == v {
                     tsf = Some((t, e));
                     grvar = Some(v);

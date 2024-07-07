@@ -10,7 +10,7 @@ use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use timeseries_query::pushdown_setting::all_pushdowns;
+use virtualized_query::pushdown_setting::all_pushdowns;
 
 use crate::common::{
     add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
@@ -53,7 +53,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
 }
 
 #[fixture]
-fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
+fn inmem_virtualized_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
     let mut frames = HashMap::new();
     for t in ["ts1", "ts2"] {
         let mut file_path = testdata_path.clone();
@@ -66,10 +66,10 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
 }
 
 #[fixture]
-fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
+fn engine(inmem_virtualized_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
-        Arc::new(inmem_time_series_database),
+        Arc::new(inmem_virtualized_database),
         Arc::new(SparqlEndpoint {
             endpoint: QUERY_ENDPOINT.to_string(),
         }),
@@ -102,7 +102,7 @@ async fn test_simple_hybrid_query_sugar(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -145,7 +145,7 @@ async fn test_simple_hybrid_query_sugar_timeseries_explicit_link(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0;
@@ -189,7 +189,7 @@ async fn test_simple_hybrid_query_sugar_agg_avg(
     }
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0

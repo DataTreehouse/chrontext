@@ -32,7 +32,7 @@ impl TimeseriesQueryPrepper {
         if args_prepared.len() > 0 {
             let mut first_prepared = args_prepared.remove(0);
             for p in args_prepared {
-                first_prepared.with_time_series_queries_from(p)
+                first_prepared.with_virtualized_queries_from(p)
             }
             first_prepared
         } else {

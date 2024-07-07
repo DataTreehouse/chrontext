@@ -13,13 +13,9 @@ pub enum PyChrontextError {
     #[error(transparent)]
     QueryExecutionError(Box<dyn std::error::Error>),
     #[error("Missing time series database")]
-    MissingTimeseriesDatabaseError,
-    #[error("Missing sparql database")]
     MissingSPARQLDatabaseError,
     #[error("Time series database defined multiple times")]
-    MultipleTimeseriesDatabases,
-    #[error("Sparql database defined multiple times")]
-    MultipleSPARQLDatabases,
+    MultipleSPARQLDatabasesError,
     #[error(transparent)]
     ChrontextError(RustChrontextError),
 }
@@ -34,14 +30,8 @@ impl std::convert::From<PyChrontextError> for PyErr {
             PyChrontextError::QueryExecutionError(err) => {
                 QueryExecutionError::new_err(format!("{}", err))
             }
-            PyChrontextError::MissingTimeseriesDatabaseError => {
-                MissingTimeseriesDatabaseError::new_err("")
-            }
-            PyChrontextError::MultipleTimeseriesDatabases => {
-                MultipleTimeseriesDatabases::new_err("")
-            }
             PyChrontextError::MissingSPARQLDatabaseError => MissingSPARQLDatabaseError::new_err(""),
-            PyChrontextError::MultipleSPARQLDatabases => MultipleSPARQLDatabases::new_err(""),
+            PyChrontextError::MultipleSPARQLDatabasesError => MultipleSPARQLDatabasesError::new_err(""),
             PyChrontextError::DataProductQueryParseError(e) => {
                 DataProductQueryParseError::new_err(format!("{}", e))
             }
@@ -52,8 +42,6 @@ impl std::convert::From<PyChrontextError> for PyErr {
 create_exception!(exceptions, DatatypeIRIParseError, PyException);
 create_exception!(exceptions, DataProductQueryParseError, PyException);
 create_exception!(exceptions, QueryExecutionError, PyException);
-create_exception!(exceptions, MissingTimeseriesDatabaseError, PyException);
-create_exception!(exceptions, MultipleTimeseriesDatabases, PyException);
 create_exception!(exceptions, MissingSPARQLDatabaseError, PyException);
-create_exception!(exceptions, MultipleSPARQLDatabases, PyException);
+create_exception!(exceptions, MultipleSPARQLDatabasesError, PyException);
 create_exception!(exceptions, ChrontextError, PyException);

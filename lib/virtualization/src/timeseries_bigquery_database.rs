@@ -9,7 +9,7 @@ use reqwest::Url;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
-use timeseries_query::{TimeseriesQuery, TimeseriesTable};
+use virtualized_query::{TimeseriesQuery, TimeseriesTable};
 
 #[derive(Error, Debug)]
 pub enum BigQueryError {
@@ -51,8 +51,8 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
     fn get_database_type(&self) -> DatabaseType {
         DatabaseType::BigQuery
     }
-    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
-        let query_string = self.get_sql_string(tsq, DatabaseType::BigQuery)?;
+    async fn execute(&self, vq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+        let query_string = self.get_sql_string(vq, DatabaseType::BigQuery)?;
 
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
         // Last modified in commit: 8134d42

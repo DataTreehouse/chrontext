@@ -33,8 +33,8 @@ impl TimeseriesQueryPrepper {
             return right_prepare;
         }
 
-        left_prepare.with_time_series_queries_from(right_prepare);
-        if try_groupby_complex_query && left_prepare.time_series_queries.len() > 1 {
+        left_prepare.with_virtualized_queries_from(right_prepare);
+        if try_groupby_complex_query && left_prepare.virtualized_queries.len() > 1 {
             return GPPrepReturn::fail_groupby_complex_query();
             //TODO: Fix synchronized queries
         }

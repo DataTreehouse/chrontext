@@ -5,10 +5,12 @@ edition = "2021"
 
 [dependencies]
 postgres = { path = "../lib/postgres" }
-timeseries_query = {path="../lib/timeseries_query"}
+virtualized_query = {path="../lib/virtualized_query"}
 chrontext = { path = "../lib/chrontext" }
+virtualization = {path="../lib/virtualization"}
 
 representation.workspace = true
+templates.workspace = true
 pyo3 = { workspace=true, features = ["extension-module"] }
 
 pydf_io.workspace = true

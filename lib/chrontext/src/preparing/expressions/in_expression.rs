@@ -31,7 +31,7 @@ impl TimeseriesQueryPrepper {
             return EXPrepReturn::fail_groupby_complex_query();
         }
         for p in prepared {
-            left_prepare.with_time_series_queries_from(p)
+            left_prepare.with_virtualized_queries_from(p)
         }
         left_prepare
     }

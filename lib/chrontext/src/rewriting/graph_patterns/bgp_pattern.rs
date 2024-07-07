@@ -7,7 +7,7 @@ use representation::query_context::{Context, PathEntry, VariableInContext};
 use spargebra::algebra::GraphPattern;
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern};
 use std::collections::{HashMap, HashSet};
-use timeseries_query::BasicTimeseriesQuery;
+use virtualized_query::BasicVirtualizedQuery;
 
 impl StaticQueryRewriter {
     pub(crate) fn rewrite_bgp(
@@ -20,7 +20,7 @@ impl StaticQueryRewriter {
         let mut dynamic_triples = vec![];
         let mut resources_in_scope = HashMap::new();
         let mut external_ids_in_scope = HashMap::new();
-        let mut new_basic_tsqs = vec![];
+        let mut new_basic_vqs = vec![];
         for t in patterns {
             if let NamedNodePattern::NamedNode(nn) = &t.predicate {
                 if nn.as_str() == HAS_DATA_POINT {
@@ -38,13 +38,13 @@ impl StaticQueryRewriter {
                             ));
                             self.variable_counter += 1;
 
-                            let btsq = self.create_basic_time_series_query(
+                            let bvq = self.create_basic_virtualized_query(
                                 &ts_var,
                                 &external_id_var,
                                 &resource_var,
                                 &context,
                             );
-                            new_basic_tsqs.push(btsq);
+                            new_basic_vqs.push(bvq);
                             let new_external_id_triple = TriplePattern {
                                 subject: TermPattern::Variable(ts_var.clone()),
                                 predicate: NamedNodePattern::NamedNode(
@@ -88,8 +88,8 @@ impl StaticQueryRewriter {
         }
 
         //We wait until last to process the dynamic triples, making sure all relationships are known first.
-        process_dynamic_triples(&mut new_basic_tsqs, dynamic_triples, &context);
-        self.basic_time_series_queries.extend(new_basic_tsqs);
+        process_dynamic_triples(&mut new_basic_vqs, dynamic_triples, &context);
+        self.basic_virtualized_queries.extend(new_basic_vqs);
 
         if new_triples.is_empty() {
             GPReturn::new(
@@ -125,14 +125,14 @@ impl StaticQueryRewriter {
         }
     }
 
-    fn create_basic_time_series_query(
+    fn create_basic_virtualized_query(
         &mut self,
         time_series_variable: &Variable,
         time_series_id_variable: &Variable,
         resource_variable: &Variable,
         context: &Context,
-    ) -> BasicTimeseriesQuery {
-        let mut ts_query = BasicTimeseriesQuery::new_empty();
+    ) -> BasicVirtualizedQuery {
+        let mut ts_query = BasicVirtualizedQuery::new_empty();
         ts_query.identifier_variable = Some(time_series_id_variable.clone());
         ts_query.resource_variable = Some(resource_variable.clone());
         ts_query.timeseries_variable = Some(VariableInContext::new(
@@ -144,14 +144,14 @@ impl StaticQueryRewriter {
 }
 
 fn process_dynamic_triples(
-    local_basic_tsqs: &mut Vec<BasicTimeseriesQuery>,
+    local_basic_vqs: &mut Vec<BasicVirtualizedQuery>,
     dynamic_triples: Vec<&TriplePattern>,
     context: &Context,
 ) {
     for t in &dynamic_triples {
         if let NamedNodePattern::NamedNode(named_predicate_node) = &t.predicate {
             if named_predicate_node == HAS_DATA_POINT {
-                for q in local_basic_tsqs.iter_mut() {
+                for q in local_basic_vqs.iter_mut() {
                     if let (Some(q_timeseries_variable), TermPattern::Variable(subject_variable)) =
                         (&q.timeseries_variable, &t.subject)
                     {
@@ -170,7 +170,7 @@ fn process_dynamic_triples(
     for t in &dynamic_triples {
         if let NamedNodePattern::NamedNode(named_predicate_node) = &t.predicate {
             if named_predicate_node == HAS_VALUE {
-                for q in local_basic_tsqs.iter_mut() {
+                for q in local_basic_vqs.iter_mut() {
                     if q.value_variable.is_none() {
                         if let (
                             Some(q_data_point_variable),
@@ -189,7 +189,7 @@ fn process_dynamic_triples(
                     }
                 }
             } else if named_predicate_node == HAS_TIMESTAMP {
-                for q in local_basic_tsqs.iter_mut() {
+                for q in local_basic_vqs.iter_mut() {
                     if q.timestamp_variable.is_none() {
                         if let (
                             Some(q_data_point_variable),

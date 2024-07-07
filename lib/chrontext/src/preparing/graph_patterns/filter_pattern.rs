@@ -7,7 +7,7 @@ use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_filter(
@@ -37,11 +37,11 @@ impl TimeseriesQueryPrepper {
             return GPPrepReturn::fail_groupby_complex_query();
         }
 
-        let mut out_tsqs = HashMap::new();
-        out_tsqs.extend(expression_prepare.time_series_queries);
-        for (inner_context, tsqs) in inner_prepare.time_series_queries {
-            let mut out_tsq_vec = vec![];
-            for t in tsqs {
+        let mut out_vqs = HashMap::new();
+        out_vqs.extend(expression_prepare.virtualized_queries);
+        for (inner_context, vqs) in inner_prepare.virtualized_queries {
+            let mut out_vq_vec = vec![];
+            for t in vqs {
                 let use_change_type = if try_groupby_complex_query {
                     ChangeType::NoChange
                 } else {
@@ -60,16 +60,16 @@ impl TimeseriesQueryPrepper {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }
                 if let Some(expr) = time_series_condition {
-                    out_tsq_vec.push(TimeseriesQuery::Filtered(Box::new(t), expr));
+                    out_vq_vec.push(VirtualizedQuery::Filtered(Box::new(t), expr));
                 } else {
-                    out_tsq_vec.push(t);
+                    out_vq_vec.push(t);
                 }
             }
-            if !out_tsq_vec.is_empty() {
-                out_tsqs.insert(inner_context, out_tsq_vec);
+            if !out_vq_vec.is_empty() {
+                out_vqs.insert(inner_context, out_vq_vec);
             }
         }
-        GPPrepReturn::new(out_tsqs)
+        GPPrepReturn::new(out_vqs)
     }
 }
 

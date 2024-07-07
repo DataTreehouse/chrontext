@@ -33,7 +33,7 @@ impl TimeseriesQueryPrepper {
         } else {
             let mut first_prepared = prepared.remove(0);
             for p in prepared {
-                first_prepared.with_time_series_queries_from(p);
+                first_prepared.with_virtualized_queries_from(p);
             }
             first_prepared
         }

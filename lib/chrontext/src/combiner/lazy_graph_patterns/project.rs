@@ -9,7 +9,7 @@ use representation::query_context::{Context, PathEntry};
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
     #[async_recursion]
@@ -19,7 +19,7 @@ impl Combiner {
         variables: &Vec<Variable>,
         solution_mappings: Option<SolutionMappings>,
         static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
+        prepared_virtualized_queries: Option<HashMap<Context, Vec<VirtualizedQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing project graph pattern");
@@ -28,7 +28,7 @@ impl Combiner {
                 inner,
                 solution_mappings,
                 static_query_map,
-                prepared_time_series_queries,
+                prepared_virtualized_queries,
                 &context.extension_with(PathEntry::ProjectInner),
             )
             .await?;

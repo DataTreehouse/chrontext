@@ -15,10 +15,10 @@ use spargebra::algebra::Expression;
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
-use timeseries_outpost::{get_datatype_map, DatabaseType, TimeseriesQueryable};
-use timeseries_query::pushdown_setting::all_pushdowns;
-use timeseries_query::{
-    BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
+use virtualization::{get_datatype_map, DatabaseType, TimeseriesQueryable};
+use virtualized_query::pushdown_setting::all_pushdowns;
+use virtualized_query::{
+    BasicVirtualizedQuery, GroupedVirtualizedQuery, Synchronizer, VirtualizedQuery,
 };
 
 pub struct TimeseriesInMemoryDatabase {
@@ -31,8 +31,8 @@ impl TimeseriesQueryable for TimeseriesInMemoryDatabase {
         DatabaseType::InMemory
     }
 
-    async fn execute(&self, tsq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
-        self.execute_query(tsq).await
+    async fn execute(&self, vq: &VirtualizedQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+        self.execute_query(vq).await
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {
@@ -44,40 +44,40 @@ impl TimeseriesInMemoryDatabase {
     #[async_recursion]
     async fn execute_query(
         &self,
-        tsq: &TimeseriesQuery,
+        vq: &VirtualizedQuery,
     ) -> Result<SolutionMappings, Box<dyn Error>> {
-        let (df, dtypes) = self.execute_query_impl(tsq).await?;
+        let (df, dtypes) = self.execute_query_impl(vq).await?;
         Ok(SolutionMappings::new(df.lazy(), dtypes))
     }
     #[async_recursion]
     async fn execute_query_impl(
         &self,
-        tsq: &TimeseriesQuery,
+        vq: &VirtualizedQuery,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
-        match tsq {
-            TimeseriesQuery::Basic(b) => self.execute_basic(b),
-            TimeseriesQuery::Filtered(inner, filter) => self.execute_filtered(inner, filter).await,
-            TimeseriesQuery::InnerSynchronized(inners, synchronizers) => {
+        match vq {
+            VirtualizedQuery::Basic(b) => self.execute_basic(b),
+            VirtualizedQuery::Filtered(inner, filter) => self.execute_filtered(inner, filter).await,
+            VirtualizedQuery::InnerSynchronized(inners, synchronizers) => {
                 self.execute_inner_synchronized(inners, synchronizers).await
             }
-            TimeseriesQuery::Grouped(grouped) => self.execute_grouped(grouped).await,
-            TimeseriesQuery::GroupedBasic(btsq, df, ..) => {
-                let (mut basic_df, dtypes) = self.execute_basic(btsq)?;
+            VirtualizedQuery::Grouped(grouped) => self.execute_grouped(grouped).await,
+            VirtualizedQuery::GroupedBasic(bvq, df, ..) => {
+                let (mut basic_df, dtypes) = self.execute_basic(bvq)?;
                 basic_df = basic_df
                     .join(
                         df,
-                        [btsq.identifier_variable.as_ref().unwrap().as_str()],
-                        [btsq.identifier_variable.as_ref().unwrap().as_str()],
+                        [bvq.identifier_variable.as_ref().unwrap().as_str()],
+                        [bvq.identifier_variable.as_ref().unwrap().as_str()],
                         JoinArgs::new(JoinType::Inner),
                     )
                     .unwrap();
                 basic_df = basic_df
-                    .drop(btsq.identifier_variable.as_ref().unwrap().as_str())
+                    .drop(bvq.identifier_variable.as_ref().unwrap().as_str())
                     .unwrap();
                 Ok((basic_df, dtypes))
             }
-            TimeseriesQuery::ExpressionAs(tsq, v, e) => {
-                let (df, dtypes) = self.execute_query_impl(tsq).await?;
+            VirtualizedQuery::ExpressionAs(vq, v, e) => {
+                let (df, dtypes) = self.execute_query_impl(vq).await?;
 
                 let tmp_context = Context::from_path(vec![PathEntry::Coalesce(13)]);
                 let solution_mappings = SolutionMappings::new(df.lazy(), dtypes);
@@ -101,27 +101,27 @@ impl TimeseriesInMemoryDatabase {
                 } = extend(sm, &tmp_context, v)?;
                 Ok((mappings.collect().unwrap(), rdf_node_types))
             }
-            TimeseriesQuery::Limited(_, _) => todo!(),
+            VirtualizedQuery::Limited(_, _) => todo!(),
         }
     }
 
     fn execute_basic(
         &self,
-        btsq: &BasicTimeseriesQuery,
+        bvq: &BasicVirtualizedQuery,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         let mut sms = vec![];
-        for id in btsq.ids.as_ref().unwrap() {
+        for id in bvq.ids.as_ref().unwrap() {
             if let Some(df) = self.frames.get(id) {
-                assert!(btsq.identifier_variable.is_some());
+                assert!(bvq.identifier_variable.is_some());
                 let mut df = df.clone();
 
-                if let Some(value_variable) = &btsq.value_variable {
+                if let Some(value_variable) = &bvq.value_variable {
                     df.rename("value", value_variable.variable.as_str())
                         .expect("Rename problem");
                 } else {
                     df = df.drop("value").expect("Drop value problem");
                 }
-                if let Some(timestamp_variable) = &btsq.timestamp_variable {
+                if let Some(timestamp_variable) = &bvq.timestamp_variable {
                     df.rename("timestamp", timestamp_variable.variable.as_str())
                         .expect("Rename problem");
                 } else {
@@ -131,7 +131,7 @@ impl TimeseriesInMemoryDatabase {
                 lf = lf.with_column(
                     lit(id.to_string())
                         .cast(DataType::Categorical(None, CategoricalOrdering::Lexical))
-                        .alias(btsq.identifier_variable.as_ref().unwrap().as_str()),
+                        .alias(bvq.identifier_variable.as_ref().unwrap().as_str()),
                 );
                 let df = lf.collect().unwrap();
                 let dtypes = get_datatype_map(&df);
@@ -142,7 +142,7 @@ impl TimeseriesInMemoryDatabase {
         }
         let mut sm = union(sms, false)?;
         sm.mappings = sm.mappings.with_column(
-            col(btsq.identifier_variable.as_ref().unwrap().as_str()).cast(DataType::String),
+            col(bvq.identifier_variable.as_ref().unwrap().as_str()).cast(DataType::String),
         );
         let EagerSolutionMappings {
             mappings,
@@ -154,10 +154,10 @@ impl TimeseriesInMemoryDatabase {
     #[async_recursion]
     async fn execute_filtered(
         &self,
-        tsq: &TimeseriesQuery,
+        vq: &VirtualizedQuery,
         filter: &Expression,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
-        let (df, dtypes) = self.execute_query_impl(tsq).await?;
+        let (df, dtypes) = self.execute_query_impl(vq).await?;
         let tmp_context = Context::from_path(vec![PathEntry::Coalesce(12)]);
         let mut solution_mappings = SolutionMappings::new(df.lazy(), dtypes);
         let mut combiner = Combiner::new(
@@ -183,9 +183,9 @@ impl TimeseriesInMemoryDatabase {
 
     async fn execute_grouped(
         &self,
-        grouped: &GroupedTimeseriesQuery,
+        grouped: &GroupedVirtualizedQuery,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
-        let (df, dtypes) = self.execute_query_impl(&grouped.tsq).await?;
+        let (df, dtypes) = self.execute_query_impl(&grouped.vq).await?;
         let mut out_lf = df.lazy();
 
         let mut aggregation_exprs = vec![];
@@ -225,8 +225,8 @@ impl TimeseriesInMemoryDatabase {
                 .rdf_node_types
                 .insert(v.as_str().to_string(), rdf_node_type);
         }
-        let mut groupby = vec![col(grouped.tsq.get_groupby_column().unwrap())];
-        let tsfuncs = grouped.tsq.get_timeseries_functions(&grouped.context);
+        let mut groupby = vec![col(grouped.vq.get_groupby_column().unwrap())];
+        let tsfuncs = grouped.vq.get_timeseries_functions(&grouped.context);
         for b in &grouped.by {
             for (v, _) in &tsfuncs {
                 if b == *v {
@@ -249,7 +249,7 @@ impl TimeseriesInMemoryDatabase {
 
     async fn execute_inner_synchronized(
         &self,
-        inners: &Vec<Box<TimeseriesQuery>>,
+        inners: &Vec<Box<VirtualizedQuery>>,
         synchronizers: &Vec<Synchronizer>,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         assert_eq!(synchronizers.len(), 1);

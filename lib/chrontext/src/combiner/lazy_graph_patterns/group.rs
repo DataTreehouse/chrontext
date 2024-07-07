@@ -1,6 +1,6 @@
 use super::Combiner;
 use crate::combiner::static_subqueries::split_static_queries;
-use crate::combiner::time_series_queries::split_time_series_queries;
+use crate::combiner::virtualized_queries::split_virtualized_queries;
 use crate::combiner::CombinerError;
 use log::debug;
 use oxrdf::Variable;
@@ -11,7 +11,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
     pub(crate) async fn lazy_group(
@@ -21,13 +21,13 @@ impl Combiner {
         aggregates: &Vec<(Variable, AggregateExpression)>,
         solution_mapping: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        mut prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
+        mut prepared_virtualized_queries: Option<HashMap<Context, Vec<VirtualizedQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing group graph pattern");
         let inner_context = context.extension_with(PathEntry::GroupInner);
-        let inner_prepared_time_series_queries =
-            split_time_series_queries(&mut prepared_time_series_queries, &inner_context);
+        let inner_prepared_virtualized_queries =
+            split_virtualized_queries(&mut prepared_virtualized_queries, &inner_context);
         let inner_static_query_map = split_static_queries(&mut static_query_map, &inner_context);
 
         let output_solution_mappings = self
@@ -35,7 +35,7 @@ impl Combiner {
                 inner,
                 solution_mapping,
                 inner_static_query_map,
-                inner_prepared_time_series_queries,
+                inner_prepared_virtualized_queries,
                 &inner_context,
             )
             .await?;

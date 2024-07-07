@@ -36,89 +36,61 @@ static GLOBAL: Jemalloc = Jemalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyChrontextError;
-use chrontext::engine::{Engine as RustEngine, EngineConfig};
+use chrontext::engine::{Engine, EngineConfig, Virtualization};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
 use log::debug;
-use oxrdf::{IriParseError, NamedNode};
-use postgres::catalog::{Catalog as RustCatalog, DataProduct as RustDataProduct};
+use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use representation::{BaseRDFNodeType as RustBaseRDFNodeType};
 use std::collections::HashMap;
-use timeseries_query::TimeseriesTable as RustTimeseriesTable;
+use representation::BaseRDFNodeType;
+use representation::python::{PyRDFType};
+use templates::python::{PyArgument, PyInstance, PyIRI, PyLiteral, PyParameter, PyPrefix, PyTemplate, PyVariable, py_triple, a, xsd};
 use tokio::runtime::Builder;
+use virtualization::python::PyVirtualizedDatabase;
+use virtualization::VirtualizedDatabase;
 
-#[pyclass]
-pub struct Engine {
-    timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
-    timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
-    engine: Option<RustEngine>,
+#[pyclass(name="Engine")]
+pub struct PyEngine {
+    engine: Option<Engine>,
     sparql_endpoint: Option<String>,
-    sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
+    sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
+    vdb: PyVirtualizedDatabase,
+    vrs: HashMap<String, PyTemplate>,
 }
 
 #[pymethods]
-impl Engine {
+impl PyEngine {
     #[new]
-    pub fn new(
+    pub fn new<'py>(
+        vdb: PyVirtualizedDatabase,
+        vrs: HashMap<String, PyTemplate>,
         sparql_endpoint: Option<String>,
-        sparql_embedded_oxigraph: Option<SparqlEmbeddedOxigraph>,
-        timeseries_bigquery_db: Option<TimeseriesBigQueryDatabase>,
-        timeseries_opcua_db: Option<TimeseriesOPCUADatabase>,
-    ) -> PyResult<Engine> {
+        sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
+    ) -> PyResult<PyEngine> {
         let num_sparql =
             sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
-        let num_ts =
-            timeseries_bigquery_db.is_some() as usize + timeseries_opcua_db.is_some() as usize;
 
         if num_sparql == 0 {
             return Err(PyChrontextError::MissingSPARQLDatabaseError.into());
         }
         if num_sparql > 1 {
-            return Err(PyChrontextError::MultipleSPARQLDatabases.into());
+            return Err(PyChrontextError::MultipleSPARQLDatabasesError.into());
         }
 
-        if num_ts == 0 {
-            return Err(PyChrontextError::MissingTimeseriesDatabaseError.into());
-        }
-        if num_ts > 1 {
-            return Err(PyChrontextError::MultipleTimeseriesDatabases.into());
-        }
-
-        let engine = Engine {
+        let engine = PyEngine {
             engine: None,
             sparql_endpoint,
             sparql_embedded_oxigraph,
-            timeseries_bigquery_db,
-            timeseries_opcua_db,
+            vdb,
+            vrs,
         };
         Ok(engine)
     }
 
     pub fn init(&mut self) -> PyResult<()> {
         if self.engine.is_none() {
-            let (timeseries_opcua_endpoint, timeseries_opcua_namespace) =
-                if let Some(db) = &self.timeseries_opcua_db {
-                    (Some(db.endpoint.to_string()), Some(db.namespace))
-                } else {
-                    (None, None)
-                };
-
-            let (timeseries_bigquery_tables, timeseries_bigquery_key_file) =
-                if let Some(db) = &self.timeseries_bigquery_db {
-                    let mut tables = vec![];
-                    for t in &db.tables {
-                        tables.push(
-                            t.to_rust_table()
-                                .map_err(|x| PyChrontextError::DatatypeIRIParseError(x))?,
-                        );
-                    }
-                    (Some(tables), Some(db.key.clone()))
-                } else {
-                    (None, None)
-                };
-
             let sparql_endpoint = if let Some(endpoint) = &self.sparql_endpoint {
                 Some(endpoint.clone())
             } else {
@@ -131,17 +103,22 @@ impl Engine {
                 None
             };
 
+            let virtualized_database  = VirtualizedDatabase::PyVirtualizedDatabase(self.vdb.clone());
+            let mut virtualization_map = HashMap::new();
+            for (k,v) in &self.vrs {
+                virtualization_map.insert(k.clone(), v.template.clone());
+            }
+            let virtualization = Virtualization {resources:virtualization_map };
+
             let config = EngineConfig {
                 sparql_oxigraph_config,
+                virtualized_database,
                 sparql_endpoint,
-                timeseries_bigquery_tables,
-                timeseries_bigquery_key_file,
-                timeseries_opcua_endpoint,
-                timeseries_opcua_namespace,
+                virtualization,
             };
 
             self.engine = Some(
-                RustEngine::from_config(config).map_err(|x| PyChrontextError::ChrontextError(x))?,
+                Engine::from_config(config).map_err(|x| PyChrontextError::ChrontextError(x))?,
             );
         }
         Ok(())
@@ -162,7 +139,7 @@ impl Engine {
         let (mut df, mut datatypes) = builder
             .build()
             .unwrap()
-            .block_on(self.engine.as_mut().unwrap().execute_hybrid_query(sparql))
+            .block_on(self.engine.as_mut().unwrap().query(sparql))
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
         (df, datatypes) =
@@ -171,7 +148,7 @@ impl Engine {
         Ok(pydf)
     }
 
-    pub fn serve_postgres(&mut self, catalog: Catalog) -> PyResult<()> {
+    pub fn serve_postgres(&mut self, catalog: PyCatalog) -> PyResult<()> {
         if self.engine.is_none() {
             self.init()?;
         }
@@ -188,14 +165,14 @@ impl Engine {
     }
 }
 
-#[pyclass]
 #[derive(Clone)]
-pub struct SparqlEmbeddedOxigraph {
+#[pyclass(name="SparqlEmbeddedOxigraph")]
+pub struct PySparqlEmbeddedOxigraph {
     path: Option<String>,
     ntriples_file: String,
 }
 
-impl SparqlEmbeddedOxigraph {
+impl PySparqlEmbeddedOxigraph {
     pub fn as_config(&self) -> EmbeddedOxigraphConfig {
         EmbeddedOxigraphConfig {
             path: self.path.clone(),
@@ -205,153 +182,62 @@ impl SparqlEmbeddedOxigraph {
 }
 
 #[pymethods]
-impl SparqlEmbeddedOxigraph {
+impl PySparqlEmbeddedOxigraph {
     #[new]
-    pub fn new(ntriples_file: String, path: Option<String>) -> SparqlEmbeddedOxigraph {
-        SparqlEmbeddedOxigraph {
+    pub fn new(ntriples_file: String, path: Option<String>) -> PySparqlEmbeddedOxigraph {
+        PySparqlEmbeddedOxigraph {
             path,
             ntriples_file,
         }
     }
 }
 
-#[pyclass]
+#[pyclass(name="Catalog")]
 #[derive(Clone)]
-pub struct TimeseriesBigQueryDatabase {
-    pub tables: Vec<TimeseriesTable>,
-    pub key: String,
+pub struct PyCatalog {
+    pub data_products: HashMap<String, PyDataProduct>,
 }
 
 #[pymethods]
-impl TimeseriesBigQueryDatabase {
+impl PyCatalog {
     #[new]
-    pub fn new(tables: Vec<TimeseriesTable>, key: String) -> TimeseriesBigQueryDatabase {
-        TimeseriesBigQueryDatabase { tables, key }
+    pub fn new(data_products: HashMap<String, PyDataProduct>) -> PyCatalog {
+        PyCatalog { data_products }
     }
 }
 
-#[pyclass]
-#[derive(Clone)]
-pub struct TimeseriesOPCUADatabase {
-    namespace: u16,
-    endpoint: String,
-}
-
-#[pymethods]
-impl TimeseriesOPCUADatabase {
-    #[new]
-    pub fn new(endpoint: String, namespace: u16) -> TimeseriesOPCUADatabase {
-        TimeseriesOPCUADatabase {
-            namespace,
-            endpoint,
-        }
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct TimeseriesTable {
-    pub resource_name: String,
-    pub schema: Option<String>,
-    pub time_series_table: String,
-    pub value_column: String,
-    pub timestamp_column: String,
-    pub identifier_column: String,
-    pub year_column: Option<String>,
-    pub month_column: Option<String>,
-    pub day_column: Option<String>,
-}
-
-#[pymethods]
-impl TimeseriesTable {
-    #[new]
-    pub fn new(
-        resource_name: String,
-        time_series_table: String,
-        value_column: String,
-        timestamp_column: String,
-        identifier_column: String,
-        schema: Option<String>,
-        year_column: Option<String>,
-        month_column: Option<String>,
-        day_column: Option<String>,
-    ) -> TimeseriesTable {
-        TimeseriesTable {
-            resource_name,
-            schema,
-            time_series_table,
-            value_column,
-            timestamp_column,
-            identifier_column,
-            year_column,
-            month_column,
-            day_column,
-        }
-    }
-}
-
-impl TimeseriesTable {
-    fn to_rust_table(&self) -> Result<RustTimeseriesTable, IriParseError> {
-        Ok(RustTimeseriesTable {
-            resource_name: self.resource_name.clone(),
-            schema: self.schema.clone(),
-            time_series_table: self.time_series_table.clone(),
-            value_column: self.value_column.clone(),
-            timestamp_column: self.timestamp_column.clone(),
-            identifier_column: self.identifier_column.clone(),
-            year_column: self.year_column.clone(),
-            month_column: self.month_column.clone(),
-            day_column: self.day_column.clone(),
-        })
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct Catalog {
-    pub data_products: HashMap<String, DataProduct>,
-}
-
-#[pymethods]
-impl Catalog {
-    #[new]
-    pub fn new(data_products: HashMap<String, DataProduct>) -> Catalog {
-        Catalog { data_products }
-    }
-}
-
-impl Catalog {
-    pub fn to_rust(&self) -> Result<RustCatalog, PyChrontextError> {
+impl PyCatalog {
+    pub fn to_rust(&self) -> Result<Catalog, PyChrontextError> {
         let mut data_products = HashMap::new();
         for (k, v) in &self.data_products {
             data_products.insert(k.clone(), v.to_rust()?);
         }
-        Ok(RustCatalog { data_products })
+        Ok(Catalog { data_products })
     }
 }
 
-#[pyclass]
+#[pyclass(name="DataProduct")]
 #[derive(Clone)]
-pub struct DataProduct {
+pub struct PyDataProduct {
     pub query: String,
-    pub types: HashMap<String, RDFType>,
+    pub types: HashMap<String, PyRDFType>,
 }
 
 #[pymethods]
-impl DataProduct {
+impl PyDataProduct {
     #[new]
-    pub fn new(query: String, types: HashMap<String, RDFType>) -> DataProduct {
-        DataProduct { query, types }
+    pub fn new(query: String, types: HashMap<String, PyRDFType>) -> PyDataProduct {
+        PyDataProduct { query, types }
     }
 }
 
-impl DataProduct {
-    pub fn to_rust(&self) -> Result<RustDataProduct, PyChrontextError> {
+impl PyDataProduct {
+    pub fn to_rust(&self) -> Result<DataProduct, PyChrontextError> {
         let mut rdf_node_types = HashMap::new();
         for (k, v) in &self.types {
-            rdf_node_types.insert(k.clone(), v.to_rust()?);
+            rdf_node_types.insert(k.clone(), BaseRDFNodeType::from_rdf_node_type(&v.as_rdf_node_type()?));
         }
-        let mut rdp = RustDataProduct {
+        let mut rdp = DataProduct {
             query_string: self.query.clone(),
             parsed_query: None,
             rdf_node_types,
@@ -359,28 +245,6 @@ impl DataProduct {
         rdp.init()
             .map_err(|x| PyChrontextError::DataProductQueryParseError(x))?;
         Ok(rdp)
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub enum RDFType {
-    IRI {},
-    BlankNode {},
-    Literal { iri: String },
-    Unknown {},
-}
-
-impl RDFType {
-    pub fn to_rust(&self) -> Result<RustBaseRDFNodeType, PyChrontextError> {
-        Ok(match self {
-            RDFType::IRI { .. } => RustBaseRDFNodeType::IRI,
-            RDFType::BlankNode { .. } => RustBaseRDFNodeType::BlankNode,
-            RDFType::Literal { iri } => RustBaseRDFNodeType::Literal(
-                NamedNode::new(iri).map_err(|x| PyChrontextError::DatatypeIRIParseError(x))?,
-            ),
-            RDFType::Unknown { .. } => RustBaseRDFNodeType::None,
-        })
     }
 }
 
@@ -395,13 +259,21 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
         }
     }
 
-    m.add_class::<Engine>()?;
-    m.add_class::<TimeseriesTable>()?;
-    m.add_class::<TimeseriesBigQueryDatabase>()?;
-    m.add_class::<TimeseriesOPCUADatabase>()?;
-    m.add_class::<SparqlEmbeddedOxigraph>()?;
-    m.add_class::<RDFType>()?;
-    m.add_class::<DataProduct>()?;
-    m.add_class::<Catalog>()?;
+    m.add_class::<PyEngine>()?;
+    m.add_class::<PySparqlEmbeddedOxigraph>()?;
+    m.add_class::<PyDataProduct>()?;
+    m.add_class::<PyCatalog>()?;
+    m.add_class::<PyRDFType>()?;
+    m.add_class::<PyPrefix>()?;
+    m.add_class::<PyVariable>()?;
+    m.add_class::<PyLiteral>()?;
+    m.add_class::<PyIRI>()?;
+    m.add_class::<PyParameter>()?;
+    m.add_class::<PyArgument>()?;
+    m.add_class::<PyTemplate>()?;
+    m.add_class::<PyInstance>()?;
+    m.add_function(wrap_pyfunction!(py_triple, m)?)?;
+    m.add_function(wrap_pyfunction!(a, m)?)?;
+    m.add_function(wrap_pyfunction!(xsd, m)?)?;
     Ok(())
 }

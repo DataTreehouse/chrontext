@@ -19,7 +19,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use spargebra::Query;
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
     #[async_recursion]
@@ -28,12 +28,12 @@ impl Combiner {
         graph_pattern: &GraphPattern,
         solution_mappings: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
-        prepared_time_series_queries: Option<HashMap<Context, Vec<TimeseriesQuery>>>,
+        prepared_virtualized_queries: Option<HashMap<Context, Vec<VirtualizedQuery>>>,
         context: &Context,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Processing graph pattern at context: {}", context.as_str());
         let mut updated_solution_mappings = solution_mappings;
-        let mut new_prepared_time_series_queries = prepared_time_series_queries;
+        let mut new_prepared_virtualized_queries = prepared_virtualized_queries;
 
         //We have to eagerly evaluate static queries contained in the group by pattern since otherwise we are unable to push down the group by into the time series database.
         let mut found_group_by_pushdown = false;
@@ -58,7 +58,7 @@ impl Combiner {
             debug!("Finished executing static query");
             debug!("Start preparing time series queries");
             let GPPrepReturn {
-                time_series_queries,
+                virtualized_queries,
                 ..
             } = self.prepper.prepare_graph_pattern(
                 graph_pattern,
@@ -68,18 +68,18 @@ impl Combiner {
             );
             debug!(
                 "Finshed preparing time series queries, {} were created",
-                time_series_queries.len()
+                virtualized_queries.len()
             );
             updated_solution_mappings = Some(new_solution_mappings);
-            new_prepared_time_series_queries = Some(time_series_queries);
+            new_prepared_virtualized_queries = Some(virtualized_queries);
         }
 
-        if let Some(tsqs_map) = &mut new_prepared_time_series_queries {
-            if let Some(tsqs) = tsqs_map.remove(context) {
-                for tsq in tsqs {
+        if let Some(vqs_map) = &mut new_prepared_virtualized_queries {
+            if let Some(vqs) = vqs_map.remove(context) {
+                for vq in vqs {
                     debug!("Attaching time series query");
                     let new_solution_mappings = self
-                        .execute_attach_time_series_query(&tsq, updated_solution_mappings.unwrap())
+                        .execute_attach_virtualized_query(&vq, updated_solution_mappings.unwrap())
                         .await?;
                     debug!("Finished attaching time series query");
                     updated_solution_mappings = Some(new_solution_mappings);
@@ -88,9 +88,9 @@ impl Combiner {
         }
 
         if found_group_by_pushdown
-            && (new_prepared_time_series_queries.is_none()
-                || (new_prepared_time_series_queries.is_some()
-                    && new_prepared_time_series_queries
+            && (new_prepared_virtualized_queries.is_none()
+                || (new_prepared_virtualized_queries.is_some()
+                    && new_prepared_virtualized_queries
                         .as_ref()
                         .unwrap()
                         .is_empty()))
@@ -101,9 +101,9 @@ impl Combiner {
 
         if static_query_map.is_empty()
             && updated_solution_mappings.is_none()
-            && (new_prepared_time_series_queries.is_none()
-                || (new_prepared_time_series_queries.is_some()
-                    && new_prepared_time_series_queries
+            && (new_prepared_virtualized_queries.is_none()
+                || (new_prepared_virtualized_queries.is_some()
+                    && new_prepared_virtualized_queries
                         .as_ref()
                         .unwrap()
                         .is_empty()))
@@ -121,7 +121,7 @@ impl Combiner {
                     right,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -137,7 +137,7 @@ impl Combiner {
                     expression,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -148,7 +148,7 @@ impl Combiner {
                     expr,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     &context,
                 )
                 .await
@@ -159,7 +159,7 @@ impl Combiner {
                     right,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -176,7 +176,7 @@ impl Combiner {
                     expression,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -187,7 +187,7 @@ impl Combiner {
                     right,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -202,7 +202,7 @@ impl Combiner {
                     expression,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -213,7 +213,7 @@ impl Combiner {
                     variables,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -223,7 +223,7 @@ impl Combiner {
                     inner,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await
@@ -245,7 +245,7 @@ impl Combiner {
                     aggregates,
                     updated_solution_mappings,
                     static_query_map,
-                    new_prepared_time_series_queries,
+                    new_prepared_virtualized_queries,
                     context,
                 )
                 .await

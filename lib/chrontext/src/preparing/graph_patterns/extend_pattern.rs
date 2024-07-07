@@ -6,7 +6,7 @@ use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use std::collections::HashSet;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 impl TimeseriesQueryPrepper {
     pub(crate) fn prepare_extend(
@@ -31,14 +31,14 @@ impl TimeseriesQueryPrepper {
             let mut found_i = None;
             let mut found_context = None;
 
-            for (c, tsqs) in &inner_prepare.time_series_queries {
-                for (i, tsq) in tsqs.iter().enumerate() {
+            for (c, vqs) in &inner_prepare.virtualized_queries {
+                for (i, vq) in vqs.iter().enumerate() {
                     let mut found_all = true;
                     let mut found_some = false;
                     for expression_var in &expression_vars {
-                        if tsq.has_equivalent_value_variable(expression_var, context) {
+                        if vq.has_equivalent_value_variable(expression_var, context) {
                             found_some = true;
-                        } else if tsq.has_equivalent_timestamp_variable(expression_var, context) {
+                        } else if vq.has_equivalent_timestamp_variable(expression_var, context) {
                             found_some = true;
                         } else {
                             found_all = false;
@@ -52,31 +52,31 @@ impl TimeseriesQueryPrepper {
                 }
             }
             if let (Some(i), Some(c)) = (found_i, found_context) {
-                let inner_tsq = inner_prepare
-                    .time_series_queries
+                let inner_vq = inner_prepare
+                    .virtualized_queries
                     .get_mut(&c)
                     .unwrap()
                     .remove(i);
                 if inner_prepare
-                    .time_series_queries
+                    .virtualized_queries
                     .get(&c)
                     .unwrap()
                     .is_empty()
                 {
-                    inner_prepare.time_series_queries.remove(&c);
+                    inner_prepare.virtualized_queries.remove(&c);
                 }
-                let new_tsq =
-                    TimeseriesQuery::ExpressionAs(Box::new(inner_tsq), var.clone(), expr.clone());
-                if !inner_prepare.time_series_queries.contains_key(context) {
+                let new_vq =
+                    VirtualizedQuery::ExpressionAs(Box::new(inner_vq), var.clone(), expr.clone());
+                if !inner_prepare.virtualized_queries.contains_key(context) {
                     inner_prepare
-                        .time_series_queries
+                        .virtualized_queries
                         .insert(context.clone(), vec![]);
                 }
                 inner_prepare
-                    .time_series_queries
+                    .virtualized_queries
                     .get_mut(context)
                     .unwrap()
-                    .push(new_tsq);
+                    .push(new_vq);
                 inner_prepare
             } else {
                 GPPrepReturn::fail_groupby_complex_query()

@@ -10,7 +10,7 @@ use serial_test::serial;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use timeseries_query::pushdown_setting::all_pushdowns;
+use virtualized_query::pushdown_setting::all_pushdowns;
 
 use crate::common::{
     add_sparql_testdata, read_csv, start_sparql_container, wipe_database, QUERY_ENDPOINT,
@@ -53,7 +53,7 @@ async fn with_testdata(#[future] sparql_endpoint: (), testdata_path: PathBuf) {
 }
 
 #[fixture]
-fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
+fn inmem_virtualized_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatabase {
     let mut frames = HashMap::new();
     for t in [
         "ep1", "ep2", "ep3", "ep4", "ep5", "ep6", "ep7", "ep8", "wsp1", "wsp2", "wsp3", "wsp4",
@@ -77,10 +77,10 @@ fn inmem_time_series_database(testdata_path: PathBuf) -> TimeseriesInMemoryDatab
 }
 
 #[fixture]
-fn engine(inmem_time_series_database: TimeseriesInMemoryDatabase) -> Engine {
+fn engine(inmem_virtualized_database: TimeseriesInMemoryDatabase) -> Engine {
     Engine::new(
         all_pushdowns(),
-        Arc::new(inmem_time_series_database),
+        Arc::new(inmem_virtualized_database),
         Arc::new(SparqlEndpoint {
             endpoint: QUERY_ENDPOINT.to_string(),
         }),
@@ -136,7 +136,7 @@ SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val) as 
 GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0
@@ -236,7 +236,7 @@ SELECT ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10 (AVG(?val_prod
 GROUP BY ?site_label ?wtur_label ?year ?month ?day ?hour ?minute_10
     "#;
     let df = engine
-        .execute_hybrid_query(query)
+        .query(query)
         .await
         .expect("Hybrid error")
         .0

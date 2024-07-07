@@ -1,5 +1,5 @@
 use super::Combiner;
-use crate::combiner::time_series_queries::complete_basic_time_series_queries;
+use crate::combiner::virtualized_queries::complete_basic_virtualized_queries;
 use crate::combiner::CombinerError;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
@@ -37,9 +37,9 @@ impl Combiner {
             .execute(&use_query)
             .await
             .map_err(|x| CombinerError::StaticQueryExecutionError(x))?;
-        complete_basic_time_series_queries(
+        complete_basic_virtualized_queries(
             &solutions,
-            &mut self.prepper.basic_time_series_queries,
+            &mut self.prepper.basic_virtualized_queries,
         )?;
         let (df, datatypes) = create_static_query_dataframe(&use_query, solutions);
         debug!("Static query results:\n {}", df);

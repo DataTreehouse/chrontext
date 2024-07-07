@@ -12,14 +12,14 @@ use spargebra::algebra::Expression;
 use spargebra::term::Variable;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
-use timeseries_query::BasicTimeseriesQuery;
+use virtualized_query::BasicVirtualizedQuery;
 
 #[derive(Debug)]
 pub struct StaticQueryRewriter {
     variable_counter: u16,
     additional_projections: HashSet<Variable>,
     variable_constraints: VariableConstraints,
-    basic_time_series_queries: Vec<BasicTimeseriesQuery>,
+    basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
     static_subqueries: HashMap<Context, Query>,
     rewritten_filters: HashMap<Context, Expression>,
     is_hybrid: bool,
@@ -31,7 +31,7 @@ impl StaticQueryRewriter {
             variable_counter: 0,
             additional_projections: Default::default(),
             variable_constraints: variable_constraints.clone(),
-            basic_time_series_queries: vec![],
+            basic_virtualized_queries: vec![],
             static_subqueries: HashMap::new(),
             rewritten_filters: HashMap::new(),
             is_hybrid: variable_constraints.has_datapoints(),
@@ -43,7 +43,7 @@ impl StaticQueryRewriter {
         query: Query,
     ) -> (
         HashMap<Context, Query>,
-        Vec<BasicTimeseriesQuery>,
+        Vec<BasicVirtualizedQuery>,
         HashMap<Context, Expression>,
     ) {
         if !self.is_hybrid {
@@ -70,7 +70,7 @@ impl StaticQueryRewriter {
             }
             (
                 self.static_subqueries,
-                self.basic_time_series_queries,
+                self.basic_virtualized_queries,
                 self.rewritten_filters,
             )
         } else {

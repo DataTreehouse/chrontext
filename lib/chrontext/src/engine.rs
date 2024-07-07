@@ -11,43 +11,47 @@ use polars::enable_string_cache;
 use polars::frame::DataFrame;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::fs::File;
 use std::sync::Arc;
-use std::thread;
-use timeseries_outpost::timeseries_bigquery_database::TimeseriesBigQueryDatabase;
-use timeseries_outpost::timeseries_opcua_database::TimeseriesOPCUADatabase;
-use timeseries_outpost::TimeseriesQueryable;
-use timeseries_query::pushdown_setting::{all_pushdowns, PushdownSetting};
-use timeseries_query::TimeseriesTable;
+use pyo3::Python;
+use templates::ast::Template;
+use virtualized_query::pushdown_setting::{PushdownSetting};
+use virtualization::VirtualizedDatabase;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct EngineConfig {
     pub sparql_endpoint: Option<String>,
     pub sparql_oxigraph_config: Option<EmbeddedOxigraphConfig>,
-    pub timeseries_bigquery_key_file: Option<String>,
-    pub timeseries_bigquery_tables: Option<Vec<TimeseriesTable>>,
-    pub timeseries_opcua_namespace: Option<u16>,
-    pub timeseries_opcua_endpoint: Option<String>,
+    pub virtualized_database: VirtualizedDatabase,
+    pub virtualization: Virtualization,
+}
+
+#[derive(Debug)]
+pub struct Virtualization {
+    pub resources: HashMap<String, Template>
+}
+
+pub struct QueryWithOptionalPy<'py> {
+    query: &'py str,
+    optional_py: Python<'py>
 }
 
 pub struct Engine {
     pushdown_settings: HashSet<PushdownSetting>,
-    time_series_database: Arc<dyn TimeseriesQueryable>,
+    virtualized_database: Arc<VirtualizedDatabase>,
     pub sparql_database: Arc<dyn SparqlQueryable>,
 }
 
 impl Engine {
     pub fn new(
         pushdown_settings: HashSet<PushdownSetting>,
-        time_series_database: Arc<dyn TimeseriesQueryable>,
+        virtualized_database: Arc<VirtualizedDatabase>,
         sparql_database: Arc<dyn SparqlQueryable>,
     ) -> Engine {
         Engine {
             pushdown_settings,
-            time_series_database: time_series_database,
+            virtualized_database: virtualized_database,
             sparql_database: sparql_database,
         }
     }
@@ -56,10 +60,8 @@ impl Engine {
         let EngineConfig {
             sparql_endpoint,
             sparql_oxigraph_config,
-            timeseries_bigquery_key_file,
-            timeseries_bigquery_tables,
-            timeseries_opcua_namespace,
-            timeseries_opcua_endpoint,
+            virtualized_database,
+            virtualization,
         } = engine_config;
 
         let sparql_queryable: Arc<dyn SparqlQueryable> = if let Some(endpoint) = sparql_endpoint {
@@ -73,48 +75,16 @@ impl Engine {
             return Err(ChrontextError::NoSPARQLDatabaseDefined);
         };
 
-        let (pushdown_settings, time_series_database): (
-            HashSet<PushdownSetting>,
-            Arc<dyn TimeseriesQueryable>,
-        ) = if let (Some(timeseries_bigquery_key_file), Some(timeseries_bigquery_tables)) =
-            (timeseries_bigquery_key_file, timeseries_bigquery_tables)
-        {
-            let key = timeseries_bigquery_key_file.clone();
-            let db =
-                thread::spawn(|| TimeseriesBigQueryDatabase::new(key, timeseries_bigquery_tables))
-                    .join()
-                    .unwrap();
-
-            (all_pushdowns(), Arc::new(db))
-        } else if let (Some(timeseries_opcua_namespace), Some(timeseries_opcua_endpoint)) =
-            (timeseries_opcua_namespace, timeseries_opcua_endpoint)
-        {
-            (
-                [PushdownSetting::GroupBy].into(),
-                Arc::new(TimeseriesOPCUADatabase::new(
-                    &timeseries_opcua_endpoint,
-                    timeseries_opcua_namespace,
-                )),
-            )
-        } else {
-            return Err(ChrontextError::NoTimeseriesDatabaseDefined);
-        };
+        let pushdown_settings = virtualized_database.pushdown_settings();
 
         Ok(Engine::new(
             pushdown_settings,
-            time_series_database,
+            Arc::new(virtualized_database),
             sparql_queryable,
         ))
     }
 
-    pub fn from_json(path: &str) -> Result<Engine, ChrontextError> {
-        let f = File::open(path).map_err(|x| ChrontextError::FromJSONFileError(x.to_string()))?;
-        let c: EngineConfig = serde_json::from_reader(f)
-            .map_err(|x| ChrontextError::DeserializeFromJSONFileError(x.to_string()))?;
-        Engine::from_config(c)
-    }
-
-    pub async fn execute_hybrid_query(
+    pub async fn query<'py>(
         &self,
         query: &str,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
@@ -126,19 +96,19 @@ impl Engine {
         let (preprocessed_query, variable_constraints) = preprocessor.preprocess(&parsed_query);
         debug!("Constraints: {:?}", variable_constraints);
         let rewriter = StaticQueryRewriter::new(&variable_constraints);
-        let (static_queries_map, basic_time_series_queries, rewritten_filters) =
+        let (static_queries_map, basic_virtualized_queries, rewritten_filters) =
             rewriter.rewrite_query(preprocessed_query);
         debug!("Produced static rewrite: {:?}", static_queries_map);
         debug!(
             "Produced basic time series queries: {:?}",
-            basic_time_series_queries
+            basic_virtualized_queries,
         );
 
         let mut combiner = Combiner::new(
             self.sparql_database.clone(),
             self.pushdown_settings.clone(),
-            self.time_series_database.clone(),
-            basic_time_series_queries,
+            self.virtualized_database.clone(),
+            basic_virtualized_queries,
             rewritten_filters,
         );
         let solution_mappings = combiner

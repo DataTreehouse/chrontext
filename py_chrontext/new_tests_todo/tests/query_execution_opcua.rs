@@ -13,8 +13,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread::{sleep, JoinHandle};
 use std::{thread, time};
-use timeseries_outpost::timeseries_opcua_database::TimeseriesOPCUADatabase;
-use timeseries_query::pushdown_setting::PushdownSetting;
+use virtualization::timeseries_opcua_database::TimeseriesOPCUADatabase;
+use virtualized_query::pushdown_setting::PushdownSetting;
 use tokio::runtime::Builder;
 
 use crate::common::{
@@ -172,7 +172,7 @@ fn test_basic_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let df = runtime
-        .block_on(engine.execute_hybrid_query(query))
+        .block_on(engine.query(query))
         .expect("Hybrid error")
         .0;
     let mut file_path = testdata_path.clone();
@@ -230,7 +230,7 @@ fn test_basic_no_end_time_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let df = runtime
-        .block_on(engine.execute_hybrid_query(query))
+        .block_on(engine.query(query))
         .expect("Hybrid error")
         .0;
     let mut file_path = testdata_path.clone();
@@ -288,7 +288,7 @@ fn test_pushdown_group_by_five_second_hybrid_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let mut df = runtime
-        .block_on(engine.execute_hybrid_query(query))
+        .block_on(engine.query(query))
         .expect("Hybrid error")
         .0;
     df = df
@@ -369,7 +369,7 @@ fn test_no_pushdown_because_of_filter_query(
     builder.enable_all();
     let runtime = builder.build().unwrap();
     let mut df = runtime
-        .block_on(engine.execute_hybrid_query(query))
+        .block_on(engine.query(query))
         .expect("Hybrid error")
         .0;
     df = df

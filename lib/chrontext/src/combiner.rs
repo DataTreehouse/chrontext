@@ -3,7 +3,7 @@ pub(crate) mod lazy_expressions;
 pub(crate) mod lazy_graph_patterns;
 mod lazy_order;
 pub(crate) mod static_subqueries;
-pub(crate) mod time_series_queries;
+pub(crate) mod virtualized_queries;
 
 use representation::query_context::Context;
 
@@ -17,14 +17,16 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
+use pyo3::Python;
 use thiserror::Error;
-use timeseries_outpost::TimeseriesQueryable;
-use timeseries_query::pushdown_setting::PushdownSetting;
-use timeseries_query::{BasicTimeseriesQuery, TimeseriesValidationError};
+use virtualized_query::pushdown_setting::PushdownSetting;
+use virtualized_query::{BasicVirtualizedQuery, TimeseriesValidationError};
+use virtualization::errors::VirtualizedDatabaseError;
+use virtualization::VirtualizedDatabase;
 
 #[derive(Debug, Error)]
 pub enum CombinerError {
-    TimeseriesQueryError(Box<dyn Error>),
+    VirtualizedDatabaseError(VirtualizedDatabaseError),
     StaticQueryExecutionError(Box<dyn Error>),
     QueryProcessingError(#[from] QueryProcessingError),
     InconsistentDatatype(String, String, String),
@@ -43,8 +45,8 @@ impl Display for CombinerError {
                     s1, s2, s3
                 )
             }
-            CombinerError::TimeseriesQueryError(tsqe) => {
-                write!(f, "Time series query error {}", tsqe)
+            CombinerError::VirtualizedDatabaseError(vqe) => {
+                write!(f, "Time series query error {}", vqe)
             }
             CombinerError::StaticQueryExecutionError(sqee) => {
                 write!(f, "Static query execution error {}", sqee)
@@ -74,27 +76,27 @@ impl Display for CombinerError {
 pub struct Combiner {
     counter: u16,
     pub sparql_database: Arc<dyn SparqlQueryable>,
-    pub time_series_database: Arc<dyn TimeseriesQueryable>,
+    pub virtualized_database: Arc<VirtualizedDatabase>,
     prepper: TimeseriesQueryPrepper,
 }
 
 impl Combiner {
-    pub fn new(
+    pub fn new<'py>(
         sparql_database: Arc<dyn SparqlQueryable>,
         pushdown_settings: HashSet<PushdownSetting>,
-        time_series_database: Arc<dyn TimeseriesQueryable>,
-        basic_time_series_queries: Vec<BasicTimeseriesQuery>,
+        virtualized_database: Arc<VirtualizedDatabase>,
+        basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
         rewritten_filters: HashMap<Context, Expression>,
     ) -> Combiner {
         let prepper = TimeseriesQueryPrepper::new(
             pushdown_settings,
-            basic_time_series_queries,
+            basic_virtualized_queries,
             rewritten_filters,
         );
         Combiner {
             counter: 0,
             sparql_database,
-            time_series_database,
+            virtualized_database,
             prepper,
         }
     }
@@ -112,22 +114,22 @@ impl Combiner {
         } = query
         {
             let solution_mappings;
-            let time_series_queries;
+            let virtualized_queries;
             if let Some(static_query) = static_query_map.remove(&context) {
                 let mut new_solution_mappings =
                     self.execute_static_query(&static_query, None).await?;
-                let new_time_series_queries =
+                let new_virtualized_queries =
                     self.prepper.prepare(&query, &mut new_solution_mappings);
                 // Combination assumes there is something to combine!
                 // If there are no time series queries, we are done.
-                if new_time_series_queries.is_empty() {
+                if new_virtualized_queries.is_empty() {
                     return Ok(new_solution_mappings);
                 }
                 solution_mappings = Some(new_solution_mappings);
-                time_series_queries = Some(new_time_series_queries);
+                virtualized_queries = Some(new_virtualized_queries);
             } else {
                 solution_mappings = None;
-                time_series_queries = None
+                virtualized_queries = None
             }
 
             Ok(self
@@ -135,7 +137,7 @@ impl Combiner {
                     pattern,
                     solution_mappings,
                     static_query_map,
-                    time_series_queries,
+                    virtualized_queries,
                     &context,
                 )
                 .await?)

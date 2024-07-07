@@ -16,18 +16,18 @@ use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 #[derive(Debug)]
 pub struct EXPrepReturn {
     pub fail_groupby_complex_query: bool,
-    pub time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>,
+    pub virtualized_queries: HashMap<Context, Vec<VirtualizedQuery>>,
 }
 
 impl EXPrepReturn {
-    fn new(time_series_queries: HashMap<Context, Vec<TimeseriesQuery>>) -> EXPrepReturn {
+    fn new(virtualized_queries: HashMap<Context, Vec<VirtualizedQuery>>) -> EXPrepReturn {
         EXPrepReturn {
-            time_series_queries,
+            virtualized_queries,
             fail_groupby_complex_query: false,
         }
     }
@@ -35,16 +35,16 @@ impl EXPrepReturn {
     pub fn fail_groupby_complex_query() -> EXPrepReturn {
         EXPrepReturn {
             fail_groupby_complex_query: true,
-            time_series_queries: HashMap::new(),
+            virtualized_queries: HashMap::new(),
         }
     }
 
-    pub fn with_time_series_queries_from(&mut self, other: EXPrepReturn) {
-        for (c, v) in other.time_series_queries {
-            if let Some(myv) = self.time_series_queries.get_mut(&c) {
+    pub fn with_virtualized_queries_from(&mut self, other: EXPrepReturn) {
+        for (c, v) in other.virtualized_queries {
+            if let Some(myv) = self.virtualized_queries.get_mut(&c) {
                 myv.extend(v);
             } else {
-                self.time_series_queries.insert(c, v);
+                self.virtualized_queries.insert(c, v);
             }
         }
     }

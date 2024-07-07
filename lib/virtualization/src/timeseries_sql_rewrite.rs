@@ -16,7 +16,7 @@ use spargebra::algebra::{AggregateExpression, Expression};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter, Write};
-use timeseries_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery, TimeseriesTable};
+use virtualized_query::{BasicTimeseriesQuery, Synchronizer, TimeseriesQuery, TimeseriesTable};
 
 const YEAR_PARTITION_COLUMN_NAME: &str = "year_partition_column_name";
 const MONTH_PARTITION_COLUMN_NAME: &str = "month_partition_column_name";
@@ -116,15 +116,15 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     pub fn create_query(
         &self,
-        tsq: &TimeseriesQuery,
+        vq: &TimeseriesQuery,
         project_date_partition: bool,
     ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
-        let (mut select_statement, map) = self.create_query_nested(tsq, project_date_partition)?;
+        let (mut select_statement, map) = self.create_query_nested(vq, project_date_partition)?;
         let sort_col;
-        if let Some(grcol) = tsq.get_groupby_column() {
+        if let Some(grcol) = vq.get_groupby_column() {
             sort_col = grcol.clone();
         } else {
-            let idvars = tsq.get_identifier_variables();
+            let idvars = vq.get_identifier_variables();
             assert_eq!(idvars.len(), 1);
             sort_col = idvars.get(0).unwrap().as_str().to_string();
         }
@@ -138,16 +138,16 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     pub fn create_query_nested(
         &self,
-        tsq: &TimeseriesQuery,
+        vq: &TimeseriesQuery,
         project_date_partition: bool,
     ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
-        match tsq {
+        match vq {
             TimeseriesQuery::Basic(b) => self.create_basic_select(b, project_date_partition),
-            TimeseriesQuery::Filtered(tsq, filter) => {
+            TimeseriesQuery::Filtered(vq, filter) => {
                 let (se, need_partition_columns) = self.create_filter_expressions(
                     filter,
                     Some(
-                        &tsq.get_timestamp_variables()
+                        &vq.get_timestamp_variables()
                             .get(0)
                             .unwrap()
                             .variable
@@ -157,9 +157,9 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                 )?;
 
                 let (select, mut columns) = self
-                    .create_query_nested(tsq, need_partition_columns || project_date_partition)?;
+                    .create_query_nested(vq, need_partition_columns || project_date_partition)?;
 
-                let wraps_inner = if let TimeseriesQuery::Basic(_) = **tsq {
+                let wraps_inner = if let TimeseriesQuery::Basic(_) = **vq {
                     true
                 } else {
                     false
@@ -196,7 +196,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                 for s in inner {
                     selects.push(self.create_query_nested(s, self.partition_support)?);
                 }
-                let groupby_col = tsq.get_groupby_column().unwrap();
+                let groupby_col = vq.get_groupby_column().unwrap();
                 if let Some(Synchronizer::Identity(timestamp_col)) = &synchronizers.get(0) {
                     Ok(self.inner_join_selects(selects, timestamp_col, groupby_col))
                 } else {
@@ -204,16 +204,16 @@ impl TimeseriesQueryToSQLTransformer<'_> {
                 }
             }
             TimeseriesQuery::Grouped(grouped) => self.create_grouped_query(
-                &grouped.tsq,
+                &grouped.vq,
                 &grouped.by,
                 &grouped.aggregations,
                 project_date_partition,
             ),
-            TimeseriesQuery::GroupedBasic(btsq, df, col) => {
-                self.create_grouped_basic(btsq, project_date_partition, df, col)
+            TimeseriesQuery::GroupedBasic(bvq, df, col) => {
+                self.create_grouped_basic(bvq, project_date_partition, df, col)
             }
-            TimeseriesQuery::ExpressionAs(tsq, v, e) => {
-                self.create_expression_as(tsq, project_date_partition, v, e)
+            TimeseriesQuery::ExpressionAs(vq, v, e) => {
+                self.create_expression_as(vq, project_date_partition, v, e)
             }
             TimeseriesQuery::Limited(_, _) => todo!(),
         }
@@ -221,7 +221,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     fn create_expression_as(
         &self,
-        tsq: &TimeseriesQuery,
+        vq: &TimeseriesQuery,
         project_date_partition: bool,
         v: &Variable,
         e: &Expression,
@@ -233,7 +233,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         let se = expr_transformer.sparql_expression_to_sql_expression(e)?;
 
         let (select, mut columns) = self.create_query_nested(
-            tsq,
+            vq,
             project_date_partition || expr_transformer.used_partitioning,
         )?;
         if !project_date_partition && expr_transformer.used_partitioning {
@@ -265,13 +265,13 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     fn create_grouped_basic(
         &self,
-        btsq: &BasicTimeseriesQuery,
+        bvq: &BasicTimeseriesQuery,
         project_date_partition: bool,
         df: &DataFrame,
         column_name: &String,
     ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
         let mut value_tuples = vec![];
-        let identifier_colname = btsq.identifier_variable.as_ref().unwrap().as_str();
+        let identifier_colname = bvq.identifier_variable.as_ref().unwrap().as_str();
         let mut identifier_iter = df.column(identifier_colname).unwrap().iter();
         let mut groupcol_iter = df.column(&column_name).unwrap().iter();
         for _ in 0..df.height() {
@@ -322,7 +322,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
         let static_alias = "static_query";
 
-        let (basic_select, mut columns) = self.create_basic_select(btsq, project_date_partition)?;
+        let (basic_select, mut columns) = self.create_basic_select(bvq, project_date_partition)?;
 
         let mut joined_select = Query::select();
         let basic_alias = "basic_query";
@@ -373,11 +373,11 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     fn create_basic_select(
         &self,
-        btsq: &BasicTimeseriesQuery,
+        bvq: &BasicTimeseriesQuery,
         project_date_partition: bool,
     ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
-        let table = self.find_right_table(btsq)?;
-        let (select, columns) = create_basic_query(table, btsq, project_date_partition)?;
+        let table = self.find_right_table(bvq)?;
+        let (select, columns) = create_basic_query(table, bvq, project_date_partition)?;
 
         Ok((select, columns))
     }
@@ -468,9 +468,9 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     fn find_right_table<'a>(
         &'a self,
-        btsq: &BasicTimeseriesQuery,
+        bvq: &BasicTimeseriesQuery,
     ) -> Result<&'a TimeseriesTable, TimeseriesQueryToSQLError> {
-        if let Some(resource) = &btsq.resource {
+        if let Some(resource) = &bvq.resource {
             for table in self.tables {
                 if &table.resource_name == resource {
                     return Ok(table);
@@ -514,7 +514,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
     fn create_grouped_query(
         &self,
-        inner_tsq: &TimeseriesQuery,
+        inner_vq: &TimeseriesQuery,
         by: &Vec<Variable>,
         aggregations: &Vec<(Variable, AggregateExpression)>,
         project_date_partition: bool,
@@ -535,7 +535,7 @@ impl TimeseriesQueryToSQLTransformer<'_> {
         }
 
         let (query, mut columns) = self.create_query_nested(
-            &inner_tsq,
+            &inner_vq,
             agg_transformer.used_partitioning || project_date_partition,
         )?;
         if !project_date_partition && agg_transformer.used_partitioning {
@@ -611,13 +611,13 @@ impl TimeseriesQueryToSQLTransformer<'_> {
 
 pub fn create_basic_query(
     timeseries_table: &TimeseriesTable,
-    btsq: &BasicTimeseriesQuery,
+    bvq: &BasicTimeseriesQuery,
     project_date_partition: bool,
 ) -> Result<(SelectStatement, HashSet<String>), TimeseriesQueryToSQLError> {
     let mut basic_query = Query::select();
     let mut variable_column_name_map = HashMap::new();
     variable_column_name_map.insert(
-        btsq.identifier_variable
+        bvq.identifier_variable
             .as_ref()
             .unwrap()
             .as_str()
@@ -625,7 +625,7 @@ pub fn create_basic_query(
         timeseries_table.identifier_column.clone(),
     );
     variable_column_name_map.insert(
-        btsq.value_variable
+        bvq.value_variable
             .as_ref()
             .unwrap()
             .variable
@@ -634,7 +634,7 @@ pub fn create_basic_query(
         timeseries_table.value_column.clone(),
     );
     variable_column_name_map.insert(
-        btsq.timestamp_variable
+        bvq.timestamp_variable
             .as_ref()
             .unwrap()
             .variable
@@ -685,7 +685,7 @@ pub fn create_basic_query(
         basic_query.from(Name::Table(timeseries_table.time_series_table.clone()));
     }
 
-    if let Some(ids) = &btsq.ids {
+    if let Some(ids) = &bvq.ids {
         basic_query.and_where(
             SeaExpr::col(Name::Column(timeseries_table.identifier_column.clone())).is_in(
                 ids.iter()
@@ -714,14 +714,14 @@ mod tests {
     use sea_query::BigQueryQueryBuilder;
     use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function};
     use std::vec;
-    use timeseries_query::{
+    use virtualized_query::{
         BasicTimeseriesQuery, GroupedTimeseriesQuery, Synchronizer, TimeseriesQuery,
         TimeseriesTable,
     };
 
     #[test]
     pub fn test_translate() {
-        let basic_tsq = BasicTimeseriesQuery {
+        let basic_vq = BasicTimeseriesQuery {
             identifier_variable: Some(Variable::new_unchecked("id")),
             timeseries_variable: Some(VariableInContext::new(
                 Variable::new_unchecked("ts"),
@@ -743,8 +743,8 @@ mod tests {
             )),
             ids: Some(vec!["A".to_string(), "B".to_string()]),
         };
-        let tsq = TimeseriesQuery::Filtered(
-            Box::new(TimeseriesQuery::Basic(basic_tsq)),
+        let vq = TimeseriesQuery::Filtered(
+            Box::new(TimeseriesQuery::Basic(basic_vq)),
             Expression::LessOrEqual(
                 Box::new(Expression::Variable(Variable::new_unchecked("t"))),
                 Box::new(Expression::Literal(Literal::new_typed_literal(
@@ -767,7 +767,7 @@ mod tests {
         };
         let tables = vec![table];
         let transformer = TimeseriesQueryToSQLTransformer::new(&tables, DatabaseType::BigQuery);
-        let (sql_query, _) = transformer.create_query(&tsq, false).unwrap();
+        let (sql_query, _) = transformer.create_query(&vq, false).unwrap();
         assert_eq!(
             &sql_query.to_string(BigQueryQueryBuilder),
             r#"SELECT `id`, `t`, `v` FROM (SELECT `dir3` AS `id`, `timestamp` AS `t`, `value` AS `v`, CAST(`dir2` AS INTEGER) AS `day_partition_column_name`, CAST(`dir1` AS INTEGER) AS `month_partition_column_name`, CAST(`dir0` AS INTEGER) AS `year_partition_column_name` FROM `s3.ct-benchmark`.`timeseries_double` WHERE `dir3` IN ('A', 'B')) AS `filtering_query` WHERE `year_partition_column_name` < 2022 OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` < 6) OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` = 6 AND `day_partition_column_name` < 1) OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` = 6 AND `day_partition_column_name` = 1 AND `t` <= '2022-06-01 08:46:53') ORDER BY `id` ASC"#
@@ -776,8 +776,8 @@ mod tests {
 
     #[test]
     fn test_synchronized_grouped() {
-        let tsq = TimeseriesQuery::Grouped(GroupedTimeseriesQuery {
-            tsq: Box::new(TimeseriesQuery::ExpressionAs(
+        let vq = TimeseriesQuery::Grouped(GroupedTimeseriesQuery {
+            vq: Box::new(TimeseriesQuery::ExpressionAs(
                 Box::new(TimeseriesQuery::ExpressionAs(
                     Box::new(TimeseriesQuery::ExpressionAs(
                         Box::new(TimeseriesQuery::ExpressionAs(
@@ -979,7 +979,7 @@ mod tests {
         };
         let tables = vec![table];
         let transformer = TimeseriesQueryToSQLTransformer::new(&tables, DatabaseType::BigQuery);
-        let (sql_query, _) = transformer.create_query(&tsq, false).unwrap();
+        let (sql_query, _) = transformer.create_query(&vq, false).unwrap();
 
         let expected_str = r#"SELECT AVG(`outer_query`.`val_dir`) AS `f7ca5ee9058effba8691ac9c642fbe95`, AVG(`outer_query`.`val_speed`) AS `990362f372e4019bc151c13baf0b50d5`, `outer_query`.`year` AS `year`, `outer_query`.`month` AS `month`, `outer_query`.`day` AS `day`, `outer_query`.`hour` AS `hour`, `outer_query`.`minute_10` AS `minute_10`, `outer_query`.`grouping_col_0` AS `grouping_col_0` FROM (SELECT `inner_query`.`day` AS `day`, `inner_query`.`grouping_col_0` AS `grouping_col_0`, `inner_query`.`hour` AS `hour`, `inner_query`.`minute_10` AS `minute_10`, `inner_query`.`month` AS `month`, `inner_query`.`t` AS `t`, `inner_query`.`val_dir` AS `val_dir`, `inner_query`.`val_speed` AS `val_speed`, `inner_query`.`year` AS `year` FROM (SELECT `day` AS `day`, `grouping_col_0` AS `grouping_col_0`, `hour` AS `hour`, `minute_10` AS `minute_10`, `month` AS `month`, `t` AS `t`, `val_dir` AS `val_dir`, `val_speed` AS `val_speed`, `subquery`.`year_partition_column_name` AS `year` FROM (SELECT `day` AS `day`, `day_partition_column_name` AS `day_partition_column_name`, `grouping_col_0` AS `grouping_col_0`, `hour` AS `hour`, `minute_10` AS `minute_10`, `month_partition_column_name` AS `month_partition_column_name`, `t` AS `t`, `val_dir` AS `val_dir`, `val_speed` AS `val_speed`, `year_partition_column_name` AS `year_partition_column_name`, `subquery`.`month_partition_column_name` AS `month` FROM (SELECT `day_partition_column_name` AS `day_partition_column_name`, `grouping_col_0` AS `grouping_col_0`, `hour` AS `hour`, `minute_10` AS `minute_10`, `month_partition_column_name` AS `month_partition_column_name`, `t` AS `t`, `val_dir` AS `val_dir`, `val_speed` AS `val_speed`, `year_partition_column_name` AS `year_partition_column_name`, `subquery`.`day_partition_column_name` AS `day` FROM (SELECT `day_partition_column_name` AS `day_partition_column_name`, `grouping_col_0` AS `grouping_col_0`, `minute_10` AS `minute_10`, `month_partition_column_name` AS `month_partition_column_name`, `t` AS `t`, `val_dir` AS `val_dir`, `val_speed` AS `val_speed`, `year_partition_column_name` AS `year_partition_column_name`, EXTRACT(HOUR FROM `subquery`.`t`) AS `hour` FROM (SELECT `day_partition_column_name` AS `day_partition_column_name`, `grouping_col_0` AS `grouping_col_0`, `month_partition_column_name` AS `month_partition_column_name`, `t` AS `t`, `val_dir` AS `val_dir`, `val_speed` AS `val_speed`, `year_partition_column_name` AS `year_partition_column_name`, CAST(FLOOR(EXTRACT(MINUTE FROM `subquery`.`t`) / 10) AS INTEGER) AS `minute_10` FROM (SELECT `day_partition_column_name`, `grouping_col_0`, `month_partition_column_name`, `t`, `val_dir`, `val_speed`, `year_partition_column_name` FROM (SELECT `first_query`.`day_partition_column_name` AS `day_partition_column_name`, `first_query`.`grouping_col_0` AS `grouping_col_0`, `first_query`.`month_partition_column_name` AS `month_partition_column_name`, `first_query`.`t` AS `t`, `first_query`.`val_speed` AS `val_speed`, `first_query`.`year_partition_column_name` AS `year_partition_column_name`, `other_0`.`val_dir` AS `val_dir` FROM (SELECT `basic_query`.`day_partition_column_name` AS `day_partition_column_name`, `basic_query`.`month_partition_column_name` AS `month_partition_column_name`, `basic_query`.`t` AS `t`, `basic_query`.`val_speed` AS `val_speed`, `basic_query`.`year_partition_column_name` AS `year_partition_column_name`, `static_query`.`grouping_col_0` AS `grouping_col_0` FROM (SELECT `timestamp` AS `t`, `dir3` AS `ts_external_id_1`, `value` AS `val_speed`, CAST(`dir2` AS INTEGER) AS `day_partition_column_name`, CAST(`dir1` AS INTEGER) AS `month_partition_column_name`, CAST(`dir0` AS INTEGER) AS `year_partition_column_name` FROM `s3.ct-benchmark`.`timeseries_double` WHERE `dir3` IN ('id1')) AS `basic_query` INNER JOIN (SELECT `ts_external_id_1`, `grouping_col_0` FROM UNNEST([STRUCT ('id1' AS ts_external_id_1,0 AS grouping_col_0)]) AS `values`) AS `static_query` ON `static_query`.`ts_external_id_1` = `basic_query`.`ts_external_id_1`) AS `first_query` INNER JOIN (SELECT `basic_query`.`day_partition_column_name` AS `day_partition_column_name`, `basic_query`.`month_partition_column_name` AS `month_partition_column_name`, `basic_query`.`t` AS `t`, `basic_query`.`val_dir` AS `val_dir`, `basic_query`.`year_partition_column_name` AS `year_partition_column_name`, `static_query`.`grouping_col_0` AS `grouping_col_0` FROM (SELECT `timestamp` AS `t`, `dir3` AS `ts_external_id_2`, `value` AS `val_dir`, CAST(`dir2` AS INTEGER) AS `day_partition_column_name`, CAST(`dir1` AS INTEGER) AS `month_partition_column_name`, CAST(`dir0` AS INTEGER) AS `year_partition_column_name` FROM `s3.ct-benchmark`.`timeseries_double` WHERE `dir3` IN ('id2')) AS `basic_query` INNER JOIN (SELECT `ts_external_id_2`, `grouping_col_0` FROM UNNEST([STRUCT ('id2' AS ts_external_id_2,1 AS grouping_col_0)]) AS `values`) AS `static_query` ON `static_query`.`ts_external_id_2` = `basic_query`.`ts_external_id_2`) AS `other_0` ON `first_query`.`grouping_col_0` = `other_0`.`grouping_col_0` AND `first_query`.`t` = `other_0`.`t` AND `first_query`.`year_partition_column_name` = `other_0`.`year_partition_column_name` AND `first_query`.`month_partition_column_name` = `other_0`.`month_partition_column_name` AND `first_query`.`day_partition_column_name` = `other_0`.`day_partition_column_name`) AS `inner_synchronized_selects` WHERE (`year_partition_column_name` > 2022 OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` > 8) OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` = 8 AND `day_partition_column_name` > 30) OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` = 8 AND `day_partition_column_name` = 30 AND `t` >= '2022-08-30 08:46:53')) AND (`year_partition_column_name` < 2022 OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` < 8) OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` = 8 AND `day_partition_column_name` < 30) OR (`year_partition_column_name` = 2022 AND `month_partition_column_name` = 8 AND `day_partition_column_name` = 30 AND `t` <= '2022-08-30 21:46:53'))) AS `subquery`) AS `subquery`) AS `subquery`) AS `subquery`) AS `subquery`) AS `inner_query`) AS `outer_query` GROUP BY `outer_query`.`year`, `outer_query`.`month`, `outer_query`.`day`, `outer_query`.`hour`, `outer_query`.`minute_10`, `outer_query`.`grouping_col_0` ORDER BY `grouping_col_0` ASC"#;
         assert_eq!(sql_query.to_string(BigQueryQueryBuilder), expected_str);

@@ -5,7 +5,7 @@ use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::GraphPattern;
 use std::collections::HashMap;
-use timeseries_query::TimeseriesQuery;
+use virtualized_query::VirtualizedQuery;
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_slice(
@@ -30,13 +30,13 @@ impl TimeseriesQueryPrepper {
             );
             if !inner_prepare.fail_groupby_complex_query && start == 0 {
                 if let Some(length) = length {
-                    if let Some(mut tsqs) = inner_prepare.time_series_queries.remove(&inner_context)
+                    if let Some(mut vqs) = inner_prepare.virtualized_queries.remove(&inner_context)
                     {
-                        if tsqs.len() == 1 {
-                            let tsq = TimeseriesQuery::Limited(Box::new(tsqs.remove(0)), length);
+                        if vqs.len() == 1 {
+                            let vq = VirtualizedQuery::Limited(Box::new(vqs.remove(0)), length);
                             return GPPrepReturn::new(HashMap::from_iter([(
                                 context.clone(),
-                                vec![tsq],
+                                vec![vq],
                             )]));
                         }
                     }

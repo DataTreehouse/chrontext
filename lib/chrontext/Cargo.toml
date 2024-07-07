@@ -4,8 +4,10 @@ version = "0.4.0"
 edition = "2021"
 
 [dependencies]
-timeseries_outpost = {path = "../timeseries_outpost"}
-timeseries_query = { path = "../timeseries_query" }
+virtualization = {path = "../virtualization"}
+virtualized_query = { path = "../virtualized_query" }
+
+templates.workspace = true
 polars = { workspace = true, features = [
     "lazy",
     "concat_str",
@@ -20,22 +22,23 @@ polars = { workspace = true, features = [
     "nightly",
     "performant"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "rt"] }
-log = { workspace = true }
-spargebra = { workspace = true }
-representation = { workspace=true }
-query_processing = { workspace = true }
-sparesults = { workspace = true }
-oxrdf = { workspace = true }
+log.workspace = true
+spargebra.workspace = true
+representation.workspace=true
+query_processing.workspace = true
+sparesults.workspace = true
+oxrdf.workspace = true
 reqwest = { workspace = true, features = ["stream"] }
-env_logger = { workspace = true }
-thiserror = { workspace = true }
-async-recursion = { workspace = true }
-async-trait = { workspace = true }
-oxigraph = { workspace = true }
+env_logger.workspace = true
+thiserror.workspace = true
+async-recursion.workspace = true
+async-trait.workspace = true
+oxigraph.workspace = true
 chrono = { workspace = true, features = ["clock"] }
-serde = { workspace = true }
-serde_json = { workspace = true }
-filesize = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+filesize.workspace = true
+pyo3.workspace = true
 
 [dev-dependencies]
 bollard.workspace = true
