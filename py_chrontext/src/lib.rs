@@ -43,11 +43,11 @@ use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use representation::python::PyRDFType;
+use representation::python::{PyRDFType,PyIRI};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
 use templates::python::{
-    a, py_triple, xsd, PyArgument, PyIRI, PyInstance, PyLiteral, PyParameter, PyPrefix, PyTemplate,
+    a, py_triple, xsd, PyArgument, PyInstance, PyLiteral, PyParameter, PyPrefix, PyTemplate,
     PyVariable,
 };
 use tokio::runtime::Builder;
@@ -59,16 +59,16 @@ pub struct PyEngine {
     engine: Option<Engine>,
     sparql_endpoint: Option<String>,
     sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
-    vdb: PyVirtualizedDatabase,
-    vrs: HashMap<String, PyTemplate>,
+    virtualized_database: PyVirtualizedDatabase,
+    resources: HashMap<String, PyTemplate>,
 }
 
 #[pymethods]
 impl PyEngine {
     #[new]
     pub fn new<'py>(
-        vdb: PyVirtualizedDatabase,
-        vrs: HashMap<String, PyTemplate>,
+        virtualized_database: PyVirtualizedDatabase,
+        resources: HashMap<String, PyTemplate>,
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
     ) -> PyResult<PyEngine> {
@@ -86,8 +86,8 @@ impl PyEngine {
             engine: None,
             sparql_endpoint,
             sparql_embedded_oxigraph,
-            vdb,
-            vrs,
+            virtualized_database,
+            resources,
         };
         Ok(engine)
     }
@@ -106,9 +106,9 @@ impl PyEngine {
                 None
             };
 
-            let virtualized_database = VirtualizedDatabase::PyVirtualizedDatabase(self.vdb.clone());
+            let virtualized_database = VirtualizedDatabase::PyVirtualizedDatabase(self.virtualized_database.clone());
             let mut virtualization_map = HashMap::new();
-            for (k, v) in &self.vrs {
+            for (k, v) in &self.resources {
                 virtualization_map.insert(k.clone(), v.template.clone());
             }
             let virtualization = Virtualization {
@@ -241,7 +241,7 @@ impl PyDataProduct {
         for (k, v) in &self.types {
             rdf_node_types.insert(
                 k.clone(),
-                BaseRDFNodeType::from_rdf_node_type(&v.as_rdf_node_type()?),
+                BaseRDFNodeType::from_rdf_node_type(&v.as_rdf_node_type()),
             );
         }
         let mut rdp = DataProduct {
@@ -268,6 +268,7 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyEngine>()?;
     m.add_class::<PySparqlEmbeddedOxigraph>()?;
+    m.add_class::<PyVirtualizedDatabase>()?;
     m.add_class::<PyDataProduct>()?;
     m.add_class::<PyCatalog>()?;
     m.add_class::<PyRDFType>()?;

@@ -14,13 +14,6 @@ use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
 
 pub const ID_VARIABLE_NAME: &str = "id";
 
-#[derive(Clone, Debug)]
-pub struct Virtualization {
-    // Used to identify the table of the time series value
-    pub resource_name: String,
-    pub template: Template,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum VirtualizedQuery {
     Basic(BasicVirtualizedQuery),
