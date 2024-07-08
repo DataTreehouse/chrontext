@@ -26,7 +26,7 @@ impl PyVirtualizedDatabase {
     }
 
     pub fn query(&self, vq: &VirtualizedQuery) -> PyResult<DataFrame> {
-        let pyvq = PyVirtualizedQuery { vq: vq.clone() };
+        let pyvq = PyVirtualizedQuery::new(vq.clone());
         Python::with_gil(|py| {
             let db_mod = PyModule::import_bound(py, self.db_module.as_str())?;
             let query_func = db_mod.getattr("query")?;
