@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable, Literal as LiteralType, Union
+from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type
 from polars import DataFrame
 
 
@@ -22,11 +22,11 @@ class RDFType:
     Nested: Callable[["RDFType"], "RDFType"]
     Unknown: Callable[[], "RDFType"]
 
-
 class Variable:
     """
     A variable in a template.
     """
+    name:str
 
     def __init__(self, name: str):
         """
@@ -72,6 +72,9 @@ class Literal:
     """
     An RDF literal.
     """
+    value: str
+    data_type: Optional[IRI]
+    language: Optional[str]
 
     def __init__(self, value: str, data_type: IRI = None, language: str = None):
         """
@@ -80,6 +83,54 @@ class Literal:
         :param data_type: The data type of the value (an IRI).
         :param language: The language tag of the value.
         """
+
+    def to_native(self) -> Union[int, float, bool, str]:
+        """
+
+        :return:
+        """
+
+
+class Expression:
+    And:Type["PyExpression__And"]
+    Greater:Type["PyExpression__Greater"]
+    Less:Type["PyExpression__Less"]
+    left:Optional[Expression]
+    right:Optional[Expression]
+    Variable:Type["PyExpression__Variable"]
+    variable:Optional[Variable]
+    IRI:Type["PyExpression__IRI"]
+    Literal:Type["PyExpression__Literal"]
+    literal:Optional[Literal]
+
+    def expression_type(self) -> str:
+        """
+        Workaround for pyo3 issue with constructing enums. 
+        :return:
+        """
+    
+    
+
+class PyExpression__And(Expression):
+    left:Expression
+    right:Expression
+
+class PyExpression__Variable(Expression):
+    variable:Variable
+
+class PyExpression__IRI(Expression):
+    iri:IRI
+
+class PyExpression__Literal(Expression):
+    literal:Literal
+
+class PyExpression__Greater(Expression):
+    left:Expression
+    right:Expression
+
+class PyExpression__Less(Expression):
+    left:Expression
+    right:Expression
 
 
 class Parameter:
@@ -235,13 +286,3 @@ class DataProduct:
         :param query: The SPARQL SELECT Query that defines the data product
         :param types: The types of each of the variables in the data product
         """
-
-class RDFType:
-    """
-    The type of a column containing a RDF variable.
-    """
-    NamedNode:Callable[[], RDFType]
-    BlankNode:Callable[[], RDFType]
-    Literal:Callable[[str], RDFType]
-    Unknown:Callable[[], RDFType]
-

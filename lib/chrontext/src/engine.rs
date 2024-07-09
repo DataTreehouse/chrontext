@@ -60,7 +60,7 @@ impl Virtualization {
                 assert_eq!(i.template_name.as_str(), OTTR_TRIPLE);
                 let subj = i.argument_list.get(0).unwrap();
                 if let StottrTerm::Variable(v) = &subj.term {
-                    if &v.name == ID_VARIABLE_NAME {
+                    if v.as_str() == ID_VARIABLE_NAME {
                         let a = i.argument_list.get(1).unwrap();
                         if let StottrTerm::ConstantTerm(ConstantTermOrList::ConstantTerm(
                             ConstantTerm::Iri(nn),

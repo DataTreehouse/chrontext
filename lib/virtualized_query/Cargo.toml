@@ -15,7 +15,8 @@ polars = {workspace=true, features=[
     "performant"] }
 spargebra.workspace = true
 serde.workspace = true
-pyo3.workspace = true
+pyo3 = {workspace = true }
+thiserror.workspace = true
 
 [features]
 rdf-star = ["representation/rdf-star"]

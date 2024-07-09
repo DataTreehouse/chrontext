@@ -41,7 +41,7 @@ pub struct GroupedVirtualizedQuery {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BasicVirtualizedQuery {
     pub identifier_variable: Variable,
-    pub column_mapping: HashMap<String, TermPattern>,
+    pub column_mapping: HashMap<Variable, TermPattern>,
     pub resource_variable: Variable,
     pub query_source_context: Context,
     pub query_source_variable: Variable,
@@ -53,10 +53,10 @@ impl BasicVirtualizedQuery {
     pub fn finish_column_mapping(&mut self, patterns: &Vec<TriplePattern>, template: &Template) {
         let mut new_mappings = vec![];
         let mut visited_query_vars = HashSet::new();
-
-        let mut queue = vec![(&self.query_source_variable, ID_VARIABLE_NAME)];
+        let id_var =  Variable::new_unchecked(ID_VARIABLE_NAME);
+        let mut queue = vec![(&self.query_source_variable,&id_var)];
         while !queue.is_empty() {
-            let (current_query_var, current_template_var_name) = queue.pop().unwrap();
+            let (current_query_var, current_template_var) = queue.pop().unwrap();
             if !visited_query_vars.contains(&current_query_var) {
                 visited_query_vars.insert(current_query_var);
                 for p in patterns {
@@ -74,8 +74,7 @@ impl BasicVirtualizedQuery {
                                             if nn == template_nn {
                                                 match &tp.argument_list.get(0).unwrap().term {
                                                     StottrTerm::Variable(tv) => {
-                                                        if tv.name.as_str()
-                                                            == current_template_var_name
+                                                        if tv == current_template_var
                                                         {
                                                             match &tp
                                                                 .argument_list
@@ -85,7 +84,7 @@ impl BasicVirtualizedQuery {
                                                             {
                                                                 StottrTerm::Variable(tobj) => {
                                                                     new_mappings.push((
-                                                                        tobj.name.clone(),
+                                                                        tobj.clone(),
                                                                         p.object.clone(),
                                                                     ));
                                                                     if let TermPattern::Variable(
@@ -94,7 +93,7 @@ impl BasicVirtualizedQuery {
                                                                     {
                                                                         queue.push((
                                                                             obj,
-                                                                            tobj.name.as_str(),
+                                                                            tobj,
                                                                         ));
                                                                     }
                                                                 }

@@ -43,16 +43,16 @@ use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use representation::python::{PyRDFType,PyIRI};
+use representation::python::{PyRDFType, PyIRI, PyVariable, PyLiteral, PyPrefix, IriParseErrorException};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
 use templates::python::{
-    a, py_triple, xsd, PyArgument, PyInstance, PyLiteral, PyParameter, PyPrefix, PyTemplate,
-    PyVariable,
+    a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate,
 };
 use tokio::runtime::Builder;
 use virtualization::python::PyVirtualizedDatabase;
 use virtualization::VirtualizedDatabase;
+use virtualized_query::python::PyExpression;
 
 #[pyclass(name = "Engine")]
 pub struct PyEngine {
@@ -280,6 +280,7 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyArgument>()?;
     m.add_class::<PyTemplate>()?;
     m.add_class::<PyInstance>()?;
+    m.add_class::<PyExpression>()?;
     m.add_function(wrap_pyfunction!(py_triple, m)?)?;
     m.add_function(wrap_pyfunction!(a, m)?)?;
     m.add_function(wrap_pyfunction!(xsd, m)?)?;
