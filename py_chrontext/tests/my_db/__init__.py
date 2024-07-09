@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 import sqlalchemy.sql.expression
 
-from chrontext import Expression
+from chrontext import Expression, VirtualizedQuery
 from sqlalchemy import ColumnElement, Column, literal
 
 
@@ -18,6 +18,15 @@ def query(arg):
 class SPARQLMapper:
     def __init__(self, variable_map: Dict[str, Column]):
         self.variable_map = variable_map
+
+
+    def virtualized_query_to_sql(self, query:VirtualizedQuery):
+        query_type = query.query_type()
+        match query_type:
+            case "FilteredVirtualizedQuery":
+                pass
+            case "BasicVirtualizedQuery":
+                pass
 
     def expression_to_sql(self, expression: Expression) -> Column | ColumnElement | int | float | bool | str:
         expression_type = expression.expression_type()

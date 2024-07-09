@@ -133,6 +133,31 @@ class PyExpression__Less(Expression):
     right:Expression
 
 
+class VirtualizedQuery:
+    FilteredVirtualizedQuery:Type["PyVirtualizedQuery__FilteredVirtualizedQuery"]
+
+    BasicVirtualizedQuery:Type["PyVirtualizedQuery__BasicVirtualizedQuery"]
+    basic:"PyVirtualizedQuery__BasicVirtualizedQuery"
+
+    def query_type(self) -> LiteralType["FilteredVirtualizedQuery", "BasicVirtualizedQuery"]:
+        """
+
+        :return:
+        """
+
+
+
+class PyVirtualizedQuery__FilteredVirtualizedQuery:
+    query: VirtualizedQuery
+    filter: Expression
+
+
+
+class PyVirtualizedQuery__BasicVirtualizedQuery:
+
+
+
+
 class Parameter:
     def __init__(self,
                  variable: Variable,

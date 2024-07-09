@@ -145,7 +145,7 @@ fn add_basic_groupby_mapping_values(
     grouping_col: &str,
 ) -> VirtualizedQuery {
     match vq {
-        VirtualizedQuery::Basic(b) => {
+        VirtualizedQuery::Basic(mut b) => {
             let by_vec = vec![grouping_col, b.identifier_variable.as_str()];
             solution_mappings.mappings =
                 solution_mappings.mappings.clone().collect().unwrap().lazy();
@@ -156,7 +156,9 @@ fn add_basic_groupby_mapping_values(
                 .unwrap()
                 .select(by_vec)
                 .unwrap();
-            VirtualizedQuery::GroupedBasic(b, mapping_values, grouping_col.to_string())
+            b.grouping_mapping = Some(mapping_values);
+            b.grouping_col = Some(grouping_col.to_string());
+            VirtualizedQuery::Basic(b)
         }
         VirtualizedQuery::Filtered(vq, f) => VirtualizedQuery::Filtered(
             Box::new(add_basic_groupby_mapping_values(
@@ -166,7 +168,7 @@ fn add_basic_groupby_mapping_values(
             )),
             f,
         ),
-        VirtualizedQuery::InnerSynchronized(inners, syncs) => {
+        VirtualizedQuery::InnerJoin(inners, syncs) => {
             let mut vq_added = vec![];
             for vq in inners {
                 vq_added.push(Box::new(add_basic_groupby_mapping_values(
@@ -175,7 +177,7 @@ fn add_basic_groupby_mapping_values(
                     grouping_col,
                 )))
             }
-            VirtualizedQuery::InnerSynchronized(vq_added, syncs)
+            VirtualizedQuery::InnerJoin(vq_added, syncs)
         }
         VirtualizedQuery::ExpressionAs(vq, v, e) => VirtualizedQuery::ExpressionAs(
             Box::new(add_basic_groupby_mapping_values(
@@ -195,9 +197,6 @@ fn add_basic_groupby_mapping_values(
             limit,
         ),
         VirtualizedQuery::Grouped(_) => {
-            panic!("Should never happen")
-        }
-        VirtualizedQuery::GroupedBasic(_, _, _) => {
             panic!("Should never happen")
         }
     }

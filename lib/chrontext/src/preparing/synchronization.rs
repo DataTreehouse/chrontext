@@ -34,7 +34,7 @@ pub fn create_identity_synchronized_queries(
         vqs = keep_vqs;
         if !queries_to_synchronize.is_empty() {
             queries_to_synchronize.push(Box::new(first_query));
-            out_queries.push(VirtualizedQuery::InnerSynchronized(
+            out_queries.push(VirtualizedQuery::InnerJoin(
                 queries_to_synchronize,
                 vec![Synchronizer::Identity(
                     first_query_virtualized_variables_set

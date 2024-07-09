@@ -17,9 +17,8 @@ pub const ID_VARIABLE_NAME: &str = "id";
 #[derive(Debug, Clone, PartialEq)]
 pub enum VirtualizedQuery {
     Basic(BasicVirtualizedQuery),
-    GroupedBasic(BasicVirtualizedQuery, DataFrame, String),
     Filtered(Box<VirtualizedQuery>, Expression),
-    InnerSynchronized(Vec<Box<VirtualizedQuery>>, Vec<Synchronizer>),
+    InnerJoin(Vec<Box<VirtualizedQuery>>, Vec<Synchronizer>),
     ExpressionAs(Box<VirtualizedQuery>, Variable, Expression),
     Grouped(GroupedVirtualizedQuery),
     Limited(Box<VirtualizedQuery>, usize),
@@ -47,14 +46,16 @@ pub struct BasicVirtualizedQuery {
     pub query_source_variable: Variable,
     pub resource: Option<String>,
     pub ids: Option<Vec<String>>,
+    pub grouping_mapping: Option<DataFrame>,
+    pub grouping_col: Option<String>,
 }
 
 impl BasicVirtualizedQuery {
     pub fn finish_column_mapping(&mut self, patterns: &Vec<TriplePattern>, template: &Template) {
         let mut new_mappings = vec![];
         let mut visited_query_vars = HashSet::new();
-        let id_var =  Variable::new_unchecked(ID_VARIABLE_NAME);
-        let mut queue = vec![(&self.query_source_variable,&id_var)];
+        let id_var = Variable::new_unchecked(ID_VARIABLE_NAME);
+        let mut queue = vec![(&self.query_source_variable, &id_var)];
         while !queue.is_empty() {
             let (current_query_var, current_template_var) = queue.pop().unwrap();
             if !visited_query_vars.contains(&current_query_var) {
@@ -74,8 +75,7 @@ impl BasicVirtualizedQuery {
                                             if nn == template_nn {
                                                 match &tp.argument_list.get(0).unwrap().term {
                                                     StottrTerm::Variable(tv) => {
-                                                        if tv == current_template_var
-                                                        {
+                                                        if tv == current_template_var {
                                                             match &tp
                                                                 .argument_list
                                                                 .get(2)
@@ -91,10 +91,7 @@ impl BasicVirtualizedQuery {
                                                                         obj,
                                                                     ) = &p.object
                                                                     {
-                                                                        queue.push((
-                                                                            obj,
-                                                                            tobj,
-                                                                        ));
+                                                                        queue.push((obj, tobj));
                                                                     }
                                                                 }
                                                                 StottrTerm::ConstantTerm(_) => {}
@@ -127,6 +124,11 @@ impl BasicVirtualizedQuery {
         let mut s = HashSet::new();
         for v in self.column_mapping.keys() {
             s.insert(v.as_str());
+        }
+        if let Some(grouping_var) = &self.grouping_col {
+            s.insert(grouping_var.as_str());
+        } else {
+            s.insert(self.identifier_variable.as_str());
         }
         s
     }
@@ -175,9 +177,8 @@ impl VirtualizedQuery {
                     false
                 }
             }
-            VirtualizedQuery::GroupedBasic(_, df, _) => df.height() > 0,
             VirtualizedQuery::Filtered(i, _) => i.has_identifiers(),
-            VirtualizedQuery::InnerSynchronized(i, _) => i.iter().any(|x| x.has_identifiers()),
+            VirtualizedQuery::InnerJoin(i, _) => i.iter().any(|x| x.has_identifiers()),
             VirtualizedQuery::ExpressionAs(t, _, _) => t.has_identifiers(),
             VirtualizedQuery::Grouped(g) => g.vq.has_identifiers(),
             VirtualizedQuery::Limited(i, _) => i.has_identifiers(),
@@ -208,7 +209,7 @@ impl VirtualizedQuery {
         match self {
             VirtualizedQuery::Basic(b) => b.expected_columns(),
             VirtualizedQuery::Filtered(inner, ..) => inner.expected_columns(),
-            VirtualizedQuery::InnerSynchronized(inners, _synchronizers) => {
+            VirtualizedQuery::InnerJoin(inners, _synchronizers) => {
                 inners.iter().fold(HashSet::new(), |mut exp, vq| {
                     exp.extend(vq.expected_columns());
                     exp
@@ -231,12 +232,6 @@ impl VirtualizedQuery {
                 let grouping_col = self.get_groupby_column();
                 expected_columns.insert(grouping_col.unwrap().as_str());
                 expected_columns
-            }
-            VirtualizedQuery::GroupedBasic(b, _, c) => {
-                let mut expected = b.expected_columns();
-                expected.insert(c.as_str());
-                expected.remove(b.identifier_variable.as_str());
-                expected
             }
             VirtualizedQuery::ExpressionAs(t, ..) => t.expected_columns(),
             VirtualizedQuery::Limited(inner, ..) => inner.expected_columns(),
@@ -262,7 +257,7 @@ impl VirtualizedQuery {
                 }
             }
             VirtualizedQuery::Filtered(inner, _) => inner.get_ids(),
-            VirtualizedQuery::InnerSynchronized(inners, _) => {
+            VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut ss = vec![];
                 for inner in inners {
                     ss.extend(inner.get_ids())
@@ -270,13 +265,6 @@ impl VirtualizedQuery {
                 ss
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_ids(),
-            VirtualizedQuery::GroupedBasic(b, ..) => {
-                if let Some(ids) = &b.ids {
-                    ids.iter().collect()
-                } else {
-                    vec![]
-                }
-            }
             VirtualizedQuery::ExpressionAs(vq, ..) => vq.get_ids(),
             VirtualizedQuery::Limited(inner, ..) => inner.get_ids(),
         }
@@ -286,7 +274,7 @@ impl VirtualizedQuery {
         match self {
             VirtualizedQuery::Basic(b) => b.get_virtualized_variables(),
             VirtualizedQuery::Filtered(inner, _) => inner.get_virtualized_variables(),
-            VirtualizedQuery::InnerSynchronized(inners, _) => {
+            VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut vs = vec![];
                 for inner in inners {
                     vs.extend(inner.get_virtualized_variables())
@@ -294,7 +282,6 @@ impl VirtualizedQuery {
                 vs
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_virtualized_variables(),
-            VirtualizedQuery::GroupedBasic(b, ..) => b.get_virtualized_variables(),
             VirtualizedQuery::ExpressionAs(t, ..) => t.get_virtualized_variables(),
             VirtualizedQuery::Limited(inner, ..) => inner.get_virtualized_variables(),
         }
@@ -306,7 +293,7 @@ impl VirtualizedQuery {
                 vec![&b.identifier_variable]
             }
             VirtualizedQuery::Filtered(inner, _) => inner.get_identifier_variables(),
-            VirtualizedQuery::InnerSynchronized(inners, _) => {
+            VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut vs = vec![];
                 for inner in inners {
                     vs.extend(inner.get_identifier_variables())
@@ -314,9 +301,6 @@ impl VirtualizedQuery {
                 vs
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_identifier_variables(),
-            VirtualizedQuery::GroupedBasic(b, ..) => {
-                vec![&b.identifier_variable]
-            }
             VirtualizedQuery::ExpressionAs(t, ..) => t.get_identifier_variables(),
             VirtualizedQuery::Limited(inner, ..) => inner.get_identifier_variables(),
         }
@@ -328,7 +312,7 @@ impl VirtualizedQuery {
                 vec![&b.resource_variable]
             }
             VirtualizedQuery::Filtered(inner, _) => inner.get_resource_variables(),
-            VirtualizedQuery::InnerSynchronized(inners, _) => {
+            VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut vs = vec![];
                 for inner in inners {
                     vs.extend(inner.get_resource_variables())
@@ -336,9 +320,6 @@ impl VirtualizedQuery {
                 vs
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_resource_variables(),
-            VirtualizedQuery::GroupedBasic(b, ..) => {
-                vec![&b.resource_variable]
-            }
             VirtualizedQuery::ExpressionAs(t, ..) => t.get_resource_variables(),
             VirtualizedQuery::Limited(inner, ..) => inner.get_resource_variables(),
         }
@@ -369,6 +350,8 @@ impl BasicVirtualizedQuery {
             query_source_variable,
             resource: None,
             ids: None,
+            grouping_mapping: None,
+            grouping_col: None,
         }
     }
 }
@@ -376,10 +359,15 @@ impl BasicVirtualizedQuery {
 impl VirtualizedQuery {
     pub fn get_groupby_column(&self) -> Option<&String> {
         match self {
-            VirtualizedQuery::Basic(..) => None,
-            VirtualizedQuery::GroupedBasic(_, _, colname) => Some(colname),
+            VirtualizedQuery::Basic(b) => {
+                if let Some(c) = &b.grouping_col {
+                    Some(c)
+                } else {
+                    None
+                }
+            }
             VirtualizedQuery::Filtered(vq, _) => vq.get_groupby_column(),
-            VirtualizedQuery::InnerSynchronized(vqs, _) => {
+            VirtualizedQuery::InnerJoin(vqs, _) => {
                 let mut colname = None;
                 for vq in vqs {
                     let new_colname = vq.get_groupby_column();
@@ -400,10 +388,15 @@ impl VirtualizedQuery {
 
     pub fn get_groupby_mapping_df(&self) -> Option<&DataFrame> {
         match self {
-            VirtualizedQuery::Basic(..) => None,
-            VirtualizedQuery::GroupedBasic(_, df, _) => Some(df),
+            VirtualizedQuery::Basic(b) => {
+                if let Some(df) = &b.grouping_mapping {
+                    Some(df)
+                } else {
+                    None
+                }
+            }
             VirtualizedQuery::Filtered(vq, _) => vq.get_groupby_mapping_df(),
-            VirtualizedQuery::InnerSynchronized(vqs, _) => {
+            VirtualizedQuery::InnerJoin(vqs, _) => {
                 let mut colname = None;
                 for vq in vqs {
                     let new_colname = vq.get_groupby_mapping_df();
@@ -427,11 +420,8 @@ impl VirtualizedQuery {
             VirtualizedQuery::Basic(..) => {
                 vec![]
             }
-            VirtualizedQuery::GroupedBasic(..) => {
-                vec![]
-            }
             VirtualizedQuery::Filtered(vq, _) => vq.get_virtualized_functions(context),
-            VirtualizedQuery::InnerSynchronized(vqs, _) => {
+            VirtualizedQuery::InnerJoin(vqs, _) => {
                 let mut out_tsfs = vec![];
                 for vq in vqs {
                     out_tsfs.extend(vq.get_virtualized_functions(context))

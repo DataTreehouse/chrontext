@@ -52,7 +52,7 @@ use templates::python::{
 use tokio::runtime::Builder;
 use virtualization::python::PyVirtualizedDatabase;
 use virtualization::VirtualizedDatabase;
-use virtualized_query::python::PyExpression;
+use virtualized_query::python::{PyBasicVirtualizedQuery, PyExpression, PyVirtualizedQuery};
 
 #[pyclass(name = "Engine")]
 pub struct PyEngine {
@@ -269,6 +269,8 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEngine>()?;
     m.add_class::<PySparqlEmbeddedOxigraph>()?;
     m.add_class::<PyVirtualizedDatabase>()?;
+    m.add_class::<PyVirtualizedQuery>()?;
+    m.add_class::<PyBasicVirtualizedQuery>()?;
     m.add_class::<PyDataProduct>()?;
     m.add_class::<PyCatalog>()?;
     m.add_class::<PyRDFType>()?;
