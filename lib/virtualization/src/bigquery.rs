@@ -2,22 +2,26 @@ use crate::errors::VirtualizedDatabaseError;
 use crate::python::translate_sql;
 use crate::{get_datatype_map, Virtualization};
 use bigquery_polars::{BigQueryExecutor, Client};
+use pyo3::{Py, PyAny};
 use representation::solution_mapping::EagerSolutionMappings;
 use reqwest::Url;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::VirtualizedQuery;
 
 pub struct VirtualizedBigQueryDatabase {
     gcp_sa_key: String,
-    virtualization: Virtualization,
+    resource_sql_map: HashMap<String, Py<PyAny>>,
 }
 
 impl VirtualizedBigQueryDatabase {
-    pub fn new(gcp_sa_key: String, virtualization: Virtualization) -> VirtualizedBigQueryDatabase {
+    pub fn new(
+        gcp_sa_key: String,
+        resource_sql_map: HashMap<String, Py<PyAny>>,
+    ) -> VirtualizedBigQueryDatabase {
         VirtualizedBigQueryDatabase {
             gcp_sa_key,
-            virtualization,
+            resource_sql_map,
         }
     }
 }
@@ -31,7 +35,7 @@ impl VirtualizedBigQueryDatabase {
         &self,
         vq: &VirtualizedQuery,
     ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
-        let query_string = translate_sql(vq)?;
+        let query_string = translate_sql(vq, &self.resource_sql_map)?;
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
         // Last modified in commit: 8134d42
         // It has been simplified and made async
@@ -60,8 +64,7 @@ impl VirtualizedBigQueryDatabase {
 
         let url = Url::parse(&self.gcp_sa_key)?;
         let sa_key_path = url.path();
-        let client = Client::from_service_account_key_file(sa_key_path)
-            .await?;
+        let client = Client::from_service_account_key_file(sa_key_path).await?;
 
         let auth_data = std::fs::read_to_string(sa_key_path)?;
         let auth_json: serde_json::Value = serde_json::from_str(&auth_data)?;
@@ -74,9 +77,7 @@ impl VirtualizedBigQueryDatabase {
         //End copied code.
 
         let ex = BigQueryExecutor::new(client, project_id, query_string);
-        let lf = ex
-            .execute_query()
-            .await?;
+        let lf = ex.execute_query().await?;
         let df = lf.collect().unwrap();
         let datatypes = get_datatype_map(&df);
         Ok(EagerSolutionMappings::new(df, datatypes))

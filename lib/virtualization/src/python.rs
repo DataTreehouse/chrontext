@@ -1,7 +1,7 @@
 use polars::prelude::DataFrame;
 use pydf_io::to_rust::polars_df_to_rust_df;
 use pyo3::prelude::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::python::PyVirtualizedQuery;
 use virtualized_query::VirtualizedQuery;
@@ -10,13 +10,23 @@ use virtualized_query::VirtualizedQuery;
 #[pyclass(name = "VirtualizedDatabase")]
 pub struct VirtualizedPythonDatabase {
     pub database: Py<PyAny>,
+    pub resource_sql_map: Option<HashMap<String, Py<PyAny>>>,
+    pub sql_dialect: Option<String>,
 }
 
 #[pymethods]
 impl VirtualizedPythonDatabase {
     #[new]
-    pub fn new(database: Py<PyAny>) -> VirtualizedPythonDatabase {
-        VirtualizedPythonDatabase { database }
+    pub fn new(
+        database: Py<PyAny>,
+        resource_sql_map: Option<HashMap<String, Py<PyAny>>>,
+        sql_dialect: Option<String>,
+    ) -> VirtualizedPythonDatabase {
+        VirtualizedPythonDatabase {
+            database,
+            resource_sql_map,
+            sql_dialect,
+        }
     }
 }
 
@@ -35,7 +45,7 @@ impl VirtualizedPythonDatabase {
     }
 }
 
-pub fn translate_sql(vq: &VirtualizedQuery) -> PyResult<String> {
+pub fn translate_sql(vq: &VirtualizedQuery, x: &HashMap<String, Py<PyAny>>) -> PyResult<String> {
     Python::with_gil(|py| {
         let pyvq = PyVirtualizedQuery::new(vq.clone(), py)?;
         let db_mod = PyModule::import_bound(py, "my_db")?;

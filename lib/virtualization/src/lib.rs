@@ -69,7 +69,7 @@ impl Virtualization {
 }
 
 pub enum VirtualizedDatabase {
-    PyVirtualizedDatabase(VirtualizedPythonDatabase),
+    VirtualizedPythonDatabase(VirtualizedPythonDatabase),
     VirtualizedBigQueryDatabase(VirtualizedBigQueryDatabase),
     VirtualizedOPCUADatabase(VirtualizedOPCUADatabase),
 }
@@ -77,7 +77,7 @@ pub enum VirtualizedDatabase {
 impl VirtualizedDatabase {
     pub fn pushdown_settings(&self) -> HashSet<PushdownSetting> {
         match self {
-            VirtualizedDatabase::PyVirtualizedDatabase(pydb) => pydb.pushdown_settings(),
+            VirtualizedDatabase::VirtualizedPythonDatabase(pydb) => pydb.pushdown_settings(),
             VirtualizedDatabase::VirtualizedBigQueryDatabase(_) => {
                 VirtualizedBigQueryDatabase::pushdown_settings()
             }
@@ -92,7 +92,7 @@ impl VirtualizedDatabase {
         vq: &VirtualizedQuery,
     ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
         match self {
-            VirtualizedDatabase::PyVirtualizedDatabase(pyvdb) => {
+            VirtualizedDatabase::VirtualizedPythonDatabase(pyvdb) => {
                 let df = pyvdb.query(vq).map_err(VirtualizedDatabaseError::from)?;
                 let rdf_node_types = get_datatype_map(&df);
                 Ok(EagerSolutionMappings::new(df, rdf_node_types))

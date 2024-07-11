@@ -297,6 +297,73 @@ impl VirtualizedQuery {
         }
     }
 
+    pub fn get_timestamp_variables(&self) -> Vec<Variable> {
+        match self {
+            VirtualizedQuery::Basic(b) => {
+                if let Some(ts) = &b.chrontext_timestamp_variable {
+                    vec![ts.clone()]
+                } else {
+                    vec![]
+                }
+            }
+            VirtualizedQuery::Filtered(inner, _) => inner.get_timestamp_variables(),
+            VirtualizedQuery::InnerJoin(inners, _) => {
+                let mut vs = vec![];
+                for inner in inners {
+                    vs.extend(inner.get_timestamp_variables())
+                }
+                vs
+            }
+            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_timestamp_variables(),
+            VirtualizedQuery::ExpressionAs(t, ..) => t.get_timestamp_variables(),
+            VirtualizedQuery::Limited(inner, ..) => inner.get_timestamp_variables(),
+        }
+    }
+
+    pub fn get_value_variables(&self) -> Vec<&Variable> {
+        match self {
+            VirtualizedQuery::Basic(b) => {
+                if let Some(ts) = &b.chrontext_value_variable {
+                    vec![ts]
+                } else {
+                    vec![]
+                }
+            }
+            VirtualizedQuery::Filtered(inner, _) => inner.get_value_variables(),
+            VirtualizedQuery::InnerJoin(inners, _) => {
+                let mut vs = vec![];
+                for inner in inners {
+                    vs.extend(inner.get_value_variables())
+                }
+                vs
+            }
+            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_value_variables(),
+            VirtualizedQuery::ExpressionAs(t, ..) => t.get_value_variables(),
+            VirtualizedQuery::Limited(inner, ..) => inner.get_value_variables(),
+        }
+    }
+
+    pub fn get_extend_functions(&self) -> Vec<(&Variable, &Expression)> {
+        match self {
+            VirtualizedQuery::Basic(b) => vec![],
+            VirtualizedQuery::Filtered(inner, _) => inner.get_extend_functions(),
+            VirtualizedQuery::InnerJoin(inners, _) => {
+                let mut vs = vec![];
+                for inner in inners {
+                    vs.extend(inner.get_extend_functions())
+                }
+                vs
+            }
+            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_extend_functions(),
+            VirtualizedQuery::ExpressionAs(t, v, e) => {
+                let mut extfuncs = t.get_extend_functions();
+                extfuncs.push((v, e));
+                extfuncs
+            }
+            VirtualizedQuery::Limited(inner, ..) => inner.get_extend_functions(),
+        }
+    }
+
     pub fn get_identifier_variables(&self) -> Vec<&Variable> {
         match self {
             VirtualizedQuery::Basic(b) => {
@@ -362,6 +429,8 @@ impl BasicVirtualizedQuery {
             ids: None,
             grouping_mapping: None,
             grouping_col: None,
+            chrontext_timestamp_variable: None,
+            chrontext_value_variable: None,
         }
     }
 }

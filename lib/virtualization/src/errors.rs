@@ -1,5 +1,5 @@
-use gcp_bigquery_client::error::BQError;
 use bigquery_polars::errors::BigQueryExecutorError;
+use gcp_bigquery_client::error::BQError;
 use polars::prelude::PolarsError;
 use pyo3::PyErr;
 use thiserror::*;

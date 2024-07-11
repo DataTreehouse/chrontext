@@ -7,22 +7,16 @@ use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
 use crate::sparql_database::SparqlQueryable;
 use crate::splitter::parse_sparql_select_query;
 use log::debug;
-use oxrdf::NamedNode;
 use polars::enable_string_cache;
 use polars::frame::DataFrame;
-use pyo3::{Py, PyAny};
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
-use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
-use templates::constants::OTTR_TRIPLE;
-use virtualization::VirtualizedDatabase;
+use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
-use virtualized_query::ID_VARIABLE_NAME;
 
-#[derive(Debug)]
 pub struct EngineConfig {
     pub sparql_endpoint: Option<String>,
     pub sparql_oxigraph_config: Option<EmbeddedOxigraphConfig>,
@@ -84,7 +78,6 @@ impl Engine {
     pub async fn query<'py>(
         &self,
         query: &str,
-        py_db: Py<PyAny>,
     ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
         enable_string_cache();
         let parsed_query = parse_sparql_select_query(query)?;
@@ -113,7 +106,6 @@ impl Engine {
             basic_virtualized_queries,
             rewritten_filters,
             self.virtualization.clone(),
-            py_db,
         );
         let solution_mappings = combiner
             .combine_static_and_time_series_results(static_queries_map, &parsed_query)

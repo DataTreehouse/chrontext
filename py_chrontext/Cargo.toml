@@ -11,9 +11,10 @@ virtualization = {path="../lib/virtualization"}
 
 representation.workspace = true
 templates.workspace = true
-pyo3 = { workspace=true, features = ["extension-module"] }
-
 pydf_io.workspace = true
+
+pyo3 = { workspace=true, features = ["extension-module"] }
+async-trait.workspace = true
 thiserror.workspace = true
 polars = { workspace = true, features = ["performant", "cse", "nightly", "lazy"] }
 oxrdf.workspace = true

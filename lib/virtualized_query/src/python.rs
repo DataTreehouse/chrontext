@@ -60,7 +60,7 @@ impl PyVirtualizedQuery {
     }
 
     #[getter]
-    fn identifier_name(&self, py: Python) -> Option<String> {
+    fn identifier_name(&self) -> Option<String> {
         match self {
             PyVirtualizedQuery::BasicVirtualizedQuery {
                 identifier_name, ..
@@ -69,21 +69,21 @@ impl PyVirtualizedQuery {
         }
     }
     #[getter]
-    fn resource(&self, py: Python) -> Option<String> {
+    fn resource(&self) -> Option<String> {
         match self {
             PyVirtualizedQuery::BasicVirtualizedQuery { resource, .. } => Some(resource.clone()),
             _ => None,
         }
     }
     #[getter]
-    fn ids(&self, py: Python) -> Option<Vec<String>> {
+    fn ids(&self) -> Option<Vec<String>> {
         match self {
             PyVirtualizedQuery::BasicVirtualizedQuery { ids, .. } => Some(ids.clone()),
             _ => None,
         }
     }
     #[getter]
-    fn column_mapping(&self, py: Python) -> Option<HashMap<String, String>> {
+    fn column_mapping(&self) -> Option<HashMap<String, String>> {
         match self {
             PyVirtualizedQuery::BasicVirtualizedQuery { column_mapping, .. } => {
                 Some(column_mapping.clone())
@@ -92,7 +92,7 @@ impl PyVirtualizedQuery {
         }
     }
     #[getter]
-    fn id_to_grouping_mapping(&self, py: Python) -> Option<HashMap<String, u32>> {
+    fn id_to_grouping_mapping(&self) -> Option<HashMap<String, u32>> {
         match self {
             PyVirtualizedQuery::BasicVirtualizedQuery {
                 id_to_grouping_mapping,
@@ -108,7 +108,7 @@ impl PyVirtualizedQuery {
         }
     }
     #[getter]
-    fn grouping_column_name(&self, py: Python) -> Option<String> {
+    fn grouping_column_name(&self) -> Option<String> {
         match self {
             PyVirtualizedQuery::BasicVirtualizedQuery {
                 grouping_column_name,

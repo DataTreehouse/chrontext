@@ -20,7 +20,6 @@ use representation::query_context::Context;
 use representation::solution_mapping::EagerSolutionMappings;
 use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function};
 use std::collections::{HashMap, HashSet};
-use std::fmt::{Display};
 use std::str::FromStr;
 use std::sync::Arc;
 use virtualized_query::pushdown_setting::PushdownSetting;
@@ -138,7 +137,6 @@ impl VirtualizedOPCUADatabase {
                         .get(0)
                         .as_ref()
                         .unwrap()
-                        .variable
                         .as_str()
                         .to_string(),
                     c.clone(),
@@ -204,13 +202,7 @@ impl VirtualizedOPCUADatabase {
                 if let Some(grvar) = &timestamp_grouping_colname {
                     ts.rename(grvar);
                 } else {
-                    ts.rename(
-                        vq.get_timestamp_variables()
-                            .get(0)
-                            .unwrap()
-                            .variable
-                            .as_str(),
-                    );
+                    ts.rename(vq.get_timestamp_variables().get(0).unwrap().as_str());
                 }
                 val.rename(colname);
                 if let Some(v) = series_map.get_mut(id) {
@@ -264,10 +256,6 @@ impl VirtualizedOPCUADatabase {
             .unwrap();
         let datatypes = get_datatype_map(&df);
         Ok(EagerSolutionMappings::new(df, datatypes))
-    }
-
-    fn allow_compound_timeseries_queries(&self) -> bool {
-        false
     }
 }
 
@@ -369,7 +357,8 @@ fn find_aggregate_types(vq: &VirtualizedQuery) -> Option<Vec<NodeId>> {
     if let VirtualizedQuery::Grouped(grouped) = vq {
         let mut nodes = vec![];
         for (_, agg) in &grouped.aggregations {
-            let value_var_str = vq.get_value_variables().get(0).unwrap().variable.as_str();
+            let value_vars = vq.get_value_variables();
+            let value_var_str = value_vars.get(0).unwrap().as_str();
             let expr_is_ok = |expr: &Expression| -> bool {
                 if let Expression::Variable(v) = expr {
                     v.as_str() == value_var_str
@@ -450,11 +439,8 @@ fn find_time(vq: &VirtualizedQuery, find_time: &FindTime) -> DateTime {
         None
     };
     if let Some(e) = filter {
-        let found_time_opt = find_time_condition(
-            &vq.get_timestamp_variables().get(0).unwrap().variable,
-            e,
-            find_time,
-        );
+        let found_time_opt =
+            find_time_condition(&vq.get_timestamp_variables().get(0).unwrap(), e, find_time);
         if found_time_opt.is_some() {
             if found_time.is_some() {
                 panic!("Two duplicate conditions??");
@@ -670,7 +656,7 @@ fn find_grouping_interval(vq: &VirtualizedQuery, context: &Context) -> Option<(S
         let mut tsf = None;
         let mut grvar = None;
         for v in &grouped.by {
-            for (t, e) in vq.get_timeseries_functions(context) {
+            for (t, e) in vq.get_extend_functions() {
                 if t == v {
                     tsf = Some((t, e));
                     grvar = Some(v);

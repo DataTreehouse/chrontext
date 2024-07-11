@@ -36,23 +36,22 @@ static GLOBAL: Jemalloc = Jemalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyChrontextError;
-use chrontext::engine::{Engine, EngineConfig, Virtualization};
+use chrontext::engine::{Engine, EngineConfig};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
 use log::debug;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use pyo3::types::PyList;
-use representation::python::{
-    IriParseErrorException, PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable,
-};
+use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
 use templates::python::{a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate};
 use tokio::runtime::Builder;
+use virtualization::bigquery::VirtualizedBigQueryDatabase;
+use virtualization::opcua::VirtualizedOPCUADatabase;
 use virtualization::python::VirtualizedPythonDatabase;
-use virtualization::VirtualizedDatabase;
+use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::python::{PyBasicVirtualizedQuery, PyExpression, PyVirtualizedQuery};
 
 #[pyclass(name = "Engine")]
@@ -60,7 +59,9 @@ pub struct PyEngine {
     engine: Option<Engine>,
     sparql_endpoint: Option<String>,
     sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
-    virtualized_database: VirtualizedPythonDatabase,
+    virtualized_python_database: Option<VirtualizedPythonDatabase>,
+    virtualized_bigquery: Option<PyVirtualizedBigQuery>,
+    virtualized_opcua: Option<PyVirtualizedOPCUA>,
     resources: HashMap<String, PyTemplate>,
 }
 
@@ -68,8 +69,10 @@ pub struct PyEngine {
 impl PyEngine {
     #[new]
     pub fn new<'py>(
-        virtualized_database: VirtualizedPythonDatabase,
         resources: HashMap<String, PyTemplate>,
+        virtualized_python_database: Option<VirtualizedPythonDatabase>,
+        virtualized_bigquery: Option<PyVirtualizedBigQuery>,
+        virtualized_opcua: Option<PyVirtualizedOPCUA>,
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
     ) -> PyResult<PyEngine> {
@@ -83,11 +86,24 @@ impl PyEngine {
             return Err(PyChrontextError::MultipleSPARQLDatabasesError.into());
         }
 
+        let num_virtualized = virtualized_bigquery.is_some() as usize
+            + virtualized_opcua.is_some() as usize
+            + virtualized_python_database.is_some() as usize;
+
+        if num_virtualized == 0 {
+            return Err(PyChrontextError::MissingVirtualizedDatabaseError.into());
+        }
+        if num_virtualized > 1 {
+            return Err(PyChrontextError::MultipleVirtualizedDatabasesError.into());
+        }
+
         let engine = PyEngine {
             engine: None,
             sparql_endpoint,
             sparql_embedded_oxigraph,
-            virtualized_database,
+            virtualized_python_database,
+            virtualized_bigquery,
+            virtualized_opcua,
             resources,
         };
         Ok(engine)
@@ -95,6 +111,25 @@ impl PyEngine {
 
     pub fn init(&mut self) -> PyResult<()> {
         if self.engine.is_none() {
+            let virtualized_database = if let Some(db) = &self.virtualized_opcua {
+                VirtualizedDatabase::VirtualizedOPCUADatabase(VirtualizedOPCUADatabase::new(
+                    &db.endpoint,
+                    db.namespace,
+                ))
+            } else if let Some(db) = &self.virtualized_bigquery {
+                let mut resource_template_map = HashMap::new();
+                for (k, v) in &db.resource_template_map {
+                    resource_template_map.insert(k.clone(), v.template.clone());
+                }
+                VirtualizedDatabase::VirtualizedBigQueryDatabase(VirtualizedBigQueryDatabase::new(
+                    db.key.clone(),
+                    db.resource_sql_map.clone(),
+                ))
+            } else if let Some(db) = &self.virtualized_python_database {
+                VirtualizedDatabase::VirtualizedPythonDatabase(db.clone())
+            } else {
+                panic!("Should never happen");
+            };
             let sparql_endpoint = if let Some(endpoint) = &self.sparql_endpoint {
                 Some(endpoint.clone())
             } else {
@@ -107,8 +142,6 @@ impl PyEngine {
                 None
             };
 
-            let virtualized_database =
-                VirtualizedDatabase::PyVirtualizedDatabase(self.virtualized_database.clone());
             let mut virtualization_map = HashMap::new();
             for (k, v) in &self.resources {
                 virtualization_map.insert(k.clone(), v.template.clone());
@@ -149,7 +182,7 @@ impl PyEngine {
                 self.engine
                     .as_mut()
                     .unwrap()
-                    .query(sparql, PyList::new_bound(py, [1]).unbind().into_any()),
+                    .query(sparql),
             )
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
@@ -199,6 +232,48 @@ impl PySparqlEmbeddedOxigraph {
         PySparqlEmbeddedOxigraph {
             path,
             ntriples_file,
+        }
+    }
+}
+
+#[pyclass(name = "VirtualizedBigQuery")]
+#[derive(Clone)]
+pub struct PyVirtualizedBigQuery {
+    pub resource_sql_map: HashMap<String, Py<PyAny>>,
+    pub resource_template_map: HashMap<String, PyTemplate>,
+    pub key: String,
+}
+
+#[pymethods]
+impl PyVirtualizedBigQuery {
+    #[new]
+    pub fn new(
+        resource_sql_map: HashMap<String, Py<PyAny>>,
+        resource_template_map: HashMap<String, PyTemplate>,
+        key: String,
+    ) -> PyVirtualizedBigQuery {
+        PyVirtualizedBigQuery {
+            resource_sql_map,
+            resource_template_map,
+            key,
+        }
+    }
+}
+
+#[pyclass(name = "VirtualizedOPCUA")]
+#[derive(Clone)]
+pub struct PyVirtualizedOPCUA {
+    namespace: u16,
+    endpoint: String,
+}
+
+#[pymethods]
+impl PyVirtualizedOPCUA {
+    #[new]
+    pub fn new(endpoint: String, namespace: u16) -> PyVirtualizedOPCUA {
+        PyVirtualizedOPCUA {
+            namespace,
+            endpoint,
         }
     }
 }

@@ -32,6 +32,7 @@ reqwest = { workspace = true, features = ["stream"] }
 env_logger.workspace = true
 thiserror.workspace = true
 async-recursion.workspace = true
+async-trait.workspace = true
 oxigraph.workspace = true
 chrono = { workspace = true, features = ["clock"] }
 serde.workspace = true

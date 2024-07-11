@@ -2,7 +2,6 @@ mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
 
-use crate::engine::Virtualization;
 use polars::prelude::DataType;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
@@ -10,6 +9,7 @@ use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use virtualization::Virtualization;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
 

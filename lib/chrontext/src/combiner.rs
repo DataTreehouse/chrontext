@@ -7,10 +7,8 @@ pub(crate) mod virtualized_queries;
 
 use representation::query_context::Context;
 
-use crate::engine::Virtualization;
 use crate::preparing::TimeseriesQueryPrepper;
 use crate::sparql_database::SparqlQueryable;
-use pyo3::{Py, PyAny};
 use query_processing::errors::QueryProcessingError;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
@@ -21,7 +19,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use thiserror::Error;
 use virtualization::errors::VirtualizedDatabaseError;
-use virtualization::VirtualizedDatabase;
+use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{BasicVirtualizedQuery, TimeseriesValidationError};
 
@@ -79,7 +77,6 @@ pub struct Combiner {
     pub sparql_database: Arc<dyn SparqlQueryable>,
     pub virtualized_database: Arc<VirtualizedDatabase>,
     prepper: TimeseriesQueryPrepper,
-    py_db: Py<PyAny>,
 }
 
 impl Combiner {
@@ -90,7 +87,6 @@ impl Combiner {
         basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
         rewritten_filters: HashMap<Context, Expression>,
         virtualization: Arc<Virtualization>,
-        py_db: Py<PyAny>,
     ) -> Combiner {
         let prepper = TimeseriesQueryPrepper::new(
             pushdown_settings,
@@ -103,7 +99,6 @@ impl Combiner {
             sparql_database,
             virtualized_database,
             prepper,
-            py_db,
         }
     }
 

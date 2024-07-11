@@ -21,6 +21,10 @@ def query(arg):
     print(sqlq)
 
 
+def translate_sql(vq:VirtualizedQuery) -> str:
+    pass
+
+
 class SPARQLMapper:
     def __init__(self,
                  dialect: Literal["BigQuery"],
@@ -54,6 +58,9 @@ class SPARQLMapper:
 
                 sql_q = select(*to_select)
                 return sql_q
+
+            case "InnerJoinVirtualizedQuery":
+                pass
 
     def expression_to_sql(
             self,
