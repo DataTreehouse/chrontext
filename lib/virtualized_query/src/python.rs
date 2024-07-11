@@ -1,6 +1,6 @@
+use crate::{BasicVirtualizedQuery, VirtualizedQuery};
 use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
-use crate::{BasicVirtualizedQuery, VirtualizedQuery};
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
 use spargebra::algebra::Expression;
@@ -36,7 +36,7 @@ pub enum PyVirtualizedQuery {
     },
     FilteredVirtualizedQuery {
         filter: Py<PyExpression>,
-        query: Py<PyVirtualizedQuery>
+        query: Py<PyVirtualizedQuery>,
     },
 }
 
@@ -44,32 +44,90 @@ pub enum PyVirtualizedQuery {
 impl PyVirtualizedQuery {
     fn type_name(&self) -> &str {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery { .. } => {
-                "BasicVirtualizedQuery"
-            }
-            PyVirtualizedQuery::FilteredVirtualizedQuery { .. } => {
-                "FilteredVirtualizedQuery"
-            }
+            PyVirtualizedQuery::BasicVirtualizedQuery { .. } => "BasicVirtualizedQuery",
+            PyVirtualizedQuery::FilteredVirtualizedQuery { .. } => "FilteredVirtualizedQuery",
         }
     }
 
     #[getter]
-    fn filter(&self, py:Python) -> Option<Py<PyExpression>> {
+    fn filter(&self, py: Python) -> Option<Py<PyExpression>> {
         match self {
             PyVirtualizedQuery::FilteredVirtualizedQuery { filter, .. } => {
                 Some(filter.clone_ref(py))
-            },
-            _ => None
+            }
+            _ => None,
         }
     }
 
     #[getter]
-    fn query(&self, py:Python) -> Option<Py<PyVirtualizedQuery>> {
+    fn identifier_name(&self, py: Python) -> Option<String> {
         match self {
-            PyVirtualizedQuery::FilteredVirtualizedQuery { query, .. } => {
-                Some(query.clone_ref(py))
-            },
-            _ => None
+            PyVirtualizedQuery::BasicVirtualizedQuery {
+                identifier_name, ..
+            } => Some(identifier_name.clone()),
+            _ => None,
+        }
+    }
+    #[getter]
+    fn resource(&self, py: Python) -> Option<String> {
+        match self {
+            PyVirtualizedQuery::BasicVirtualizedQuery { resource, .. } => Some(resource.clone()),
+            _ => None,
+        }
+    }
+    #[getter]
+    fn ids(&self, py: Python) -> Option<Vec<String>> {
+        match self {
+            PyVirtualizedQuery::BasicVirtualizedQuery { ids, .. } => Some(ids.clone()),
+            _ => None,
+        }
+    }
+    #[getter]
+    fn column_mapping(&self, py: Python) -> Option<HashMap<String, String>> {
+        match self {
+            PyVirtualizedQuery::BasicVirtualizedQuery { column_mapping, .. } => {
+                Some(column_mapping.clone())
+            }
+            _ => None,
+        }
+    }
+    #[getter]
+    fn id_to_grouping_mapping(&self, py: Python) -> Option<HashMap<String, u32>> {
+        match self {
+            PyVirtualizedQuery::BasicVirtualizedQuery {
+                id_to_grouping_mapping,
+                ..
+            } => {
+                if let Some(id_to_grouping_mapping) = id_to_grouping_mapping {
+                    Some(id_to_grouping_mapping.clone())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+    #[getter]
+    fn grouping_column_name(&self, py: Python) -> Option<String> {
+        match self {
+            PyVirtualizedQuery::BasicVirtualizedQuery {
+                grouping_column_name,
+                ..
+            } => {
+                if let Some(grouping_column_name) = grouping_column_name {
+                    Some(grouping_column_name.clone())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+    #[getter]
+    fn query(&self, py: Python) -> Option<Py<PyVirtualizedQuery>> {
+        match self {
+            PyVirtualizedQuery::FilteredVirtualizedQuery { query, .. } => Some(query.clone_ref(py)),
+            _ => None,
         }
     }
 }
@@ -86,10 +144,16 @@ impl PyVirtualizedQuery {
                 }
                 let id_to_grouping_mapping = if let Some(df) = basic.grouping_mapping {
                     let mut id_to_grouping_mapping = HashMap::new();
-                    let id_iter = df.column(basic.identifier_variable.as_str()).unwrap().iter();
-                    let group_iter = df.column(basic.grouping_col.as_ref().unwrap()).unwrap().iter();
-                    for (id,group) in id_iter.zip(group_iter) {
-                        if let (AnyValue::String(id), AnyValue::UInt32(group))=(id,group) {
+                    let id_iter = df
+                        .column(basic.identifier_variable.as_str())
+                        .unwrap()
+                        .iter();
+                    let group_iter = df
+                        .column(basic.grouping_col.as_ref().unwrap())
+                        .unwrap()
+                        .iter();
+                    for (id, group) in id_iter.zip(group_iter) {
+                        if let (AnyValue::String(id), AnyValue::UInt32(group)) = (id, group) {
                             id_to_grouping_mapping.insert(id.to_string(), group);
                         } else {
                             panic!("Should never happen")
@@ -107,11 +171,11 @@ impl PyVirtualizedQuery {
                     grouping_column_name: basic.grouping_col,
                     id_to_grouping_mapping,
                 }
-            },
+            }
             VirtualizedQuery::Filtered(inner, expression) => {
                 PyVirtualizedQuery::FilteredVirtualizedQuery {
-                        query: Py::new(py, PyVirtualizedQuery::new(*inner, py)?)?,
-                        filter: Py::new(py, PyExpression::new(expression, py)?)?
+                    query: Py::new(py, PyVirtualizedQuery::new(*inner, py)?)?,
+                    filter: Py::new(py, PyExpression::new(expression, py)?)?,
                 }
             }
             _ => todo!(),

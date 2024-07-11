@@ -7,15 +7,16 @@ edition = "2021"
 virtualized_query = { path="../virtualized_query" }
 bigquery-polars = {path = "../bigquery-polars"}
 
+templates.workspace = true
 pydf_io.workspace = true
 representation.workspace=true
+gcp-bigquery-client.workspace=true
 polars = {workspace=true, features=[
     "lazy",
     "dtype-full",
     "nightly",
     "performant"] }
 opcua.workspace= true
-async-trait.workspace = true
 log.workspace = true
 oxrdf.workspace = true
 query_processing.workspace = true
@@ -25,4 +26,5 @@ reqwest = { workspace = true, features = ["stream"] }
 thiserror.workspace = true
 serde_json.workspace = true
 pyo3.workspace = true
+url.workspace = true
 

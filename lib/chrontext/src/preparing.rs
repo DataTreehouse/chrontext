@@ -2,6 +2,7 @@ mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
 
+use crate::engine::Virtualization;
 use polars::prelude::DataType;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
@@ -11,7 +12,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
-use crate::engine::Virtualization;
 
 #[derive(Debug)]
 pub struct TimeseriesQueryPrepper {
@@ -19,7 +19,7 @@ pub struct TimeseriesQueryPrepper {
     pub(crate) basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
     grouping_counter: u16,
     rewritten_filters: HashMap<Context, Expression>,
-    virtualization: Arc<Virtualization>
+    virtualization: Arc<Virtualization>,
 }
 
 impl TimeseriesQueryPrepper {

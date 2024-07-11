@@ -1,5 +1,5 @@
-use crate::{get_datatype_map, DatabaseType, TimeseriesQueryable};
-use async_trait::async_trait;
+use crate::errors::VirtualizedDatabaseError;
+use crate::get_datatype_map;
 use chrono::NaiveDateTime;
 use opcua::client::prelude::{
     AggregateConfiguration, AttributeService, ByteString, Client, ClientBuilder, DateTime,
@@ -17,14 +17,14 @@ use polars::prelude::{
 };
 use query_processing::constants::DATETIME_AS_SECONDS;
 use representation::query_context::Context;
-use representation::solution_mapping::SolutionMappings;
+use representation::solution_mapping::EagerSolutionMappings;
 use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function};
-use std::collections::HashMap;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::collections::{HashMap, HashSet};
+use std::fmt::{Display};
 use std::str::FromStr;
 use std::sync::Arc;
-use virtualized_query::TimeseriesQuery;
+use virtualized_query::pushdown_setting::PushdownSetting;
+use virtualized_query::VirtualizedQuery;
 
 const OPCUA_AGG_FUNC_AVERAGE: u32 = 2342;
 const OPCUA_AGG_FUNC_COUNT: u32 = 2352;
@@ -33,35 +33,14 @@ const OPCUA_AGG_FUNC_MAXIMUM: u32 = 2347;
 const OPCUA_AGG_FUNC_TOTAL: u32 = 2344;
 
 #[allow(dead_code)]
-pub struct TimeseriesOPCUADatabase {
+pub struct VirtualizedOPCUADatabase {
     client: Client,
     session: Arc<RwLock<Session>>,
     namespace: u16,
 }
 
-#[derive(Debug)]
-pub enum OPCUAHistoryReadError {
-    InvalidNodeIdError(String),
-    TimeseriesQueryTypeNotSupported,
-}
-
-impl Display for OPCUAHistoryReadError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OPCUAHistoryReadError::InvalidNodeIdError(s) => {
-                write!(f, "Invalid NodeId {}", s)
-            }
-            OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported => {
-                write!(f, "Only grouped and basic query types are supported")
-            }
-        }
-    }
-}
-
-impl Error for OPCUAHistoryReadError {}
-
-impl TimeseriesOPCUADatabase {
-    pub fn new(endpoint: &str, namespace: u16) -> TimeseriesOPCUADatabase {
+impl VirtualizedOPCUADatabase {
+    pub fn new(endpoint: &str, namespace: u16) -> VirtualizedOPCUADatabase {
         //From: https://github.com/locka99/opcua/blob/master/docs/client.md
         let mut client = ClientBuilder::new()
             .application_name("My First Client")
@@ -84,7 +63,7 @@ impl TimeseriesOPCUADatabase {
             .connect_to_endpoint(endpoint, IdentityToken::Anonymous)
             .unwrap();
 
-        TimeseriesOPCUADatabase {
+        VirtualizedOPCUADatabase {
             client,
             session,
             namespace,
@@ -92,13 +71,15 @@ impl TimeseriesOPCUADatabase {
     }
 }
 
-#[async_trait]
-impl TimeseriesQueryable for TimeseriesOPCUADatabase {
-    fn get_database_type(&self) -> DatabaseType {
-        DatabaseType::OPCUA
+impl VirtualizedOPCUADatabase {
+    pub fn pushdown_settings() -> HashSet<PushdownSetting> {
+        HashSet::from([PushdownSetting::GroupBy])
     }
 
-    async fn execute(&self, vq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
+    pub async fn query(
+        &self,
+        vq: &VirtualizedQuery,
+    ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
         validate_vq(vq, true, false)?;
         let session = self.session.write();
         let start_time = find_time(vq, &FindTime::Start);
@@ -111,7 +92,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
         let mut colnames_identifiers = vec![];
         let mut grouping_col_lookup = HashMap::new();
         let mut grouping_col_name = None;
-        if let TimeseriesQuery::Grouped(grouped) = vq {
+        if let VirtualizedQuery::Grouped(grouped) = vq {
             let (colname, processed_details_some) =
                 create_read_processed_details(vq, start_time, end_time, &grouped.context);
             processed_details = Some(processed_details_some);
@@ -282,7 +263,7 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
             .collect()
             .unwrap();
         let datatypes = get_datatype_map(&df);
-        Ok(SolutionMappings::new(df.lazy(), datatypes))
+        Ok(EagerSolutionMappings::new(df, datatypes))
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {
@@ -291,32 +272,26 @@ impl TimeseriesQueryable for TimeseriesOPCUADatabase {
 }
 
 fn validate_vq(
-    vq: &TimeseriesQuery,
+    vq: &VirtualizedQuery,
     toplevel: bool,
     inside_grouping: bool,
-) -> Result<(), OPCUAHistoryReadError> {
+) -> Result<(), VirtualizedDatabaseError> {
     match vq {
-        TimeseriesQuery::Basic(_) => Ok(()),
-        TimeseriesQuery::Filtered(f, _) => validate_vq(f, false, inside_grouping),
-        TimeseriesQuery::Grouped(g) => {
+        //Todo add validation when basic has grouped..
+        VirtualizedQuery::Basic(_) => Ok(()),
+        VirtualizedQuery::Filtered(f, _) => validate_vq(f, false, inside_grouping),
+        VirtualizedQuery::Grouped(g) => {
             if !toplevel {
-                Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
+                Err(VirtualizedDatabaseError::VirtualizedQueryTypeNotSupported)
             } else {
                 validate_vq(&g.vq, false, true)
             }
         }
-        TimeseriesQuery::GroupedBasic(_, _, _) => {
-            if inside_grouping {
-                Ok(())
-            } else {
-                Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
-            }
+        VirtualizedQuery::InnerJoin(_, _) => {
+            Err(VirtualizedDatabaseError::VirtualizedQueryTypeNotSupported)
         }
-        TimeseriesQuery::InnerSynchronized(_, _) => {
-            Err(OPCUAHistoryReadError::TimeseriesQueryTypeNotSupported)
-        }
-        TimeseriesQuery::ExpressionAs(t, _, _) => validate_vq(t, false, inside_grouping),
-        TimeseriesQuery::Limited(_, _) => todo!(),
+        VirtualizedQuery::ExpressionAs(t, _, _) => validate_vq(t, false, inside_grouping),
+        VirtualizedQuery::Limited(_, _) => todo!(),
     }
 }
 
@@ -331,7 +306,7 @@ fn create_raw_details(start_time: DateTime, end_time: DateTime) -> ReadRawModifi
 }
 
 fn create_read_processed_details(
-    vq: &TimeseriesQuery,
+    vq: &VirtualizedQuery,
     start_time: DateTime,
     end_time: DateTime,
     context: &Context,
@@ -390,8 +365,8 @@ fn history_data_to_series_tuple(hd: HistoryData) -> (Series, Series) {
     (timestamps, values)
 }
 
-fn find_aggregate_types(vq: &TimeseriesQuery) -> Option<Vec<NodeId>> {
-    if let TimeseriesQuery::Grouped(grouped) = vq {
+fn find_aggregate_types(vq: &VirtualizedQuery) -> Option<Vec<NodeId>> {
+    if let VirtualizedQuery::Grouped(grouped) = vq {
         let mut nodes = vec![];
         for (_, agg) in &grouped.aggregations {
             let value_var_str = vq.get_value_variables().get(0).unwrap().variable.as_str();
@@ -461,15 +436,15 @@ enum FindTime {
     End,
 }
 
-fn find_time(vq: &TimeseriesQuery, find_time: &FindTime) -> DateTime {
+fn find_time(vq: &VirtualizedQuery, find_time: &FindTime) -> DateTime {
     let mut found_time = None;
-    let filter = if let TimeseriesQuery::Grouped(gr) = vq {
-        if let TimeseriesQuery::Filtered(_, filter) = gr.vq.as_ref() {
+    let filter = if let VirtualizedQuery::Grouped(gr) = vq {
+        if let VirtualizedQuery::Filtered(_, filter) = gr.vq.as_ref() {
             Some(filter)
         } else {
             None
         }
-    } else if let TimeseriesQuery::Filtered(_, filter) = vq {
+    } else if let VirtualizedQuery::Filtered(_, filter) = vq {
         Some(filter)
     } else {
         None
@@ -690,8 +665,8 @@ fn datetime_from_expression(
     }
 }
 
-fn find_grouping_interval(vq: &TimeseriesQuery, context: &Context) -> Option<(String, f64)> {
-    if let TimeseriesQuery::Grouped(grouped) = vq {
+fn find_grouping_interval(vq: &VirtualizedQuery, context: &Context) -> Option<(String, f64)> {
+    if let VirtualizedQuery::Grouped(grouped) = vq {
         let mut tsf = None;
         let mut grvar = None;
         for v in &grouped.by {
@@ -704,11 +679,11 @@ fn find_grouping_interval(vq: &TimeseriesQuery, context: &Context) -> Option<(St
         }
         if let Some((_, e)) = tsf {
             if let Expression::Multiply(left, right) = e {
-                let n = find_grouping_interval_multiplication(left, right);
+                let n = find_grouping_interval_multiplication(left.as_ref(), right.as_ref());
                 let out = if n.is_some() {
                     n
                 } else {
-                    find_grouping_interval_multiplication(right, left)
+                    find_grouping_interval_multiplication(right.as_ref(), left.as_ref())
                 };
                 if let Some(f) = out {
                     return Some((grvar.unwrap().as_str().to_string(), f));
@@ -760,20 +735,20 @@ fn from_numeric_datatype(lit: &Literal) -> Option<f64> {
     }
 }
 
-fn node_id_from_string(s: &str) -> Result<NodeId, OPCUAHistoryReadError> {
+fn node_id_from_string(s: &str) -> Result<NodeId, VirtualizedDatabaseError> {
     let mut splitstring = s.split(";");
     let ns_str = if let Some(ns_str) = splitstring.next() {
         ns_str
     } else {
-        return Err(OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()));
+        return Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()));
     };
     let identifier_string = splitstring.collect::<Vec<&str>>().join(";");
     let namespace: u16 = if let Some(namespace_str) = ns_str.strip_prefix("ns=") {
         namespace_str
             .parse()
-            .map_err(|_| OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()))?
+            .map_err(|_| VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))?
     } else {
-        return Err(OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()));
+        return Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()));
     };
     if identifier_string.starts_with("s=") {
         let identifier = identifier_string.strip_prefix("s=").unwrap();
@@ -786,7 +761,7 @@ fn node_id_from_string(s: &str) -> Result<NodeId, OPCUAHistoryReadError> {
             .strip_prefix("i=")
             .unwrap()
             .parse()
-            .map_err(|_| OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()))?;
+            .map_err(|_| VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))?;
         Ok(NodeId {
             namespace,
             identifier: Identifier::Numeric(identifier),
@@ -797,7 +772,7 @@ fn node_id_from_string(s: &str) -> Result<NodeId, OPCUAHistoryReadError> {
             namespace,
             identifier: Identifier::Guid(
                 Guid::from_str(identifier)
-                    .map_err(|_| OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()))?,
+                    .map_err(|_| VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))?,
             ),
         })
     } else if identifier_string.starts_with("b=") {
@@ -805,13 +780,13 @@ fn node_id_from_string(s: &str) -> Result<NodeId, OPCUAHistoryReadError> {
         let byte_string = if let Some(byte_string) = ByteString::from_base64(identifier) {
             byte_string
         } else {
-            return Err(OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()));
+            return Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()));
         };
         Ok(NodeId {
             namespace,
             identifier: Identifier::ByteString(byte_string),
         })
     } else {
-        Err(OPCUAHistoryReadError::InvalidNodeIdError(s.to_string()))
+        Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))
     }
 }

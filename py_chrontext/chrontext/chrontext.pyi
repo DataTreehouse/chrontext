@@ -135,27 +135,34 @@ class PyExpression__Less(Expression):
 
 class VirtualizedQuery:
     FilteredVirtualizedQuery:Type["PyVirtualizedQuery__FilteredVirtualizedQuery"]
-
+    filter: Optional[Expression]
+    query: Optional[VirtualizedQuery]
     BasicVirtualizedQuery:Type["PyVirtualizedQuery__BasicVirtualizedQuery"]
-    basic:"PyVirtualizedQuery__BasicVirtualizedQuery"
-
-    def query_type(self) -> LiteralType["FilteredVirtualizedQuery", "BasicVirtualizedQuery"]:
+    identifier_name: Optional[str]
+    column_mapping: Optional[Dict[str, str]]
+    resource: Optional[str]
+    ids: Optional[List[str]]
+    grouping_column_name: Optional[str]
+    id_to_grouping_mapping: Optional[Dict[str, int]]
+    def type_name(self) -> LiteralType["FilteredVirtualizedQuery", "BasicVirtualizedQuery"]:
         """
 
         :return:
         """
 
 
+class PyVirtualizedQuery__BasicVirtualizedQuery:
+    """
+
+    """
+
 
 class PyVirtualizedQuery__FilteredVirtualizedQuery:
+    """
+
+    """
     query: VirtualizedQuery
     filter: Expression
-
-
-
-class PyVirtualizedQuery__BasicVirtualizedQuery:
-
-
 
 
 class Parameter:

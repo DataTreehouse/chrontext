@@ -2,8 +2,8 @@ use super::TimeseriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::synchronization::create_identity_synchronized_queries;
 use representation::query_context::{Context, PathEntry};
-use std::collections::HashMap;
 use spargebra::term::TriplePattern;
+use std::collections::HashMap;
 use virtualized_query::VirtualizedQuery;
 
 impl TimeseriesQueryPrepper {
@@ -18,7 +18,13 @@ impl TimeseriesQueryPrepper {
         for vq in &mut self.basic_virtualized_queries {
             if &vq.query_source_context == &bgp_context {
                 //TODO: Handle error..
-                vq.finish_column_mapping(patterns, self.virtualization.resources.get(vq.resource.as_ref().unwrap()).unwrap());
+                vq.finish_column_mapping(
+                    patterns,
+                    self.virtualization
+                        .resources
+                        .get(vq.resource.as_ref().unwrap())
+                        .unwrap(),
+                );
                 local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
             }
         }

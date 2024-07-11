@@ -1,59 +1,37 @@
-use crate::timeseries_sql_rewrite::TimeseriesQueryToSQLError;
-use crate::{get_datatype_map, DatabaseType, TimeseriesQueryable, TimeseriesSQLQueryable};
-use async_trait::async_trait;
+use crate::errors::VirtualizedDatabaseError;
+use crate::python::translate_sql;
+use crate::{get_datatype_map, Virtualization};
 use bigquery_polars::{BigQueryExecutor, Client};
-use polars::prelude::IntoLazy;
-use polars::prelude::PolarsError;
-use representation::solution_mapping::SolutionMappings;
+use representation::solution_mapping::EagerSolutionMappings;
 use reqwest::Url;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use thiserror::Error;
-use virtualized_query::{TimeseriesQuery, TimeseriesTable};
+use std::collections::HashSet;
+use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
+use virtualized_query::VirtualizedQuery;
 
-#[derive(Error, Debug)]
-pub enum BigQueryError {
-    TranslationError(#[from] TimeseriesQueryToSQLError),
-    PolarsError(#[from] PolarsError),
-}
-
-impl Display for BigQueryError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BigQueryError::TranslationError(s) => {
-                write!(f, "Error during query translation: {}", s)
-            }
-            BigQueryError::PolarsError(err) => {
-                write!(f, "Problem creating dataframe from arrow: {:?}", err)
-            }
-        }
-    }
-}
-pub struct TimeseriesBigQueryDatabase {
+pub struct VirtualizedBigQueryDatabase {
     gcp_sa_key: String,
-    time_series_tables: Vec<TimeseriesTable>,
+    virtualization: Virtualization,
 }
 
-impl TimeseriesBigQueryDatabase {
-    pub fn new(
-        gcp_sa_key: String,
-        time_series_tables: Vec<TimeseriesTable>,
-    ) -> TimeseriesBigQueryDatabase {
-        TimeseriesBigQueryDatabase {
+impl VirtualizedBigQueryDatabase {
+    pub fn new(gcp_sa_key: String, virtualization: Virtualization) -> VirtualizedBigQueryDatabase {
+        VirtualizedBigQueryDatabase {
             gcp_sa_key,
-            time_series_tables,
+            virtualization,
         }
     }
 }
 
-#[async_trait]
-impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
-    fn get_database_type(&self) -> DatabaseType {
-        DatabaseType::BigQuery
+impl VirtualizedBigQueryDatabase {
+    pub fn pushdown_settings() -> HashSet<PushdownSetting> {
+        all_pushdowns()
     }
-    async fn execute(&self, vq: &TimeseriesQuery) -> Result<SolutionMappings, Box<dyn Error>> {
-        let query_string = self.get_sql_string(vq, DatabaseType::BigQuery)?;
 
+    pub async fn query(
+        &self,
+        vq: &VirtualizedQuery,
+    ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
+        let query_string = translate_sql(vq)?;
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
         // Last modified in commit: 8134d42
         // It has been simplified and made async
@@ -82,7 +60,8 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
 
         let url = Url::parse(&self.gcp_sa_key)?;
         let sa_key_path = url.path();
-        let client = Client::from_service_account_key_file(sa_key_path).await?;
+        let client = Client::from_service_account_key_file(sa_key_path)
+            .await?;
 
         let auth_data = std::fs::read_to_string(sa_key_path)?;
         let auth_json: serde_json::Value = serde_json::from_str(&auth_data)?;
@@ -95,19 +74,15 @@ impl TimeseriesQueryable for TimeseriesBigQueryDatabase {
         //End copied code.
 
         let ex = BigQueryExecutor::new(client, project_id, query_string);
-        let lf = ex.execute_query().await?;
+        let lf = ex
+            .execute_query()
+            .await?;
         let df = lf.collect().unwrap();
         let datatypes = get_datatype_map(&df);
-        Ok(SolutionMappings::new(df.lazy(), datatypes))
+        Ok(EagerSolutionMappings::new(df, datatypes))
     }
 
     fn allow_compound_timeseries_queries(&self) -> bool {
         true
-    }
-}
-
-impl TimeseriesSQLQueryable for TimeseriesBigQueryDatabase {
-    fn get_time_series_tables(&self) -> &Vec<TimeseriesTable> {
-        &self.time_series_tables
     }
 }

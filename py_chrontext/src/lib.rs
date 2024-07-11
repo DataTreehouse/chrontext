@@ -43,14 +43,15 @@ use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
-use representation::python::{PyRDFType, PyIRI, PyVariable, PyLiteral, PyPrefix, IriParseErrorException};
+use pyo3::types::PyList;
+use representation::python::{
+    IriParseErrorException, PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable,
+};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
-use templates::python::{
-    a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate,
-};
+use templates::python::{a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate};
 use tokio::runtime::Builder;
-use virtualization::python::PyVirtualizedDatabase;
+use virtualization::python::VirtualizedPythonDatabase;
 use virtualization::VirtualizedDatabase;
 use virtualized_query::python::{PyBasicVirtualizedQuery, PyExpression, PyVirtualizedQuery};
 
@@ -59,7 +60,7 @@ pub struct PyEngine {
     engine: Option<Engine>,
     sparql_endpoint: Option<String>,
     sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
-    virtualized_database: PyVirtualizedDatabase,
+    virtualized_database: VirtualizedPythonDatabase,
     resources: HashMap<String, PyTemplate>,
 }
 
@@ -67,7 +68,7 @@ pub struct PyEngine {
 impl PyEngine {
     #[new]
     pub fn new<'py>(
-        virtualized_database: PyVirtualizedDatabase,
+        virtualized_database: VirtualizedPythonDatabase,
         resources: HashMap<String, PyTemplate>,
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
@@ -106,7 +107,8 @@ impl PyEngine {
                 None
             };
 
-            let virtualized_database = VirtualizedDatabase::PyVirtualizedDatabase(self.virtualized_database.clone());
+            let virtualized_database =
+                VirtualizedDatabase::PyVirtualizedDatabase(self.virtualized_database.clone());
             let mut virtualization_map = HashMap::new();
             for (k, v) in &self.resources {
                 virtualization_map.insert(k.clone(), v.template.clone());
@@ -143,7 +145,12 @@ impl PyEngine {
         let (mut df, mut datatypes) = builder
             .build()
             .unwrap()
-            .block_on(self.engine.as_mut().unwrap().query(sparql))
+            .block_on(
+                self.engine
+                    .as_mut()
+                    .unwrap()
+                    .query(sparql, PyList::new_bound(py, [1]).unbind().into_any()),
+            )
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
         (df, datatypes) =
@@ -268,7 +275,7 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyEngine>()?;
     m.add_class::<PySparqlEmbeddedOxigraph>()?;
-    m.add_class::<PyVirtualizedDatabase>()?;
+    m.add_class::<VirtualizedPythonDatabase>()?;
     m.add_class::<PyVirtualizedQuery>()?;
     m.add_class::<PyBasicVirtualizedQuery>()?;
     m.add_class::<PyDataProduct>()?;

@@ -48,10 +48,18 @@ pub struct BasicVirtualizedQuery {
     pub ids: Option<Vec<String>>,
     pub grouping_mapping: Option<DataFrame>,
     pub grouping_col: Option<String>,
+    pub chrontext_timestamp_variable: Option<Variable>,
+    pub chrontext_value_variable: Option<Variable>,
 }
 
 impl BasicVirtualizedQuery {
     pub fn finish_column_mapping(&mut self, patterns: &Vec<TriplePattern>, template: &Template) {
+        let param_vars: HashSet<_> = template
+            .signature
+            .parameter_list
+            .iter()
+            .map(|x| &x.variable)
+            .collect();
         let mut new_mappings = vec![];
         let mut visited_query_vars = HashSet::new();
         let id_var = Variable::new_unchecked(ID_VARIABLE_NAME);
@@ -83,10 +91,12 @@ impl BasicVirtualizedQuery {
                                                                 .term
                                                             {
                                                                 StottrTerm::Variable(tobj) => {
-                                                                    new_mappings.push((
-                                                                        tobj.clone(),
-                                                                        p.object.clone(),
-                                                                    ));
+                                                                    if param_vars.contains(tobj) {
+                                                                        new_mappings.push((
+                                                                            tobj.clone(),
+                                                                            p.object.clone(),
+                                                                        ));
+                                                                    }
                                                                     if let TermPattern::Variable(
                                                                         obj,
                                                                     ) = &p.object
