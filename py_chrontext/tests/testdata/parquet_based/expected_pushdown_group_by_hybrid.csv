@@ -1,3 +1,3 @@
 w,sum_v
-http://example.org/case#myWidget1,1215
-http://example.org/case#myWidget2,1216
+<http://example.org/case#myWidget1>,1215
+<http://example.org/case#myWidget2>,1216

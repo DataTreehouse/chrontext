@@ -98,7 +98,7 @@ impl TimeseriesQueryPrepper {
             .unwrap()
             .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First, None)
             .unwrap();
-        let mut series = Series::from_iter(0..(df.height() as u32));
+        let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(&grouping_col);
         assert_eq!(series.dtype(), &grouping_col_type());
         df.with_column(series).unwrap();

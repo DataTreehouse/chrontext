@@ -1,11 +1,13 @@
 import pytest
 import polars as pl
+import duckdb
 import pathlib
 
 from polars.testing import assert_frame_equal
 from sqlalchemy import Column, Table, MetaData, literal, bindparam, text
 
-from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph, Template, Prefix, Variable, Parameter, RDFType, xsd, triple
+from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph, Template, Prefix, Variable, Parameter, \
+    RDFType, xsd, triple
 import rdflib
 
 PATH_HERE = pathlib.Path(__file__).parent
@@ -14,22 +16,30 @@ g = rdflib.Graph()
 g.parse(TESTDATA_PATH / "testdata.ttl")
 g.serialize(TESTDATA_PATH / "testdata.nt", format="nt")
 
+TS1_CSV = str(TESTDATA_PATH / "ts1.csv")
+TS2_CSV = str(TESTDATA_PATH / "ts2.csv")
+
+
 class CSVDB():
-    sqlc:pl.SQLContext
+    con: duckdb.DuckDBPyConnection
 
     def __init__(self):
-        ts1 = pl.read_csv(TESTDATA_PATH / "ts1.csv", try_parse_dates=True)
-        ts2 = pl.read_csv(TESTDATA_PATH / "ts2.csv", try_parse_dates=True)
-        self.sqlc = pl.SQLContext()
-        self.sqlc.register("ts1", ts1)
-        self.sqlc.register("ts2", ts2)
+        con = duckdb.connect()
+        con.execute("""CREATE TABLE ts1 ("timestamp" TIMESTAMP, "value" INTEGER)""")
+        ts_1 = pl.read_csv(TS1_CSV, try_parse_dates=True)
+        con.append("ts1", df=ts_1.to_pandas())
+        con.execute("""CREATE TABLE ts2 ("timestamp" TIMESTAMP, "value" INTEGER)""")
+        ts_2 = pl.read_csv(TS2_CSV, try_parse_dates=True)
+        con.append("ts2", df=ts_2.to_pandas())
+        self.con = con
 
-    def query(self, sql:str):
-        df = self.sqlc.execute(sql, eager=True)
+    def query(self, sql: str):
+        df = self.con.execute(sql).pl()
         print(df)
         return df
 
-@pytest.fixture()
+
+@pytest.fixture(scope="function")
 def engine() -> Engine:
     timestamp1 = Column("timestamp")
     value1 = Column("value")
@@ -53,11 +63,11 @@ def engine() -> Engine:
     ts2 = ts2_table.select().add_columns(
         bindparam("id2", "ts2").label("id"),
     )
-    sql = ts1.union(ts2).select().add_columns(Column("id"), Column("timestamp"), Column("value"))
+    sql = ts1.union(ts2)
 
     vdb = VirtualizedPythonDatabase(
         database=CSVDB(),
-        resource_sql_map={"my_resource":sql},
+        resource_sql_map={"my_resource": sql},
         sql_dialect="postgres"
     )
 
@@ -69,7 +79,7 @@ def engine() -> Engine:
     value = Variable("value")
     dp = Variable("dp")
     resources = {
-        "my_resource":Template(
+        "my_resource": Template(
             iri=ct.suf("my_resource"),
             parameters=[
                 Parameter(id, rdf_type=RDFType.Literal(x.string)),
@@ -90,6 +100,7 @@ def engine() -> Engine:
     engine.init()
     return engine
 
+
 def test_simple_hybrid(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -107,7 +118,13 @@ def test_simple_hybrid(engine):
     """
     by = ["w", "s", "t"]
     df = engine.query(q).sort(by)
-    expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid.csv", try_parse_dates=True).sort(by)
+    expected = pl.read_csv(
+        TESTDATA_PATH / "expected_simple_hybrid.csv", try_parse_dates=True
+    ).cast(
+        {"v":pl.Int32}
+    ).sort(
+        by
+    )
     assert_frame_equal(df, expected)
     print(df)
 
@@ -154,7 +171,10 @@ def test_complex_hybrid_query(engine):
     """
     by = ["w1", "w2", "t"]
     df = engine.query(q).sort(by)
-    expected = pl.read_csv(TESTDATA_PATH / "expected_complex_hybrid.csv", try_parse_dates=True).sort(by)
+    expected = pl.read_csv(
+        TESTDATA_PATH / "expected_complex_hybrid.csv", try_parse_dates=True).cast(
+        {"v1": pl.Int32, "v2": pl.Int32}
+    ).sort(by)
     assert_frame_equal(df, expected)
     print(df)
 
@@ -174,7 +194,34 @@ def test_pushdown_group_by_hybrid_query(engine):
     } GROUP BY ?w
     """
     by = ["w"]
-    df = engine.query(q).sort(by)
+    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+    print(df)
+
+
+def test_pushdown_group_by_second_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w (SUM(?v) as ?sum_v) WHERE {
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        BIND(seconds(?t) as ?second)
+        BIND(minutes(?t) AS ?minute)
+        BIND(hours(?t) AS ?hour)
+        BIND(day(?t) AS ?day)
+        BIND(month(?t) AS ?month)
+        BIND(year(?t) AS ?year)
+        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+    } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second
+    """
+    by = ["w"]
+    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
     print(df)

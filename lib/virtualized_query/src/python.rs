@@ -34,7 +34,7 @@ pub enum PyVirtualizedQuery {
         resource: String,
         ids: Vec<String>,
         grouping_column_name: Option<String>,
-        id_to_grouping_mapping: Option<HashMap<String, u32>>,
+        id_to_grouping_mapping: Option<HashMap<String, i64>>,
     },
     Filtered {
         filter: Py<PyExpression>,
@@ -96,7 +96,7 @@ impl PyVirtualizedQuery {
         }
     }
     #[getter]
-    fn id_to_grouping_mapping(&self) -> Option<HashMap<String, u32>> {
+    fn id_to_grouping_mapping(&self) -> Option<HashMap<String, i64>> {
         match self {
             PyVirtualizedQuery::Basic {
                 id_to_grouping_mapping,
@@ -177,7 +177,7 @@ impl PyVirtualizedQuery {
                         .unwrap()
                         .iter();
                     for (id, group) in id_iter.zip(group_iter) {
-                        if let (AnyValue::String(id), AnyValue::UInt32(group)) = (id, group) {
+                        if let (AnyValue::String(id), AnyValue::Int64(group)) = (id, group) {
                             id_to_grouping_mapping.insert(id.to_string(), group);
                         } else {
                             panic!("Should never happen")
