@@ -1,12 +1,15 @@
-from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type
+from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any
 from polars import DataFrame
 
 
-class VirtualizedDatabase:
+class VirtualizedPythonDatabase:
     """
     A virtualized database implemented in Python.
     """
-    def __init__(self, db_module: str):
+    def __init__(self,
+                 database: Any,
+                 resource_sql_map: Optional[Dict[str, Any]],
+                 sql_dialect: Optional[str]):
         """
 
         :param db_module:
@@ -237,10 +240,12 @@ class Engine:
     """
 
     def __init__(self,
-                 virtualized_database: VirtualizedDatabase,
                  resources: Dict[str, Template],
-                 sparql_endpoint: str=None,
-                 sparql_embedded_oxigraph: SparqlEmbeddedOxigraph=None,
+                 virtualized_python_database: Optional[VirtualizedPythonDatabase]=None,
+                 virtualized_bigquery: Optional["VirtualizedBigQuery"]=None,
+                 virtualized_opcua: Optional["VirtualizedOPCUA"]=None,
+                 sparql_endpoint: Optional[str]=None,
+                 sparql_embedded_oxigraph: Optional[SparqlEmbeddedOxigraph]=None,
         ) -> Engine:
         """
         Construct a new hybrid query engine.

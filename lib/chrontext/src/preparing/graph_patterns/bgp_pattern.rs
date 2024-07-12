@@ -17,15 +17,16 @@ impl TimeseriesQueryPrepper {
         let bgp_context = context.extension_with(PathEntry::BGP);
         for vq in &mut self.basic_virtualized_queries {
             if &vq.query_source_context == &bgp_context {
-                //TODO: Handle error..
-                vq.finish_column_mapping(
-                    patterns,
-                    self.virtualization
-                        .resources
-                        .get(vq.resource.as_ref().unwrap())
-                        .unwrap(),
-                );
-                local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
+                if let Some(resource) = &vq.resource {
+                    vq.finish_column_mapping(
+                        patterns,
+                        self.virtualization
+                            .resources
+                            .get(resource)
+                            .unwrap(),
+                    );
+                    local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
+                }
             }
         }
         if try_groupby_complex_query {

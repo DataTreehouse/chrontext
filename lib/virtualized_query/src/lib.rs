@@ -132,8 +132,12 @@ impl BasicVirtualizedQuery {
 impl BasicVirtualizedQuery {
     fn expected_columns(&self) -> HashSet<&str> {
         let mut s = HashSet::new();
-        for v in self.column_mapping.keys() {
-            s.insert(v.as_str());
+        for tp in self.column_mapping.values() {
+            if let TermPattern::Variable(v) = tp {
+                s.insert(v.as_str());
+            } else {
+                todo!()
+            }
         }
         if let Some(grouping_var) = &self.grouping_col {
             s.insert(grouping_var.as_str());
@@ -158,12 +162,12 @@ impl BasicVirtualizedQuery {
 }
 
 #[derive(Debug)]
-pub struct TimeseriesValidationError {
+pub struct VirtualizedResultValidationError {
     missing_columns: Vec<String>,
     extra_columns: Vec<String>,
 }
 
-impl Display for TimeseriesValidationError {
+impl Display for VirtualizedResultValidationError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
@@ -174,7 +178,7 @@ impl Display for TimeseriesValidationError {
     }
 }
 
-impl Error for TimeseriesValidationError {}
+impl Error for VirtualizedResultValidationError {}
 
 //TODO: Redo these recursions in one method..
 impl VirtualizedQuery {
@@ -195,11 +199,11 @@ impl VirtualizedQuery {
         }
     }
 
-    pub fn validate(&self, df: &DataFrame) -> Result<(), TimeseriesValidationError> {
+    pub fn validate(&self, df: &DataFrame) -> Result<(), VirtualizedResultValidationError> {
         let expected_columns = self.expected_columns();
         let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
         if expected_columns != df_columns {
-            let err = TimeseriesValidationError {
+            let err = VirtualizedResultValidationError {
                 missing_columns: expected_columns
                     .difference(&df_columns)
                     .map(|x| x.to_string())

@@ -46,6 +46,7 @@ use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
+use pyo3::types::PyDict;
 use templates::python::{a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
@@ -239,7 +240,7 @@ impl PySparqlEmbeddedOxigraph {
 #[pyclass(name = "VirtualizedBigQuery")]
 #[derive(Clone)]
 pub struct PyVirtualizedBigQuery {
-    pub resource_sql_map: HashMap<String, Py<PyAny>>,
+    pub resource_sql_map: Py<PyDict>,
     pub resource_template_map: HashMap<String, PyTemplate>,
     pub key: String,
 }
@@ -248,7 +249,7 @@ pub struct PyVirtualizedBigQuery {
 impl PyVirtualizedBigQuery {
     #[new]
     pub fn new(
-        resource_sql_map: HashMap<String, Py<PyAny>>,
+        resource_sql_map: Py<PyDict>,
         resource_template_map: HashMap<String, PyTemplate>,
         key: String,
     ) -> PyVirtualizedBigQuery {

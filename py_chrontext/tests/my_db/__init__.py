@@ -1,8 +1,11 @@
-from typing import Dict, Literal
+import datetime
+from typing import Dict, Literal, Any
+
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.base import ColumnCollection
 
 from chrontext import Expression, VirtualizedQuery
-from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select
+from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime
 
 
 def query(arg):
@@ -15,24 +18,24 @@ def query(arg):
         metadata,
         timestamp, value, id
     )}
-    mapper = SPARQLMapper("BigQuery", "id", resource_table_map)
+    mapper = SPARQLMapper("BigQuery", resource_table_map)
     sqlq = mapper.virtualized_query_to_sql(arg)
     print("\n")
     print(sqlq)
 
 
-def translate_sql(vq:VirtualizedQuery) -> str:
-    pass
+def translate_sql(vq:VirtualizedQuery, dialect:Literal["bigquery", "postgres"], resource_sql_map:Dict[str, Any]) -> str:
+    mapper = SPARQLMapper(dialect, resource_sql_map)
+    print(str(mapper.virtualized_query_to_sql(vq).compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True})))
+    return str(mapper.virtualized_query_to_sql(vq).compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}))
 
 
 class SPARQLMapper:
     def __init__(self,
-                 dialect: Literal["BigQuery"],
-                 identity_column_name: str,
-                 resource_table_map: Dict[str, Table]):
+                 dialect: Literal["bigquery", "postgres"],
+                 resource_sql_map: Dict[str, Table]):
         self.dialect = dialect
-        self.identity_column_name = identity_column_name
-        self.resource_table_map = resource_table_map
+        self.resource_sql_map = resource_sql_map
 
     def virtualized_query_to_sql(self, query: VirtualizedQuery) -> Select:
         query_type = query.type_name()
@@ -44,16 +47,17 @@ class SPARQLMapper:
                 return filtered
 
             case "BasicVirtualizedQuery":
-                table = self.resource_table_map[query.resource]
+                table = self.resource_sql_map[query.resource]
+                print(table)
                 to_select = []
                 for (k, v) in query.column_mapping.items():
                     to_select.append(table.columns[k].label(v))
                 if query.grouping_column_name is not None:
-                    if self.dialect == "BigQuery":
+                    if self.dialect == "bigquery":
                         pass
                 else:
                     to_select.append(
-                        table.columns[self.identity_column_name].label(query.identifier_name)
+                        table.columns["id"].label(query.identifier_name)
                     )
 
                 sql_q = select(*to_select)
@@ -84,7 +88,10 @@ class SPARQLMapper:
                 right_sql = self.expression_to_sql(expression.right, columns)
                 return left_sql & right_sql
             case "Literal":
-                return expression.literal.to_native()
+                native = expression.literal.to_native()
+                #if type(native) == datetime.datetime:
+                #    return literal(native)
+                return literal(native)
             case _:
                 print(type(expression))
                 print(expression)

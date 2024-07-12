@@ -21,7 +21,7 @@ use thiserror::Error;
 use virtualization::errors::VirtualizedDatabaseError;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
-use virtualized_query::{BasicVirtualizedQuery, TimeseriesValidationError};
+use virtualized_query::{BasicVirtualizedQuery, VirtualizedResultValidationError};
 
 #[derive(Debug, Error)]
 pub enum CombinerError {
@@ -29,7 +29,7 @@ pub enum CombinerError {
     StaticQueryExecutionError(Box<dyn Error>),
     QueryProcessingError(#[from] QueryProcessingError),
     InconsistentDatatype(String, String, String),
-    TimeseriesValidationError(TimeseriesValidationError),
+    TimeseriesValidationError(VirtualizedResultValidationError),
     ResourceIsNotString(String, String),
     InconsistentResourceName(String, String, String),
 }
@@ -45,13 +45,13 @@ impl Display for CombinerError {
                 )
             }
             CombinerError::VirtualizedDatabaseError(vqe) => {
-                write!(f, "Time series query error {}", vqe)
+                write!(f, "Virtualized query error {}", vqe)
             }
             CombinerError::StaticQueryExecutionError(sqee) => {
                 write!(f, "Static query execution error {}", sqee)
             }
             CombinerError::TimeseriesValidationError(v) => {
-                write!(f, "Time series validation error {}", v)
+                write!(f, "Virtualized results validation error {}", v)
             }
             CombinerError::ResourceIsNotString(value_var, actual_datatype) => {
                 write!(

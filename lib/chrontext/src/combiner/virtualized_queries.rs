@@ -63,7 +63,7 @@ impl Combiner {
             .query(vq)
             .await
             .map_err(|x| CombinerError::VirtualizedDatabaseError(x))?;
-        //debug!("Time series query results: \n{}", mappings);
+        //debug!("Virtualized query results: \n{}", mappings);
         vq.validate(&mappings)
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
 
