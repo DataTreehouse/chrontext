@@ -3,7 +3,8 @@ use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
-use spargebra::algebra::Expression;
+use representation::query_context::Context;
+use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression};
 use spargebra::term::TermPattern;
 //
 // #[derive(Error, Debug)]
@@ -24,9 +25,10 @@ use spargebra::term::TermPattern;
 //
 // create_exception!(exceptions, BadMethodCallErrorException, PyException);
 
+#[derive(Clone)]
 #[pyclass(name = "VirtualizedQuery")]
 pub enum PyVirtualizedQuery {
-    BasicVirtualizedQuery {
+    Basic {
         identifier_name: String,
         column_mapping: HashMap<String, String>,
         resource: String,
@@ -34,9 +36,14 @@ pub enum PyVirtualizedQuery {
         grouping_column_name: Option<String>,
         id_to_grouping_mapping: Option<HashMap<String, u32>>,
     },
-    FilteredVirtualizedQuery {
+    Filtered {
         filter: Py<PyExpression>,
         query: Py<PyVirtualizedQuery>,
+    },
+    Grouped {
+        query: Py<PyVirtualizedQuery>,
+        by: Vec<PyVariable>,
+        aggregations: Vec<(Py<PyVariable>, Py<PyAggregateExpression>)>,
     },
 }
 
@@ -44,17 +51,16 @@ pub enum PyVirtualizedQuery {
 impl PyVirtualizedQuery {
     fn type_name(&self) -> &str {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery { .. } => "BasicVirtualizedQuery",
-            PyVirtualizedQuery::FilteredVirtualizedQuery { .. } => "FilteredVirtualizedQuery",
+            PyVirtualizedQuery::Basic { .. } => "Basic",
+            PyVirtualizedQuery::Filtered { .. } => "Filtered",
+            PyVirtualizedQuery::Grouped { .. } => "Grouped",
         }
     }
 
     #[getter]
     fn filter(&self, py: Python) -> Option<Py<PyExpression>> {
         match self {
-            PyVirtualizedQuery::FilteredVirtualizedQuery { filter, .. } => {
-                Some(filter.clone_ref(py))
-            }
+            PyVirtualizedQuery::Filtered { filter, .. } => Some(filter.clone_ref(py)),
             _ => None,
         }
     }
@@ -62,7 +68,7 @@ impl PyVirtualizedQuery {
     #[getter]
     fn identifier_name(&self) -> Option<String> {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery {
+            PyVirtualizedQuery::Basic {
                 identifier_name, ..
             } => Some(identifier_name.clone()),
             _ => None,
@@ -71,30 +77,28 @@ impl PyVirtualizedQuery {
     #[getter]
     fn resource(&self) -> Option<String> {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery { resource, .. } => Some(resource.clone()),
+            PyVirtualizedQuery::Basic { resource, .. } => Some(resource.clone()),
             _ => None,
         }
     }
     #[getter]
     fn ids(&self) -> Option<Vec<String>> {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery { ids, .. } => Some(ids.clone()),
+            PyVirtualizedQuery::Basic { ids, .. } => Some(ids.clone()),
             _ => None,
         }
     }
     #[getter]
     fn column_mapping(&self) -> Option<HashMap<String, String>> {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery { column_mapping, .. } => {
-                Some(column_mapping.clone())
-            }
+            PyVirtualizedQuery::Basic { column_mapping, .. } => Some(column_mapping.clone()),
             _ => None,
         }
     }
     #[getter]
     fn id_to_grouping_mapping(&self) -> Option<HashMap<String, u32>> {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery {
+            PyVirtualizedQuery::Basic {
                 id_to_grouping_mapping,
                 ..
             } => {
@@ -110,7 +114,7 @@ impl PyVirtualizedQuery {
     #[getter]
     fn grouping_column_name(&self) -> Option<String> {
         match self {
-            PyVirtualizedQuery::BasicVirtualizedQuery {
+            PyVirtualizedQuery::Basic {
                 grouping_column_name,
                 ..
             } => {
@@ -126,8 +130,28 @@ impl PyVirtualizedQuery {
     #[getter]
     fn query(&self, py: Python) -> Option<Py<PyVirtualizedQuery>> {
         match self {
-            PyVirtualizedQuery::FilteredVirtualizedQuery { query, .. } => Some(query.clone_ref(py)),
+            PyVirtualizedQuery::Filtered { query, .. } => Some(query.clone_ref(py)),
             _ => None,
+        }
+    }
+
+    #[getter]
+    fn by(&self) -> Option<Vec<PyVariable>> {
+        match self {
+            PyVirtualizedQuery::Grouped { by, .. } => {
+                Some(by.clone())
+            }
+            _ => {None}
+        }
+    }
+
+    #[getter]
+    fn aggregations(&self) -> Option<Vec<(Py<PyVariable>, Py<PyAggregateExpression>)>> {
+        match self {
+            PyVirtualizedQuery::Grouped { aggregations, .. } => {
+                Some(aggregations.clone())
+            }
+            _ => None
         }
     }
 }
@@ -163,7 +187,7 @@ impl PyVirtualizedQuery {
                 } else {
                     None
                 };
-                PyVirtualizedQuery::BasicVirtualizedQuery {
+                PyVirtualizedQuery::Basic {
                     identifier_name: basic.identifier_variable.as_str().to_string(),
                     column_mapping,
                     resource: basic.resource.unwrap(),
@@ -172,13 +196,29 @@ impl PyVirtualizedQuery {
                     id_to_grouping_mapping,
                 }
             }
-            VirtualizedQuery::Filtered(inner, expression) => {
-                PyVirtualizedQuery::FilteredVirtualizedQuery {
-                    query: Py::new(py, PyVirtualizedQuery::new(*inner, py)?)?,
-                    filter: Py::new(py, PyExpression::new(expression, py)?)?,
+            VirtualizedQuery::Filtered(inner, expression) => PyVirtualizedQuery::Filtered {
+                query: Py::new(py, PyVirtualizedQuery::new(*inner, py)?)?,
+                filter: Py::new(py, PyExpression::new(&expression, py)?)?,
+            },
+            VirtualizedQuery::Grouped(grouped) => {
+                let mut by = vec![];
+                for v in &grouped.by {
+                    by.push(PyVariable::new(v.as_str().to_string())?);
+                }
+                let mut aggregations = vec![];
+                for (v, a) in &grouped.aggregations {
+                    aggregations.push((
+                        Py::new(py, PyVariable::new(v.as_str().to_string())?)?,
+                        Py::new(py, PyAggregateExpression::new(a, py)?)?,
+                    ))
+                }
+                PyVirtualizedQuery::Grouped {
+                    query: Py::new(py, PyVirtualizedQuery::new(*grouped.vq, py)?)?,
+                    by,
+                    aggregations,
                 }
             }
-            _ => todo!(),
+            _ => todo!()
         })
     }
 }
@@ -305,27 +345,70 @@ impl PyExpression {
 }
 
 impl PyExpression {
-    pub fn new(expression: Expression, py: Python) -> PyResult<PyExpression> {
+    pub fn new(expression: &Expression, py: Python) -> PyResult<PyExpression> {
         Ok(match expression {
             Expression::And(left, right) => PyExpression::And {
-                left: Py::new(py, PyExpression::new(*left, py)?)?,
-                right: Py::new(py, PyExpression::new(*right, py)?)?,
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
             },
             Expression::Greater(left, right) => PyExpression::Greater {
-                left: Py::new(py, PyExpression::new(*left, py)?)?,
-                right: Py::new(py, PyExpression::new(*right, py)?)?,
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
             },
             Expression::Less(left, right) => PyExpression::Less {
-                left: Py::new(py, PyExpression::new(*left, py)?)?,
-                right: Py::new(py, PyExpression::new(*right, py)?)?,
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
             },
             Expression::Variable(variable) => PyExpression::Variable {
-                variable: Py::new(py, PyVariable { variable })?,
+                variable: Py::new(
+                    py,
+                    PyVariable {
+                        variable: variable.clone(),
+                    },
+                )?,
             },
             Expression::Literal(l) => PyExpression::Literal {
-                literal: Py::new(py, PyLiteral::from_literal(l))?,
+                literal: Py::new(py, PyLiteral::from_literal(l.clone()))?,
             },
             _ => todo!(),
         })
+    }
+}
+
+#[pyclass(name = "AggregateExpression")]
+#[derive(Clone)]
+pub struct PyAggregateExpression {
+    pub name: AggregateFunction,
+    pub expression: Option<Py<PyExpression>>,
+}
+
+impl PyAggregateExpression {
+    pub fn new(
+        aggregate_expression: &AggregateExpression,
+        py: Python,
+    ) -> PyResult<PyAggregateExpression> {
+        Ok(match aggregate_expression {
+            AggregateExpression::CountSolutions { .. } => PyAggregateExpression {
+                name: AggregateFunction::Count,
+                expression: None,
+            },
+            AggregateExpression::FunctionCall { name, expr, .. } => PyAggregateExpression {
+                name: name.clone(),
+                expression: Some(Py::new(py, PyExpression::new(expr, py)?)?),
+            },
+        })
+    }
+}
+
+#[pymethods]
+impl PyAggregateExpression {
+    #[getter]
+    fn name(&self) -> String {
+        self.name.to_string()
+    }
+
+    #[getter]
+    fn expression(&self) -> Option<Py<PyExpression>> {
+        self.expression.clone()
     }
 }

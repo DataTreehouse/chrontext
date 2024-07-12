@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any
+from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any, Tuple
 from polars import DataFrame
 
 
@@ -93,7 +93,6 @@ class Literal:
         :return:
         """
 
-
 class Expression:
     And:Type["PyExpression__And"]
     Greater:Type["PyExpression__Greater"]
@@ -136,36 +135,59 @@ class PyExpression__Less(Expression):
     right:Expression
 
 
+class AggregateExpression:
+    """
+
+    """
+    name: str
+    expression: Expression
+
+
 class VirtualizedQuery:
-    FilteredVirtualizedQuery:Type["PyVirtualizedQuery__FilteredVirtualizedQuery"]
+    Filtered:Type["PyVirtualizedQuery__Filtered"]
     filter: Optional[Expression]
     query: Optional[VirtualizedQuery]
-    BasicVirtualizedQuery:Type["PyVirtualizedQuery__BasicVirtualizedQuery"]
+    Basic:Type["PyVirtualizedQuery__Basic"]
     identifier_name: Optional[str]
     column_mapping: Optional[Dict[str, str]]
     resource: Optional[str]
     ids: Optional[List[str]]
     grouping_column_name: Optional[str]
     id_to_grouping_mapping: Optional[Dict[str, int]]
-    def type_name(self) -> LiteralType["FilteredVirtualizedQuery", "BasicVirtualizedQuery"]:
+    Grouped:Type["PyVirtualizedQuery__Grouped"]
+    by: List[Variable]
+    aggregations: Optional[List[Tuple[Variable, AggregateExpression]]]
+
+    def type_name(self) -> LiteralType["Filtered", "Basic"]:
         """
 
         :return:
         """
 
 
-class PyVirtualizedQuery__BasicVirtualizedQuery:
+class PyVirtualizedQuery__Basic:
     """
 
     """
+    identifier_name: Optional[str]
+    column_mapping: Optional[Dict[str, str]]
+    resource: Optional[str]
+    ids: Optional[List[str]]
 
-
-class PyVirtualizedQuery__FilteredVirtualizedQuery:
+class PyVirtualizedQuery__Filtered:
     """
 
     """
     query: VirtualizedQuery
     filter: Expression
+
+
+class PyVirtualizedQuery__Grouped:
+    """
+
+    """
+    by: List[Variable]
+    aggregations: Optional[List[Tuple[Variable, AggregateExpression]]]
 
 
 class Parameter:

@@ -53,7 +53,7 @@ use virtualization::bigquery::VirtualizedBigQueryDatabase;
 use virtualization::opcua::VirtualizedOPCUADatabase;
 use virtualization::python::VirtualizedPythonDatabase;
 use virtualization::{Virtualization, VirtualizedDatabase};
-use virtualized_query::python::{PyBasicVirtualizedQuery, PyExpression, PyVirtualizedQuery};
+use virtualized_query::python::{PyAggregateExpression, PyBasicVirtualizedQuery, PyExpression, PyVirtualizedQuery};
 
 #[pyclass(name = "Engine")]
 pub struct PyEngine {
@@ -366,6 +366,7 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTemplate>()?;
     m.add_class::<PyInstance>()?;
     m.add_class::<PyExpression>()?;
+    m.add_class::<PyAggregateExpression>()?;
     m.add_function(wrap_pyfunction!(py_triple, m)?)?;
     m.add_function(wrap_pyfunction!(a, m)?)?;
     m.add_function(wrap_pyfunction!(xsd, m)?)?;

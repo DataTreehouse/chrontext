@@ -54,5 +54,5 @@ impl TimeseriesQueryPrepper {
 }
 
 pub fn grouping_col_type() -> DataType {
-    DataType::Int64
+    DataType::UInt32
 }

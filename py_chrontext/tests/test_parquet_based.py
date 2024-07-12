@@ -53,7 +53,7 @@ def engine() -> Engine:
     ts2 = ts2_table.select().add_columns(
         bindparam("id2", "ts2").label("id"),
     )
-    sql = ts1.union(ts2)
+    sql = ts1.union(ts2).select().add_columns(Column("id"), Column("timestamp"), Column("value"))
 
     vdb = VirtualizedPythonDatabase(
         database=CSVDB(),
@@ -129,3 +129,52 @@ def test_simple_hybrid_no_vq_matches_query(engine):
     """
     df = engine.query(q)
     assert df.height == 0
+
+
+def test_complex_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w1 ?w2 ?t ?v1 ?v2 WHERE {
+        ?w1 a types:BigWidget .
+        ?w2 a types:SmallWidget .
+        ?w1 types:hasSensor ?s1 .
+        ?w2 types:hasSensor ?s2 .
+        ?s1 chrontext:hasTimeseries ?ts1 .
+        ?s2 chrontext:hasTimeseries ?ts2 .
+        ?ts1 chrontext:hasDataPoint ?dp1 .
+        ?ts2 chrontext:hasDataPoint ?dp2 .
+        ?dp1 chrontext:hasTimestamp ?t .
+        ?dp2 chrontext:hasTimestamp ?t .
+        ?dp1 chrontext:hasValue ?v1 .
+        ?dp2 chrontext:hasValue ?v2 .
+        FILTER(?t > "2022-06-01T08:46:55"^^xsd:dateTime && ?v1 < ?v2) .
+    }
+    """
+    by = ["w1", "w2", "t"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_complex_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+    print(df)
+
+
+def test_pushdown_group_by_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w (SUM(?v) as ?sum_v) WHERE {
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime) .
+    } GROUP BY ?w
+    """
+    by = ["w"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+    print(df)
