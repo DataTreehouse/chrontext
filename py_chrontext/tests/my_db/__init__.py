@@ -8,6 +8,8 @@ from chrontext import Expression, VirtualizedQuery, AggregateExpression
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, func, cast, \
     BigInteger, CompoundSelect, and_
 
+XSD = "http://www.w3.org/2001/XMLSchema#"
+XSD_INTEGER = "<http://www.w3.org/2001/XMLSchema#integer>"
 
 def query(arg):
     timestamp = Column("timestamp")
@@ -118,6 +120,11 @@ class SPARQLMapper:
                 )
                 return sql_quer
 
+            case "ExpressionAs":
+                sql_quer = self.virtualized_query_to_sql(query.query)
+                sql_expression = self.expression_to_sql(query.expression, sql_quer.selected_columns)
+                sql_quer = sql_quer.add_columns(sql_expression.label(query.variable.name))
+                return sql_quer
             case "InnerJoin":
                 pass
 
@@ -154,11 +161,50 @@ class SPARQLMapper:
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
                 return left_sql & right_sql
+            case "Divide":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql / right_sql
             case "Literal":
                 native = expression.literal.to_native()
                 # if type(native) == datetime.datetime:
                 #    return literal(native)
                 return literal(native)
+            case "FunctionCall":
+                sql_args = []
+                for a in expression.arguments:
+                    sql_args.append(self.expression_to_sql(a, columns))
+                return self.function_call_to_sql(expression.function, sql_args, columns)
             case _:
                 print(type(expression))
                 print(expression)
+
+    def function_call_to_sql(self,
+                             function:str,
+                             sql_args:List[Column | ColumnElement | int | float | bool | str],
+                             columns:ColumnCollection[str, ColumnElement]) -> ColumnElement:
+        match function:
+            case "SECONDS":
+                if self.dialect == "postgres":
+                    return func.extract("SECOND", sql_args[0])
+            case "MINUTES":
+                if self.dialect == "postgres":
+                    return func.extract("MINUTE", sql_args[0])
+            case "HOURS":
+                if self.dialect == "postgres":
+                    return func.extract("HOUR", sql_args[0])
+            case "DAY":
+                if self.dialect == "postgres":
+                    return func.extract("DAY", sql_args[0])
+            case "MONTH":
+                if self.dialect == "postgres":
+                    return func.extract("MONTH", sql_args[0])
+            case "YEAR":
+                if self.dialect == "postgres":
+                    return func.extract("YEAR", sql_args[0])
+            case "FLOOR":
+                return func.floor(sql_args[0])
+            case IRI:
+                if IRI == XSD_INTEGER:
+                    return func.cast(sql_args[0], BigInteger)
+                print("PANIKK!!")

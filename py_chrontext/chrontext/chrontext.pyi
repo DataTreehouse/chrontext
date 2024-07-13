@@ -104,6 +104,9 @@ class Expression:
     IRI:Type["PyExpression__IRI"]
     Literal:Type["PyExpression__Literal"]
     literal:Optional[Literal]
+    FunctionCall:["PyExpression__FunctionCall"]
+    function: Optional[str]
+    arguments: Optional[List[Expression]]
 
     def expression_type(self) -> str:
         """
@@ -134,6 +137,10 @@ class PyExpression__Less(Expression):
     left:Expression
     right:Expression
 
+class PyExpression__FunctionCall(Expression):
+    function: str
+    arguments: List[Expression]
+
 
 class AggregateExpression:
     """
@@ -157,6 +164,9 @@ class VirtualizedQuery:
     Grouped:Type["PyVirtualizedQuery__Grouped"]
     by: List[Variable]
     aggregations: Optional[List[Tuple[Variable, AggregateExpression]]]
+    ExpressionAs:Type["PyVirtualizedQuery__ExpressionAs"]
+    variable: Optional[Variable]
+    expression: Optional[Expression]
 
     def type_name(self) -> LiteralType["Filtered", "Basic"]:
         """
@@ -169,10 +179,12 @@ class PyVirtualizedQuery__Basic:
     """
 
     """
-    identifier_name: Optional[str]
-    column_mapping: Optional[Dict[str, str]]
-    resource: Optional[str]
-    ids: Optional[List[str]]
+    identifier_name: str
+    column_mapping: Dict[str, str]
+    resource: str
+    ids: List[str]
+    grouping_column_name: Optional[str]
+    id_to_grouping_mapping: Optional[Dict[str, int]]
 
 class PyVirtualizedQuery__Filtered:
     """
@@ -187,7 +199,16 @@ class PyVirtualizedQuery__Grouped:
 
     """
     by: List[Variable]
-    aggregations: Optional[List[Tuple[Variable, AggregateExpression]]]
+    aggregations: List[Tuple[Variable, AggregateExpression]]
+
+
+class PyVirtualizedQuery__ExpressionAs:
+    """
+
+    """
+    query: VirtualizedQuery
+    variable: Variable
+    expression: Expression
 
 
 class Parameter:

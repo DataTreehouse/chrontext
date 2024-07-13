@@ -43,17 +43,17 @@ use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
-use pyo3::types::PyDict;
 use templates::python::{a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
 use virtualization::opcua::VirtualizedOPCUADatabase;
 use virtualization::python::VirtualizedPythonDatabase;
 use virtualization::{Virtualization, VirtualizedDatabase};
-use virtualized_query::python::{PyAggregateExpression, PyBasicVirtualizedQuery, PyExpression, PyVirtualizedQuery};
+use virtualized_query::python::{PyAggregateExpression, PyExpression, PyVirtualizedQuery};
 
 #[pyclass(name = "Engine")]
 pub struct PyEngine {
@@ -179,12 +179,7 @@ impl PyEngine {
         let (mut df, mut datatypes) = builder
             .build()
             .unwrap()
-            .block_on(
-                self.engine
-                    .as_mut()
-                    .unwrap()
-                    .query(sparql),
-            )
+            .block_on(self.engine.as_mut().unwrap().query(sparql))
             .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
 
         (df, datatypes) =
@@ -353,7 +348,6 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySparqlEmbeddedOxigraph>()?;
     m.add_class::<VirtualizedPythonDatabase>()?;
     m.add_class::<PyVirtualizedQuery>()?;
-    m.add_class::<PyBasicVirtualizedQuery>()?;
     m.add_class::<PyDataProduct>()?;
     m.add_class::<PyCatalog>()?;
     m.add_class::<PyRDFType>()?;

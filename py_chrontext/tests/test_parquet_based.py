@@ -220,8 +220,33 @@ def test_pushdown_group_by_second_hybrid_query(engine):
         FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
     } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second
     """
-    by = ["w"]
+    by = ["w", "sum_v"]
     df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
-    print(df)
+
+def test_pushdown_group_by_second_having_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w (CONCAT(?year, "-", ?month, "-", ?day, "-", ?hour, "-", ?minute, "-", (?second_5*5)) as ?period) (SUM(?v) as ?sum_v) WHERE {
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?second_5)
+        BIND(minutes(?t) AS ?minute)
+        BIND(hours(?t) AS ?hour)
+        BIND(day(?t) AS ?day)
+        BIND(month(?t) AS ?month)
+        BIND(year(?t) AS ?year)
+        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+    } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second_5
+    HAVING (SUM(?v)>100)
+    """
+    by = ["w", "period"]
+    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_having_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)

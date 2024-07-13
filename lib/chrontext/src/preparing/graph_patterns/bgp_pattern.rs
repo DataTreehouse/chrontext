@@ -20,10 +20,7 @@ impl TimeseriesQueryPrepper {
                 if let Some(resource) = &vq.resource {
                     vq.finish_column_mapping(
                         patterns,
-                        self.virtualization
-                            .resources
-                            .get(resource)
-                            .unwrap(),
+                        self.virtualization.resources.get(resource).unwrap(),
                     );
                     local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
                 }

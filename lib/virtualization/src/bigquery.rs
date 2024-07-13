@@ -1,12 +1,12 @@
 use crate::errors::VirtualizedDatabaseError;
+use crate::get_datatype_map;
 use crate::python::translate_sql;
-use crate::{get_datatype_map};
 use bigquery_polars::{BigQueryExecutor, Client};
-use pyo3::{Py};
+use pyo3::types::PyDict;
+use pyo3::Py;
 use representation::solution_mapping::EagerSolutionMappings;
 use reqwest::Url;
-use std::collections::{HashSet};
-use pyo3::types::PyDict;
+use std::collections::HashSet;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::VirtualizedQuery;
 
@@ -16,10 +16,7 @@ pub struct VirtualizedBigQueryDatabase {
 }
 
 impl VirtualizedBigQueryDatabase {
-    pub fn new(
-        gcp_sa_key: String,
-        resource_sql_map: Py<PyDict>,
-    ) -> VirtualizedBigQueryDatabase {
+    pub fn new(gcp_sa_key: String, resource_sql_map: Py<PyDict>) -> VirtualizedBigQueryDatabase {
         VirtualizedBigQueryDatabase {
             gcp_sa_key,
             resource_sql_map,
