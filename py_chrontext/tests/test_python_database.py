@@ -11,7 +11,7 @@ from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph,
 import rdflib
 
 PATH_HERE = pathlib.Path(__file__).parent
-TESTDATA_PATH = PATH_HERE / "testdata" / "parquet_based"
+TESTDATA_PATH = PATH_HERE / "testdata" / "python_based"
 g = rdflib.Graph()
 g.parse(TESTDATA_PATH / "testdata.ttl")
 g.serialize(TESTDATA_PATH / "testdata.nt", format="nt")
@@ -25,6 +25,7 @@ class CSVDB():
 
     def __init__(self):
         con = duckdb.connect()
+        con.execute("SET TIME ZONE 'UTC';")
         con.execute("""CREATE TABLE ts1 ("timestamp" TIMESTAMP, "value" INTEGER)""")
         ts_1 = pl.read_csv(TS1_CSV, try_parse_dates=True)
         con.append("ts1", df=ts_1.to_pandas())
@@ -560,4 +561,66 @@ def test_coalesce_query(engine):
     by = ["s1", "t1", "v1", "v2"]
     df = engine.query(q).cast({"v1":pl.Int64, "v2":pl.Int64, "c":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_coalesce_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_simple_hybrid_query_sugar(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        DT {
+         from = "2022-06-01T08:46:53Z",
+        }
+    }
+    """
+    by = ["w", "s", "timestamp"]
+    df = engine.query(q).cast({"ts_value":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        DT {
+         timeseries = ?ts,
+         from = "2022-06-01T08:46:53Z",
+        }
+    }
+    """
+    by = ["w", "s", "timestamp"]
+    df = engine.query(q).cast({"ts_value":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_simple_hybrid_query_sugar_agg_avg(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        DT {
+         from = "2022-06-01T08:46:53Z",
+         aggregation = "avg",
+         interval = "5s",
+        }
+    }
+    """
+    by = ["w", "s", "timestamp"]
+    df = engine.query(q).cast({"timestamp":pl.Datetime(time_zone=None)}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar_agg_avg.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)

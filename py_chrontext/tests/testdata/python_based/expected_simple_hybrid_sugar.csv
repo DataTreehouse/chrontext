@@ -1,0 +1,8 @@
+w,s,timestamp,ts_value
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:53.000000,10
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:54.000000,100
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:55.000000,301
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:56.000000,102
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:57.000000,303
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:58.000000,304
+<http://example.org/case#myWidget1>,<http://example.org/case#mySensor1>,2022-06-01T08:46:59.000000,105

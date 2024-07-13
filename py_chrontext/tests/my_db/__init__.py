@@ -6,10 +6,12 @@ from sqlalchemy.sql.base import ColumnCollection
 
 from chrontext import Expression, VirtualizedQuery, AggregateExpression
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, func, cast, \
-    BigInteger, CompoundSelect, and_, literal_column, case
+    BigInteger, CompoundSelect, and_, literal_column, case, TIMESTAMP
 
 XSD = "http://www.w3.org/2001/XMLSchema#"
 XSD_INTEGER = "<http://www.w3.org/2001/XMLSchema#integer>"
+FLOOR_DATE_TIME_TO_SECONDS_INTERVAL = "<https://github.com/DataTreehouse/chrontext#FloorDateTimeToSecondsInterval>"
+
 
 def query(arg):
     timestamp = Column("timestamp")
@@ -78,7 +80,7 @@ class SPARQLMapper:
                             table,
                             onclause=and_(
                                 values_sub.columns["id"] == table.columns["id"],
-                                     table.columns["id"].in_(query.ids)
+                                table.columns["id"].in_(query.ids)
                             )
                         )
                         to_select.append(
@@ -139,11 +141,14 @@ class SPARQLMapper:
                 return func.min(sql_expression)
             case "MAX":
                 return func.max(sql_expression)
+            case "AVG":
+                return func.avg(sql_expression)
             case "SUM":
                 return func.sum(sql_expression)
             case "GROUP_CONCAT":
                 if aggregate_expression.separator is not None:
-                    return func.aggregate_strings(sql_expression, separator=literal_column(f"'{aggregate_expression.separator}'"))
+                    return func.aggregate_strings(sql_expression,
+                                                  separator=literal_column(f"'{aggregate_expression.separator}'"))
                 else:
                     return func.aggregate_strings(sql_expression, separator=literal_column("''"))
             case _:
@@ -168,6 +173,14 @@ class SPARQLMapper:
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
                 return left_sql < right_sql
+            case "GreaterOrEqual":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql >= right_sql
+            case "LessOrEqual":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql <= right_sql
             case "And":
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
@@ -224,9 +237,9 @@ class SPARQLMapper:
                 print(expression)
 
     def function_call_to_sql(self,
-                             function:str,
-                             sql_args:List[Column | ColumnElement | int | float | bool | str],
-                             columns:ColumnCollection[str, ColumnElement]) -> ColumnElement:
+                             function: str,
+                             sql_args: List[Column | ColumnElement | int | float | bool | str],
+                             columns: ColumnCollection[str, ColumnElement]) -> ColumnElement:
         match function:
             case "SECONDS":
                 if self.dialect == "postgres":
@@ -253,4 +266,11 @@ class SPARQLMapper:
             case IRI:
                 if IRI == XSD_INTEGER:
                     return func.cast(sql_args[0], BigInteger)
+                elif IRI == FLOOR_DATE_TIME_TO_SECONDS_INTERVAL:
+                    return func.to_timestamp(
+                            func.extract("EPOCH", sql_args[0]) - func.mod(
+                                func.extract("EPOCH", sql_args[0]),
+                                sql_args[1])
+                            )
+                print(IRI)
                 print("PANIKK!!")
