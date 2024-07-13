@@ -92,7 +92,7 @@ impl Engine {
         debug!("Constraints: {:?}", variable_constraints);
         let rewriter = StaticQueryRewriter::new(variable_constraints, first_level_virtualized_iris);
         let (static_queries_map, basic_virtualized_queries, rewritten_filters) =
-            rewriter.rewrite_query(preprocessed_query);
+            rewriter.rewrite_query(preprocessed_query.clone());
         debug!("Produced static rewrite: {:?}", static_queries_map);
         debug!(
             "Produced basic time series queries: {:?}",
@@ -108,7 +108,7 @@ impl Engine {
             self.virtualization.clone(),
         );
         let solution_mappings = combiner
-            .combine_static_and_time_series_results(static_queries_map, &parsed_query)
+            .combine_static_and_time_series_results(static_queries_map, &preprocessed_query)
             .await?;
         let SolutionMappings {
             mappings,

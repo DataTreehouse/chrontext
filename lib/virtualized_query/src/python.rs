@@ -262,8 +262,31 @@ pub enum PyExpression {
         left: Py<PyExpression>,
         right: Py<PyExpression>,
     },
+    GreaterOrEqual {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    LessOrEqual {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
     And {
         left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    Or {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    Not {
+        expression: Py<PyExpression>,
+    },
+    Bound {
+        variable: Py<PyVariable>,
+    },
+    If {
+        left: Py<PyExpression>,
+        middle: Py<PyExpression>,
         right: Py<PyExpression>,
     },
     Variable {
@@ -280,6 +303,12 @@ pub enum PyExpression {
         arguments: Vec<Py<PyExpression>>,
     },
     Divide { left: Py<PyExpression>, right: Py<PyExpression> },
+    Add { left: Py<PyExpression>, right: Py<PyExpression> },
+    Subtract { left: Py<PyExpression>, right: Py<PyExpression> },
+    Multiply { left: Py<PyExpression>, right: Py<PyExpression> },
+    In {expression:Py<PyExpression>, expressions: Vec<Py<PyExpression>>},
+    Coalesce {expressions: Vec<Py<PyExpression>>}
+
 }
 
 #[pymethods]
@@ -293,7 +322,18 @@ impl PyExpression {
             PyExpression::IRI { .. } => "IRI",
             PyExpression::Literal { .. } => "Literal",
             PyExpression::FunctionCall { .. } => "FunctionCall",
-            PyExpression::Divide { .. } => "Divide"
+            PyExpression::Divide { .. } => "Divide",
+            PyExpression::In {..} => "In",
+            PyExpression::GreaterOrEqual { .. } => "GreaterOrEqual",
+            PyExpression::LessOrEqual { .. } => "LessOrEqual",
+            PyExpression::Or { .. } => "Or",
+            PyExpression::Not { .. } => "Not",
+            PyExpression::If { .. } => "If",
+            PyExpression::Add { .. } => "Add",
+            PyExpression::Subtract { .. } => "Subtract",
+            PyExpression::Multiply { .. } => "Multiply",
+            PyExpression::Coalesce { .. } => "Coalesce",
+            PyExpression::Bound { .. } => "Bound",
         }
     }
 
@@ -302,8 +342,23 @@ impl PyExpression {
         match self {
             PyExpression::Greater { left, .. }
             | PyExpression::Less { left, .. }
+            | PyExpression::GreaterOrEqual { left, .. }
+            | PyExpression::LessOrEqual { left, .. }
             | PyExpression::And { left, .. }
-            | PyExpression::Divide {left, ..}=> Some(left.clone_ref(py)),
+            | PyExpression::Or { left, .. }
+            | PyExpression::Divide {left, ..}
+            | PyExpression::Multiply {left, ..}
+            | PyExpression::Add {left, ..}
+            | PyExpression::Subtract {left, ..}
+            | PyExpression::If {left, ..} => Some(left.clone_ref(py)),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn middle(&self, py: Python) -> Option<Py<PyExpression>> {
+        match self {
+            PyExpression::If {middle, ..} => Some(middle.clone_ref(py)),
             _ => None,
         }
     }
@@ -313,8 +368,15 @@ impl PyExpression {
         match self {
             PyExpression::Greater { right, .. }
             | PyExpression::Less { right, .. }
+            | PyExpression::GreaterOrEqual { right, .. }
+            | PyExpression::LessOrEqual { right, .. }
             | PyExpression::And { right, .. }
-            | PyExpression::Divide {right, ..} => Some(right.clone_ref(py)),
+            | PyExpression::Or { right, .. }
+            | PyExpression::Divide {right, ..}
+            | PyExpression::Multiply {right, ..}
+            | PyExpression::Add {right, ..}
+            | PyExpression::Subtract {right, ..}
+            | PyExpression::If {right, ..} => Some(right.clone_ref(py)),
             _ => None,
         }
     }
@@ -322,7 +384,7 @@ impl PyExpression {
     #[getter]
     fn variable(&self, py: Python) -> Option<Py<PyVariable>> {
         match self {
-            PyExpression::Variable { variable } => Some(variable.clone_ref(py)),
+            PyExpression::Variable { variable } | PyExpression::Bound { variable }  => Some(variable.clone_ref(py)),
             _ => None,
         }
     }
@@ -350,6 +412,22 @@ impl PyExpression {
             _ => None,
         }
     }
+
+    #[getter]
+    fn expression(&self) -> Option<Py<PyExpression>> {
+        match self {
+            PyExpression::In { expression, .. } => Some(expression.clone()),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn expressions(&self) -> Option<Vec<Py<PyExpression>>> {
+        match self {
+            PyExpression::In { expressions, .. } | PyExpression::Coalesce {expressions, ..}=> Some(expressions.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl PyExpression {
@@ -359,15 +437,58 @@ impl PyExpression {
                 left: Py::new(py, PyExpression::new(left, py)?)?,
                 right: Py::new(py, PyExpression::new(right, py)?)?,
             },
-            Expression::Greater(left, right) => PyExpression::Greater {
+            Expression::Or(left, right) => PyExpression::Or {
                 left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::Not(expression) => PyExpression::Not {
+                expression: Py::new(py, PyExpression::new(expression, py)?)?,
+            },
+            Expression::Coalesce(expressions) => PyExpression::Not {
+                expression: Py::new(py, PyExpression::new(expression, py)?)?,
+            },
+            Expression::Bound(variable) => PyExpression::Bound {
+                variable: Py::new(
+                    py,
+                    PyVariable {
+                        variable: variable.clone(),
+                    },
+                )?,
+            },
+            Expression::If(left, middle, right) => PyExpression::If {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                middle: Py::new(py, PyExpression::new(middle, py)?)?,
                 right: Py::new(py, PyExpression::new(right, py)?)?,
             },
             Expression::Divide(left, right) => PyExpression::Divide {
                 left: Py::new(py, PyExpression::new(left, py)?)?,
                 right: Py::new(py, PyExpression::new(right, py)?)?,
             },
+            Expression::Multiply(left, right) => PyExpression::Multiply {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::Subtract(left, right) => PyExpression::Subtract {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::Add(left, right) => PyExpression::Add {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
             Expression::Less(left, right) => PyExpression::Less {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::LessOrEqual(left, right) => PyExpression::LessOrEqual {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::Greater(left, right) => PyExpression::Greater {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::GreaterOrEqual(left, right) => PyExpression::GreaterOrEqual {
                 left: Py::new(py, PyExpression::new(left, py)?)?,
                 right: Py::new(py, PyExpression::new(right, py)?)?,
             },
@@ -392,6 +513,16 @@ impl PyExpression {
                     arguments: py_expressions,
                 }
             }
+            Expression::In(expression, expressions) => {
+                let mut py_expressions = vec![];
+                for c in expressions {
+                    py_expressions.push(Py::new(py, PyExpression::new(c, py)?)?)
+                }
+                PyExpression::In {
+                    expression: Py::new(py, PyExpression::new(expression, py)?)?,
+                    expressions: py_expressions,
+                }
+            }
             _ => todo!(),
         })
     }
@@ -400,7 +531,7 @@ impl PyExpression {
 #[pyclass(name = "AggregateExpression")]
 #[derive(Clone)]
 pub struct PyAggregateExpression {
-    pub name: AggregateFunction,
+    pub function: AggregateFunction,
     pub expression: Option<Py<PyExpression>>,
 }
 
@@ -411,11 +542,11 @@ impl PyAggregateExpression {
     ) -> PyResult<PyAggregateExpression> {
         Ok(match aggregate_expression {
             AggregateExpression::CountSolutions { .. } => PyAggregateExpression {
-                name: AggregateFunction::Count,
+                function: AggregateFunction::Count,
                 expression: None,
             },
             AggregateExpression::FunctionCall { name, expr, .. } => PyAggregateExpression {
-                name: name.clone(),
+                function: name.clone(),
                 expression: Some(Py::new(py, PyExpression::new(expr, py)?)?),
             },
         })
@@ -426,11 +557,21 @@ impl PyAggregateExpression {
 impl PyAggregateExpression {
     #[getter]
     fn name(&self) -> String {
-        self.name.to_string()
+        self.function.to_string()
     }
 
     #[getter]
     fn expression(&self) -> Option<Py<PyExpression>> {
         self.expression.clone()
+    }
+
+    #[getter]
+    fn separator(&self) -> Option<String> {
+        match &self.function {
+            AggregateFunction::GroupConcat { separator } => {
+                separator.clone()
+            }
+            _ => {None}
+        }
     }
 }

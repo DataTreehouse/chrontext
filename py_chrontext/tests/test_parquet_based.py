@@ -250,3 +250,314 @@ def test_pushdown_group_by_second_having_hybrid_query(engine):
     df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_having_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+
+
+def test_union_of_two_groupby_queries(engine):
+    q = """
+PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+PREFIX types:<http://example.org/types#>
+SELECT ?w ?second_5 ?kind ?sum_v WHERE {
+  {
+    SELECT ?w ?kind ?second_5 (SUM(?v) AS ?sum_v) WHERE {
+      ?w types:hasSensor ?s.
+      ?s chrontext:hasTimeseries ?ts.
+      ?ts chrontext:hasDataPoint ?dp.
+      ?dp chrontext:hasTimestamp ?t;
+        chrontext:hasValue ?v.
+      BIND("under_500" AS ?kind)
+      BIND(xsd:integer(FLOOR((SECONDS(?t)) / "5.0"^^xsd:decimal)) AS ?second_5)
+      BIND(MINUTES(?t) AS ?minute)
+      FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+    }
+    GROUP BY ?w ?kind ?minute ?second_5
+    HAVING ((SUM(?v)) < 500 )
+  }
+  UNION
+  {
+    SELECT ?w ?kind ?second_5 (SUM(?v) AS ?sum_v) WHERE {
+      ?w types:hasSensor ?s.
+      ?s chrontext:hasTimeseries ?ts.
+      ?ts chrontext:hasDataPoint ?dp.
+      ?dp chrontext:hasTimestamp ?t;
+        chrontext:hasValue ?v.
+      BIND("over_1000" AS ?kind)
+      BIND(xsd:integer(FLOOR((SECONDS(?t)) / "5.0"^^xsd:decimal)) AS ?second_5)
+      BIND(MINUTES(?t) AS ?minute)
+      FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+    }
+    GROUP BY ?w ?kind ?minute ?second_5
+    HAVING ((SUM(?v)) > 1000 )
+  }
+}
+"""
+    by = ["w", "second_5", "kind"]
+    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_union_of_two_groupby.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_pushdown_group_by_concat_agg_hybrid_query(engine):
+    #TODO: Pushdown order by..
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?seconds_5 (GROUP_CONCAT(?v ; separator="-") as ?cc) WHERE {
+        SELECT * WHERE {
+            ?w types:hasSensor ?s .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
+            BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?seconds_5)
+            FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime) 
+        }
+        ORDER BY ?w ?t
+    } GROUP BY ?w ?seconds_5
+"""
+    by = ["w", "seconds_5"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_concat_agg_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_pushdown_groupby_exists_something_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?seconds_3 (AVG(?v) as ?mean) WHERE {
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        BIND(xsd:integer(FLOOR(seconds(?t) / 3.0)) as ?seconds_3)
+        FILTER EXISTS {SELECT ?w WHERE {?w types:hasSomething ?smth}}
+    } GROUP BY ?w ?seconds_3
+"""
+    by = ["w", "seconds_3"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_exists_something_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s WHERE {
+        ?w types:hasSensor ?s .
+        FILTER EXISTS {SELECT ?s WHERE {
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
+            FILTER(?v > 300)}}
+    }
+    """
+    by = ["w", "s"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_exists_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+
+def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s WHERE {
+        ?w types:hasSensor ?s .
+        FILTER EXISTS {SELECT ?s WHERE {
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
+            FILTER(?v < 300)}
+            GROUP BY ?s
+            HAVING (SUM(?v) >= 1000)
+            }
+    }
+    """
+    by = ["w", "s"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_exists_aggregated_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s WHERE {
+        ?w types:hasSensor ?s .
+        FILTER NOT EXISTS {SELECT ?s WHERE {
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
+            FILTER(?v < 300)}
+            GROUP BY ?s
+            HAVING (SUM(?v) >= 1000)
+            }
+    }
+    """
+    by = ["w", "s"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_not_exists_aggregated_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_path_group_by_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w (MAX(?v) as ?max_v) WHERE {
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint/chrontext:hasValue ?v .}
+        GROUP BY ?w
+        ORDER BY ASC(?max_v)
+    """
+    by = ["w", "max_v"]
+    df = engine.query(q).cast({"max_v":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_path_group_by_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_optional_clause_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?v ?greater WHERE {
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+        OPTIONAL {
+        BIND(?v>300 as ?greater)
+        FILTER(?greater)
+        }
+    }
+    """
+    by = ["w", "v"]
+    df = engine.query(q).cast({"greater":pl.String, "v":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_optional_clause_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_minus_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?v WHERE {
+        ?w types:hasSensor/chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+        MINUS {
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+        FILTER(?v > 300)
+        }
+    }
+    """
+    by = ["w", "v"]
+    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_minus_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_in_expression_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?v WHERE {
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+        FILTER(?v IN (("300"^^xsd:int + "4"^^xsd:int), ("304"^^xsd:int - "3"^^xsd:int), "307"^^xsd:int))
+    }
+    """
+    by = ["w", "v"]
+    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_in_expression.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_values_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?v WHERE {
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+        VALUES ?v2 { 301 304 307 }
+        FILTER(xsd:integer(?v) = xsd:integer(?v2))
+    }
+    """
+    by = ["w", "v"]
+    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_values_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+def test_distinct_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT DISTINCT ?w (IF(?v>300,?v,300) as ?v_with_min) WHERE {
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+    }
+    """
+    by = ["w", "v_with_min"]
+    df = engine.query(q).cast({"v_with_min":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_distinct_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_union_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?v WHERE {
+        { ?w a types:BigWidget .
+        ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasValue ?v .
+        FILTER(?v > 100) }
+        UNION {
+            ?w a types:SmallWidget .
+            ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasValue ?v .
+            FILTER(?v < 100)
+        }
+    }
+    """
+    by = ["w", "v"]
+    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_union_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+
+def test_coalesce_query(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?s1 ?t1 ?v1 ?v2 (COALESCE(?v2, ?v1) as ?c) WHERE {
+        ?s1 chrontext:hasTimeseries/chrontext:hasDataPoint ?dp1 .
+        ?dp1 chrontext:hasValue ?v1 .
+        ?dp1 chrontext:hasTimestamp ?t1 .
+        OPTIONAL {
+        ?s1 chrontext:hasTimeseries/chrontext:hasDataPoint ?dp2 .
+        ?dp2 chrontext:hasValue ?v2 .
+        ?dp2 chrontext:hasTimestamp ?t2 .
+        FILTER(seconds(?t2) >= (seconds(?t1) - 1) && seconds(?t2) <= (seconds(?t1) + 1) && ?v2 > ?v1)
+        }
+    }
+    """
+    by = ["s1", "t1", "v1", "v2"]
+    df = engine.query(q).cast({"v1":pl.Int64, "v2":pl.Int64, "c":pl.Int64}).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_coalesce_query.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)

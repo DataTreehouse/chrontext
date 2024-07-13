@@ -148,6 +148,7 @@ class AggregateExpression:
     """
     name: str
     expression: Expression
+    separator: Optional[str]
 
 
 class VirtualizedQuery:

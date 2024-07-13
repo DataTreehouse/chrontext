@@ -139,7 +139,7 @@ impl Combiner {
         let sort_opts = SortMultipleOptions::new()
             .with_order_descending(false)
             .with_maintain_order(false)
-            .with_nulls_last(true);
+            .with_nulls_last(false);
         ts_lf = ts_lf.sort_by_exprs(on_cols.as_slice(), sort_opts.clone());
         solution_mappings.mappings = solution_mappings
             .mappings

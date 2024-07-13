@@ -6,7 +6,7 @@ from sqlalchemy.sql.base import ColumnCollection
 
 from chrontext import Expression, VirtualizedQuery, AggregateExpression
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, func, cast, \
-    BigInteger, CompoundSelect, and_
+    BigInteger, CompoundSelect, and_, literal_column, case
 
 XSD = "http://www.w3.org/2001/XMLSchema#"
 XSD_INTEGER = "<http://www.w3.org/2001/XMLSchema#integer>"
@@ -63,7 +63,7 @@ class SPARQLMapper:
                 )
                 for (k, v) in query.column_mapping.items():
                     to_select.append(table.columns[k].label(v))
-
+                print(to_select)
                 if query.grouping_column_name is not None:
                     if self.dialect == "bigquery":
                         pass
@@ -135,8 +135,17 @@ class SPARQLMapper:
     ) -> ColumnElement:
         sql_expression = self.expression_to_sql(aggregate_expression.expression, columns)
         match aggregate_expression.name:
+            case "MIN":
+                return func.min(sql_expression)
+            case "MAX":
+                return func.max(sql_expression)
             case "SUM":
                 return func.sum(sql_expression)
+            case "GROUP_CONCAT":
+                if aggregate_expression.separator is not None:
+                    return func.aggregate_strings(sql_expression, separator=literal_column(f"'{aggregate_expression.separator}'"))
+                else:
+                    return func.aggregate_strings(sql_expression, separator=literal_column("''"))
             case _:
                 print(aggregate_expression.name)
 
@@ -149,6 +158,8 @@ class SPARQLMapper:
         match expression_type:
             case "Variable":
                 return columns[expression.variable.name]
+            case "Bound":
+                return columns[expression.variable.name] != None
             case "Greater":
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
@@ -161,20 +172,53 @@ class SPARQLMapper:
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
                 return left_sql & right_sql
+            case "Or":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql | right_sql
+            case "If":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                middle_sql = self.expression_to_sql(expression.middle, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return case(left_sql, middle_sql, else_=right_sql)
+            case "Not":
+                expression_sql = self.expression_to_sql(expression.expression, columns)
+                return ~expression_sql
+            case "Multiply":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql * right_sql
             case "Divide":
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
                 return left_sql / right_sql
+            case "Add":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql + right_sql
+            case "Subtract":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql - right_sql
             case "Literal":
                 native = expression.literal.to_native()
-                # if type(native) == datetime.datetime:
-                #    return literal(native)
                 return literal(native)
             case "FunctionCall":
                 sql_args = []
                 for a in expression.arguments:
                     sql_args.append(self.expression_to_sql(a, columns))
                 return self.function_call_to_sql(expression.function, sql_args, columns)
+            case "In":
+                sql_collection = []
+                for e in expression.expressions:
+                    sql_collection.append(self.expression_to_sql(e, columns))
+                sql_expression = self.expression_to_sql(expression.expression, columns)
+                return sql_expression.in_(sql_collection)
+            case "Coalesce":
+                sql_collection = []
+                for e in expression.expressions:
+                    sql_collection.append(self.expression_to_sql(e, columns))
+                return func.coalesce(sql_collection)
             case _:
                 print(type(expression))
                 print(expression)
@@ -204,6 +248,8 @@ class SPARQLMapper:
                     return func.extract("YEAR", sql_args[0])
             case "FLOOR":
                 return func.floor(sql_args[0])
+            case "CEILING":
+                return func.ceiling(sql_args[0])
             case IRI:
                 if IRI == XSD_INTEGER:
                     return func.cast(sql_args[0], BigInteger)

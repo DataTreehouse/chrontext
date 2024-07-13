@@ -1,0 +1,5 @@
+w,second_5,kind,sum_v
+<http://example.org/case#myWidget1>,11,over_1000,1115
+<http://example.org/case#myWidget1>,10,under_500,100
+<http://example.org/case#myWidget2>,11,over_1000,1016
+<http://example.org/case#myWidget2>,10,under_500,200
