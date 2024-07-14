@@ -1,9 +1,11 @@
-from typing import List
+from typing import Dict
 
 import dotenv
 import os
 
 import pytest
+from sqlalchemy import Column, MetaData, select, Select
+from sqlalchemy_bigquery.base import Table
 from chrontext import *
 
 dotenv.load_dotenv("bq.env")
@@ -11,35 +13,72 @@ SCHEMA = os.getenv("SCHEMA")
 BIGQUERY_CONN = os.getenv("BIGQUERY_CONN")
 skip = SCHEMA is None
 
+@pytest.fixture(scope="function")
+def sql_resources() -> Dict[str, Select]:
+    metadata = MetaData()
+    nist2 = Table("nist2",
+          metadata,
+          Column("external_id"),
+          Column("TIMESTAMP", quote=False),
+          Column("VALUE", quote=False),
+          schema=SCHEMA,
+          quote=False,
+          #quote_schema=False,
+          )
+    nist2_select = select(
+        nist2.columns["external_id"].label("id"),
+        nist2.columns["TIMESTAMP"].label("timestamp"),
+        nist2.columns["VALUE"].label("value")
+    )
+
+    dataproducts = Table("dataproducts",
+                  metadata,
+                  Column("external_id"),
+                  Column("TIMESTAMP", quote=False),
+                  Column("VALUE", quote=False),
+                  schema=SCHEMA,
+                         quote=False,
+                         #quote_schema=False,
+                  )
+    dataproducts_select = select(
+        dataproducts.columns["external_id"].label("id"),
+        dataproducts.columns["TIMESTAMP"].label("timestamp"),
+        dataproducts.columns["VALUE"].label("value")
+    )
+
+    return {
+        "nist": nist2_select,
+        "dataproducts": dataproducts_select
+    }
 
 @pytest.fixture(scope="function")
-def tables() -> List[TimeseriesTable]:
-    tables = [
-        TimeseriesTable(
-            resource_name="nist",
-            schema=SCHEMA,
-            time_series_table="nist2",
-            value_column="VALUE",
-            timestamp_column="TIMESTAMP",
-            identifier_column="external_id",
-        ),
-        TimeseriesTable(
-            resource_name="dataproducts",
-            schema=SCHEMA,
-            time_series_table="dataproducts",
-            value_column="VALUE",
-            timestamp_column="TIMESTAMP",
-            identifier_column="external_id",
-        ),
-    ]
-    return tables
-
-
-@pytest.fixture(scope="function")
-def engine(tables):
-    bq_db = TimeseriesBigQueryDatabase(key=BIGQUERY_CONN, tables=tables)
-    oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file="solar.nt", path="oxigraph_db")
-    engine = Engine(timeseries_bigquery_db=bq_db, sparql_embedded_oxigraph=oxigraph_store)
+def engine(sql_resources):
+    bq_db = VirtualizedBigQueryDatabase(key_json_path=BIGQUERY_CONN, resource_sql_map=sql_resources)
+    oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file="solar.nt", path="oxigraph_db_bq")
+    ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
+    x = xsd()
+    id = Variable("id")
+    timestamp = Variable("timestamp")
+    value = Variable("value")
+    dp = Variable("dp")
+    ts_template =Template(
+        iri=ct.suf("ts_template"),
+        parameters=[
+            Parameter(id, rdf_type=RDFType.Literal(x.string)),
+            Parameter(timestamp, rdf_type=RDFType.Literal(x.dateTime)),
+            Parameter(value, rdf_type=RDFType.Literal(x.double)),
+        ],
+        instances=[
+            triple(id, ct.suf("hasDataPoint"), dp),
+            triple(dp, ct.suf("hasValue"), value),
+            triple(dp, ct.suf("hasTimestamp"), timestamp)
+        ]
+    )
+    resources = {
+        "nist": ts_template,
+        "dataproducts": ts_template
+    }
+    engine = Engine(resources, virtualized_bigquery_database=bq_db, sparql_embedded_oxigraph=oxigraph_store)
     engine.init()
     return engine
 
@@ -77,7 +116,7 @@ def test_get_all_inverters(engine):
         PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
         SELECT ?site ?gen_code ?block_code ?inv_code WHERE {
             ?site a rds:Site .
-            ?site rdfs:label "Metropolis" .
+            ?site rdfs:label "Jonathanland" .
             ?site rds:functionalAspect+ ?inv .
             ?inv a rds:TBB .
             ?inv rds:code ?inv_code .
@@ -98,7 +137,7 @@ def test_get_inverter_dckw(engine):
         SELECT ?site ?gen_code ?block_code ?inv_code 
                ?year ?month ?day ?hour (xsd:integer(?minute_10) as ?minute) (AVG(?dcpow) as ?avg_dcpow) WHERE {
             ?site a rds:Site .
-            ?site rdfs:label "Metropolis" .
+            ?site rdfs:label "Jonathanland" .
             ?site rds:functionalAspect ?block .
             ?block rds:code ?block_code .
             ?block a rds:A .
@@ -118,7 +157,7 @@ def test_get_inverter_dckw(engine):
             BIND(day(?t) AS ?day)
             BIND(month(?t) AS ?month)
             BIND(year(?t) AS ?year)
-            FILTER(?t > "2018-12-25T00:00:00"^^xsd:dateTime)
+            FILTER(?t > "2018-12-25T00:00:00Z"^^xsd:dateTime)
             }
         GROUP BY ?site ?block_code ?gen_code ?inv_code ?year ?month ?day ?hour ?minute_10
         ORDER BY ?block_code ?gen_code ?inv_code ?year ?month ?day ?hour ?minute
@@ -138,7 +177,7 @@ def test_get_inverter_dckw_sugar(engine):
         PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
         SELECT ?site ?gen_code ?block_code ?inv_code WHERE {
             ?site a rds:Site .
-            ?site rdfs:label "Metropolis" .
+            ?site rdfs:label "Jonathanland" .
             ?site rds:functionalAspect ?block .
             ?block rds:code ?block_code .
             ?block a rds:A .
@@ -172,7 +211,7 @@ def test_get_inverter_dckw_sugar(engine):
         PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
         SELECT ?site ?gen_code ?block_code ?inv_code WHERE {
             ?site a rds:Site .
-            ?site rdfs:label "Metropolis" .
+            ?site rdfs:label "Jonathanland" .
             ?site rds:functionalAspect ?block .
             ?block rds:code ?block_code .
             ?block a rds:A .
@@ -208,7 +247,7 @@ def test_get_simplified_inverter_dckw_sugar(engine):
     SELECT ?inv_path WHERE {
         # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
         ?site a rds:Site .
-        ?site rdfs:label "Metropolis" .
+        ?site rdfs:label "Jonathanland" .
         ?site rds:functionalAspect+ ?inv .    
         ?inv a rds:TBB .                    # RDS code TBB: Inverter
         ?inv rds:path ?inv_path .
@@ -239,7 +278,7 @@ def test_get_simplified_inverter_dckw_sugar_no_dynamic_results(engine):
     SELECT ?inv_path WHERE {
         # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
         ?site a rds:Site .
-        ?site rdfs:label "Metropolis" .
+        ?site rdfs:label "Jonathanland" .
         ?site rds:functionalAspect+ ?inv .    
         ?inv a rds:TBB .                    # RDS code TBB: Inverter
         ?inv rds:path ?inv_path .
@@ -270,7 +309,7 @@ def test_get_simplified_inverter_dckw_sugar_multiagg(engine):
     SELECT ?inv_path WHERE {
         # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
         ?site a rds:Site .
-        ?site rdfs:label "Metropolis" .
+        ?site rdfs:label "Jonathanland" .
         ?site rds:functionalAspect+ ?inv .    
         ?inv a rds:TBB .                    # RDS code TBB: Inverter
         ?inv rds:path ?inv_path .
@@ -336,7 +375,7 @@ def test_get_inverter_dckw_sugar_path(engine):
         PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
         SELECT ?path ?inv WHERE {
             ?site a rds:Site .
-            ?site rdfs:label "Metropolis" .
+            ?site rdfs:label "Jonathanland" .
             ?site rds:functionalAspect+ ?inv .
             ?inv a rds:TBB .
             ?inv rds:path ?path .

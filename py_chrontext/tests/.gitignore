@@ -4,3 +4,4 @@ pki
 bq.env
 solar.nt
 oxigraph_db
+oxigraph_db_bq

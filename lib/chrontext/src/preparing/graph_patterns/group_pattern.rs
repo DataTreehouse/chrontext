@@ -171,11 +171,11 @@ fn add_basic_groupby_mapping_values(
         VirtualizedQuery::InnerJoin(inners, syncs) => {
             let mut vq_added = vec![];
             for vq in inners {
-                vq_added.push(Box::new(add_basic_groupby_mapping_values(
-                    *vq,
+                vq_added.push(add_basic_groupby_mapping_values(
+                    vq,
                     solution_mappings,
                     grouping_col,
-                )))
+                ));
             }
             VirtualizedQuery::InnerJoin(vq_added, syncs)
         }

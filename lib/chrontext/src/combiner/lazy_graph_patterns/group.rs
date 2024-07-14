@@ -11,6 +11,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::find_query_variables::{solution_mappings_has_all_aggregate_expression_variables, solution_mappings_has_all_expression_variables};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -47,22 +48,24 @@ impl Combiner {
         for i in 0..aggregates.len() {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
-            let AggregateReturn {
-                solution_mappings: aggregate_solution_mappings,
-                expr,
-                context: _,
-                rdf_node_type,
-            } = self
-                .sparql_aggregate_expression_as_lazy_column_and_expression(
-                    v,
-                    a,
-                    output_solution_mappings,
-                    &aggregate_context,
-                )
-                .await?;
-            output_solution_mappings = aggregate_solution_mappings;
-            new_rdf_node_types.insert(v.as_str().to_string(), rdf_node_type);
-            aggregate_expressions.push(expr);
+            if solution_mappings_has_all_aggregate_expression_variables(&output_solution_mappings, a) {
+                let AggregateReturn {
+                    solution_mappings: aggregate_solution_mappings,
+                    expr,
+                    context: _,
+                    rdf_node_type,
+                } = self
+                    .sparql_aggregate_expression_as_lazy_column_and_expression(
+                        v,
+                        a,
+                        output_solution_mappings,
+                        &aggregate_context,
+                    )
+                    .await?;
+                output_solution_mappings = aggregate_solution_mappings;
+                new_rdf_node_types.insert(v.as_str().to_string(), rdf_node_type);
+                aggregate_expressions.push(expr);
+            }
         }
         Ok(group_by(
             output_solution_mappings,

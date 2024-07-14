@@ -1,14 +1,17 @@
 use crate::errors::VirtualizedDatabaseError;
-use crate::get_datatype_map;
+use crate::{Dialect, get_datatype_map};
 use crate::python::translate_sql;
 use bigquery_polars::{BigQueryExecutor, Client};
 use pyo3::types::PyDict;
 use pyo3::Py;
 use representation::solution_mapping::EagerSolutionMappings;
 use reqwest::Url;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
+use oxrdf::Variable;
+use spargebra::algebra::{AggregateExpression, Expression};
+use spargebra::term::TermPattern;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
-use virtualized_query::VirtualizedQuery;
+use virtualized_query::{GroupedVirtualizedQuery, VirtualizedQuery};
 
 pub struct VirtualizedBigQueryDatabase {
     gcp_sa_key: String,
@@ -33,7 +36,9 @@ impl VirtualizedBigQueryDatabase {
         &self,
         vq: &VirtualizedQuery,
     ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
-        let query_string = translate_sql(vq, &self.resource_sql_map)?;
+        let mut rename_map = HashMap::new();
+        let new_vq = rename_non_alpha_vars(vq.clone(), &mut rename_map);
+        let query_string = translate_sql(&new_vq, &self.resource_sql_map, Dialect::BigQuery.as_str())?;
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
         // Last modified in commit: 8134d42
         // It has been simplified and made async
@@ -76,7 +81,12 @@ impl VirtualizedBigQueryDatabase {
 
         let ex = BigQueryExecutor::new(client, project_id, query_string);
         let lf = ex.execute_query().await?;
-        let df = lf.collect().unwrap();
+        let mut df = lf.collect().unwrap();
+        for (k,v) in rename_map {
+            if df.get_column_names().contains(&v.as_str()) {
+                df.rename(v.as_str(), k.as_str()).unwrap();
+            }
+        }
         let datatypes = get_datatype_map(&df);
         Ok(EagerSolutionMappings::new(df, datatypes))
     }
@@ -84,4 +94,162 @@ impl VirtualizedBigQueryDatabase {
     fn allow_compound_timeseries_queries(&self) -> bool {
         true
     }
+}
+
+fn rename_non_alpha_vars(vq: VirtualizedQuery, rename_map: &mut HashMap<Variable, Variable>) -> VirtualizedQuery {
+    match vq {
+        VirtualizedQuery::Basic(mut b) => {
+            if let Some(v) = &b.chrontext_timestamp_variable {
+                if let Some(new_v) = rename_non_alpha_var(v, rename_map) {
+                    b.chrontext_timestamp_variable = Some(new_v);
+                }
+            }
+            if let Some(v) = &b.chrontext_value_variable {
+                if let Some(new_v) = rename_non_alpha_var(v, rename_map) {
+                    b.chrontext_value_variable = Some(new_v);
+                }
+            }
+            if let Some(new_v) = rename_non_alpha_var(&b.identifier_variable, rename_map) {
+                b.identifier_variable = new_v;
+            }
+            let mut new_mappings = vec![];
+            for (k,t) in &b.column_mapping {
+                if let TermPattern::Variable(v) = t {
+                    if let Some(new_v) = rename_non_alpha_var(v, rename_map) {
+                        new_mappings.push((k.clone(), TermPattern::Variable(new_v)));
+                    }
+                }
+            }
+            for (k,t) in new_mappings {
+                b.column_mapping.insert(k,t);
+            }
+            
+            VirtualizedQuery::Basic(b)
+        }
+        VirtualizedQuery::Filtered(inner, mut expr) => {
+            rename_non_alpha_expr_vars(&mut expr, rename_map);
+            let new_inner = rename_non_alpha_vars(*inner, rename_map);
+            VirtualizedQuery::Filtered(Box::new(new_inner), expr)
+        }
+        VirtualizedQuery::InnerJoin(inners, syncs) => {
+            let mut new_inners = vec![];
+            for i in inners {
+                new_inners.push(rename_non_alpha_vars(i, rename_map));
+            }
+            VirtualizedQuery::InnerJoin(new_inners, syncs)
+        }
+        VirtualizedQuery::ExpressionAs(vq, v, mut e) => {
+            let new_vq = rename_non_alpha_vars(*vq, rename_map);
+            let v = if let Some(v) = rename_non_alpha_var(&v, rename_map) {
+                v
+            } else {
+                v
+            };
+            rename_non_alpha_expr_vars(&mut e, rename_map);
+            VirtualizedQuery::ExpressionAs(Box::new(new_vq), v, e)
+        }
+        VirtualizedQuery::Grouped(GroupedVirtualizedQuery{ context, vq, by, mut aggregations }) => {
+            let new_vq = rename_non_alpha_vars(*vq, rename_map);
+            let mut new_by = vec![];
+            for v in by {
+                let v = if let Some(v) = rename_non_alpha_var(&v, rename_map) {
+                    v
+                } else {
+                    v
+                };
+                new_by.push(v);
+            }
+            let mut new_aggregations = vec![];
+            for (v, mut agg_expr) in aggregations {
+                let v = if let Some(v) = rename_non_alpha_var(&v, rename_map) {
+                    v
+                } else {
+                    v
+                };
+                rename_non_alpha_agg_expr_vars(&mut agg_expr, rename_map);
+                new_aggregations.push((v, agg_expr));
+            }
+            VirtualizedQuery::Grouped(GroupedVirtualizedQuery{context, vq:Box::new(new_vq), by:new_by, aggregations:new_aggregations})
+        }
+        VirtualizedQuery::Limited(vq, limit) => {
+            let new_vq = rename_non_alpha_vars(*vq, rename_map);
+            VirtualizedQuery::Limited(Box::new(new_vq), limit)
+        }
+    }
+    
+}
+
+fn rename_non_alpha_expr_vars(expr: &mut Expression, rename_map: &mut HashMap<Variable, Variable>) {
+    match expr {
+        Expression::NamedNode(_) => {}
+        Expression::Literal(_) => {}
+        Expression::Variable(v)
+        | Expression::Bound(v) => {
+            if let Some(new_v) = rename_non_alpha_var(v, rename_map) {
+                *v = new_v;
+            }
+        }
+        Expression::Or(left, right)
+        | Expression::And(left, right) 
+        | Expression::Equal(left, right) 
+        | Expression::SameTerm(left, right) 
+        | Expression::Greater(left, right) 
+        | Expression::GreaterOrEqual(left, right) 
+        | Expression::Less(left, right) 
+        | Expression::LessOrEqual(left, right) 
+        | Expression::Add(left, right) 
+        | Expression::Subtract(left, right) 
+        | Expression::Multiply(left, right) 
+        | Expression::Divide(left, right) => {
+            rename_non_alpha_expr_vars(left, rename_map);
+            rename_non_alpha_expr_vars(right, rename_map);
+        }
+
+        Expression::In(left, right) => {
+            rename_non_alpha_expr_vars(left, rename_map);
+            for r in right {
+                rename_non_alpha_expr_vars(r, rename_map);
+            }
+        }
+        Expression::UnaryPlus(inner)
+        | Expression::UnaryMinus(inner)
+        | Expression::Not(inner) => {
+            rename_non_alpha_expr_vars(inner, rename_map);
+        }
+        Expression::Exists(_) => panic!("Should never happen"),
+        Expression::If(left, middle, right) => {
+            rename_non_alpha_expr_vars(left, rename_map);
+            rename_non_alpha_expr_vars(middle, rename_map);
+            rename_non_alpha_expr_vars(right, rename_map);
+        }
+        Expression::Coalesce(exprs)
+        | Expression::FunctionCall(_, exprs) => {
+            for expr in exprs {
+                rename_non_alpha_expr_vars(expr, rename_map);
+            }
+        }
+    }
+}
+
+fn rename_non_alpha_agg_expr_vars(agg_expr:&mut AggregateExpression,  rename_map: &mut HashMap<Variable, Variable>) {
+    match agg_expr {
+        AggregateExpression::CountSolutions { .. } => {}
+        AggregateExpression::FunctionCall { expr, .. } => {
+            rename_non_alpha_expr_vars(expr, rename_map);
+        }
+    }
+}
+
+fn rename_non_alpha_var(variable: &Variable, rename_map: &mut HashMap<Variable, Variable>) -> Option<Variable> {
+    if let Some(new_var) = rename_map.get(variable) {
+        return Some(new_var.clone())
+    }
+
+    if !variable.as_str().chars().next().unwrap().is_alphabetic() {
+        let new_id = format!("renamed_var_{}", rename_map.len());
+        let new_var = Variable::new(new_id).unwrap();
+        rename_map.insert(variable.clone(), new_var.clone());
+        return Some(new_var)
+    };
+    None
 }

@@ -26,14 +26,14 @@ pub fn create_identity_synchronized_queries(
             if !first_query_virtualized_variables_set
                 .is_disjoint(&other_query_virtualized_variables_set)
             {
-                queries_to_synchronize.push(Box::new(other))
+                queries_to_synchronize.push(other);
             } else {
                 keep_vqs.push(other);
             }
         }
         vqs = keep_vqs;
         if !queries_to_synchronize.is_empty() {
-            queries_to_synchronize.push(Box::new(first_query));
+            queries_to_synchronize.push(first_query);
             out_queries.push(VirtualizedQuery::InnerJoin(
                 queries_to_synchronize,
                 vec![Synchronizer::Identity(

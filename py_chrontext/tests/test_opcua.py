@@ -89,9 +89,9 @@ def oxigraph_testdata(oxigraph_db):
 
 def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
     print("Begin test")
-    timeseries_opcua_db = TimeseriesOPCUADatabase(namespace=2, endpoint=OPCUA_ENDPOINT)
+    opcua_db = VirtualizedOPCUADatabase(namespace=2, endpoint=OPCUA_ENDPOINT)
     print("created opcua backend")
-    engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, timeseries_opcua_db=timeseries_opcua_db)
+    engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, virtualized_opcua_database=opcua_db)
     print("defined engine")
     df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>

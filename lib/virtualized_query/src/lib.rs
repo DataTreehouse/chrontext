@@ -18,7 +18,7 @@ pub const ID_VARIABLE_NAME: &str = "id";
 pub enum VirtualizedQuery {
     Basic(BasicVirtualizedQuery),
     Filtered(Box<VirtualizedQuery>, Expression),
-    InnerJoin(Vec<Box<VirtualizedQuery>>, Vec<Synchronizer>),
+    InnerJoin(Vec<VirtualizedQuery>, Vec<Synchronizer>),
     ExpressionAs(Box<VirtualizedQuery>, Variable, Expression),
     Grouped(GroupedVirtualizedQuery),
     Limited(Box<VirtualizedQuery>, usize),
@@ -196,6 +196,19 @@ impl VirtualizedQuery {
             VirtualizedQuery::ExpressionAs(t, _, _) => t.has_identifiers(),
             VirtualizedQuery::Grouped(g) => g.vq.has_identifiers(),
             VirtualizedQuery::Limited(i, _) => i.has_identifiers(),
+        }
+    }
+
+    pub fn has_resources(&self) -> bool {
+        match self {
+            VirtualizedQuery::Basic(b) => {
+                b.resource.is_some()
+            }
+            VirtualizedQuery::Filtered(i, _) => i.has_resources(),
+            VirtualizedQuery::InnerJoin(i, _) => i.iter().any(|x| x.has_resources()),
+            VirtualizedQuery::ExpressionAs(t, _, _) => t.has_resources(),
+            VirtualizedQuery::Grouped(g) => g.vq.has_resources(),
+            VirtualizedQuery::Limited(i, _) => i.has_resources(),
         }
     }
 

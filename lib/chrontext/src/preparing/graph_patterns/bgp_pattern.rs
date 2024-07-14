@@ -18,12 +18,14 @@ impl TimeseriesQueryPrepper {
         for vq in &mut self.basic_virtualized_queries {
             if &vq.query_source_context == &bgp_context {
                 if let Some(resource) = &vq.resource {
+                    let template = self.virtualization.resources.get(resource).unwrap();
                     vq.finish_column_mapping(
                         patterns,
-                        self.virtualization.resources.get(resource).unwrap(),
+                        template,
                     );
-                    local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
                 }
+                //We create a degenerate VQ to be able to remove the columns later.
+                local_vqs.push(VirtualizedQuery::Basic(vq.clone()));
             }
         }
         if try_groupby_complex_query {

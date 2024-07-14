@@ -5,12 +5,15 @@ use crate::combiner::CombinerError;
 use async_recursion::async_recursion;
 use log::debug;
 use oxrdf::Variable;
+use polars::prelude::{lit, LiteralValue};
+use query_processing::find_query_variables::{solution_mappings_has_all_expression_variables};
 use query_processing::graph_patterns::extend;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
+use representation::{BaseRDFNodeType, RDFNodeType};
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -51,20 +54,32 @@ impl Combiner {
             )
             .await?;
 
-        output_solution_mappings = self
-            .lazy_expression(
-                expression,
+        let has_all = solution_mappings_has_all_expression_variables(&output_solution_mappings, expression);
+        if has_all {
+            output_solution_mappings = self
+                .lazy_expression(
+                    expression,
+                    output_solution_mappings,
+                    Some(expression_static_query_map),
+                    expression_prepared_virtualized_queries,
+                    &expression_context,
+                )
+                .await?;
+            Ok(extend(
                 output_solution_mappings,
-                Some(expression_static_query_map),
-                expression_prepared_virtualized_queries,
                 &expression_context,
-            )
-            .await?;
-
-        Ok(extend(
-            output_solution_mappings,
-            &expression_context,
-            variable,
-        )?)
+                variable,
+            )?)
+        } else {
+            output_solution_mappings.mappings = output_solution_mappings.mappings.with_column(
+                lit(LiteralValue::Null)
+                    .cast(BaseRDFNodeType::None.polars_data_type())
+                    .alias(variable.as_str()),
+            );
+            output_solution_mappings
+                .rdf_node_types
+                .insert(variable.as_str().to_string(), RDFNodeType::None);
+            Ok(output_solution_mappings)
+        }
     }
 }

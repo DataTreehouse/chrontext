@@ -7,7 +7,8 @@ use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use query_processing::find_query_variables::{find_all_used_variables_in_order_expression};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -31,15 +32,31 @@ impl Combiner {
                 &context.extension_with(PathEntry::OrderByInner),
             )
             .await?;
-        let order_expression_contexts: Vec<Context> = (0..expression.len())
+        let mut order_expressions = vec![];
+        for oe in expression {
+            let mut vars = HashSet::new();
+            find_all_used_variables_in_order_expression(oe, &mut vars);
+            let mut all_exist = true;
+            for v in vars {
+                if !output_solution_mappings.rdf_node_types.contains_key(v.as_str()) {
+                    all_exist = false;
+                    break;
+                }
+            }
+            if all_exist {
+                //Todo: Avoid clone
+                order_expressions.push(oe.clone());
+            }
+        }
+        let order_expression_contexts: Vec<Context> = (0..order_expressions.len())
             .map(|i| context.extension_with(PathEntry::OrderByExpression(i as u16)))
             .collect();
         let mut asc_ordering = vec![];
         let mut inner_contexts = vec![];
-        for i in 0..expression.len() {
+        for i in 0..order_expressions.len() {
             let (ordering_solution_mappings, reverse, inner_context) = self
                 .lazy_order_expression(
-                    expression.get(i).unwrap(),
+                    order_expressions.get(i).unwrap(),
                     output_solution_mappings,
                     order_expression_contexts.get(i).unwrap(),
                 )

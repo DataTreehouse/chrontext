@@ -33,7 +33,7 @@ pub enum PyVirtualizedQuery {
         resource: String,
         ids: Vec<String>,
         grouping_column_name: Option<String>,
-        id_to_grouping_mapping: Option<HashMap<String, i64>>,
+        id_grouping_tuples: Option<Vec<(String, i64)>>,
     },
     Filtered {
         filter: Py<PyExpression>,
@@ -101,14 +101,14 @@ impl PyVirtualizedQuery {
         }
     }
     #[getter]
-    fn id_to_grouping_mapping(&self) -> Option<HashMap<String, i64>> {
+    fn id_grouping_tuples(&self) -> Option<Vec<(String, i64)>> {
         match self {
             PyVirtualizedQuery::Basic {
-                id_to_grouping_mapping,
+                id_grouping_tuples,
                 ..
             } => {
-                if let Some(id_to_grouping_mapping) = id_to_grouping_mapping {
-                    Some(id_to_grouping_mapping.clone())
+                if let Some(id_grouping_tuples) = id_grouping_tuples {
+                    Some(id_grouping_tuples.clone())
                 } else {
                     None
                 }
@@ -184,8 +184,8 @@ impl PyVirtualizedQuery {
                         column_mapping.insert(k.as_str().to_string(), v.as_str().to_string());
                     }
                 }
-                let id_to_grouping_mapping = if let Some(df) = basic.grouping_mapping {
-                    let mut id_to_grouping_mapping = HashMap::new();
+                let id_grouping_tuples = if let Some(df) = basic.grouping_mapping {
+                    let mut id_grouping_tuples = vec![];
                     let id_iter = df
                         .column(basic.identifier_variable.as_str())
                         .unwrap()
@@ -196,12 +196,12 @@ impl PyVirtualizedQuery {
                         .iter();
                     for (id, group) in id_iter.zip(group_iter) {
                         if let (AnyValue::String(id), AnyValue::Int64(group)) = (id, group) {
-                            id_to_grouping_mapping.insert(id.to_string(), group);
+                            id_grouping_tuples.push((id.to_string(), group));
                         } else {
                             panic!("Should never happen")
                         }
                     }
-                    Some(id_to_grouping_mapping)
+                    Some(id_grouping_tuples)
                 } else {
                     None
                 };
@@ -211,7 +211,7 @@ impl PyVirtualizedQuery {
                     resource: basic.resource.unwrap(),
                     ids: basic.ids.unwrap(),
                     grouping_column_name: basic.grouping_col,
-                    id_to_grouping_mapping,
+                    id_grouping_tuples,
                 }
             }
             VirtualizedQuery::Filtered(inner, expression) => PyVirtualizedQuery::Filtered {
@@ -267,6 +267,10 @@ pub enum PyExpression {
         right: Py<PyExpression>,
     },
     LessOrEqual {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    Equal {
         left: Py<PyExpression>,
         right: Py<PyExpression>,
     },
@@ -334,6 +338,7 @@ impl PyExpression {
             PyExpression::Multiply { .. } => "Multiply",
             PyExpression::Coalesce { .. } => "Coalesce",
             PyExpression::Bound { .. } => "Bound",
+            PyExpression::Equal { .. } => "Equal"
         }
     }
 
@@ -344,6 +349,7 @@ impl PyExpression {
             | PyExpression::Less { left, .. }
             | PyExpression::GreaterOrEqual { left, .. }
             | PyExpression::LessOrEqual { left, .. }
+            | PyExpression::Equal { left, .. }
             | PyExpression::And { left, .. }
             | PyExpression::Or { left, .. }
             | PyExpression::Divide {left, ..}
@@ -370,6 +376,7 @@ impl PyExpression {
             | PyExpression::Less { right, .. }
             | PyExpression::GreaterOrEqual { right, .. }
             | PyExpression::LessOrEqual { right, .. }
+            | PyExpression::Equal { right, .. }
             | PyExpression::And { right, .. }
             | PyExpression::Or { right, .. }
             | PyExpression::Divide {right, ..}
@@ -489,6 +496,10 @@ impl PyExpression {
                 right: Py::new(py, PyExpression::new(right, py)?)?,
             },
             Expression::GreaterOrEqual(left, right) => PyExpression::GreaterOrEqual {
+                left: Py::new(py, PyExpression::new(left, py)?)?,
+                right: Py::new(py, PyExpression::new(right, py)?)?,
+            },
+            Expression::Equal(left, right) => PyExpression::Equal {
                 left: Py::new(py, PyExpression::new(left, py)?)?,
                 right: Py::new(py, PyExpression::new(right, py)?)?,
             },

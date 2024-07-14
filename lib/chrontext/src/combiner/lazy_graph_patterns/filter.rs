@@ -10,6 +10,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
+use query_processing::find_query_variables::solution_mappings_has_all_expression_variables;
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -49,15 +50,20 @@ impl Combiner {
                 &inner_context,
             )
             .await?;
-        output_solution_mappings = self
-            .lazy_expression(
-                expression,
-                output_solution_mappings,
-                Some(expression_static_query_map),
-                expression_prepared_virtualized_queries,
-                &expression_context,
-            )
-            .await?;
-        Ok(filter(output_solution_mappings, &expression_context)?)
+        let has_all = solution_mappings_has_all_expression_variables(&output_solution_mappings, expression);
+        if has_all {
+            output_solution_mappings = self
+                .lazy_expression(
+                    expression,
+                    output_solution_mappings,
+                    Some(expression_static_query_map),
+                    expression_prepared_virtualized_queries,
+                    &expression_context,
+                )
+                .await?;
+            Ok(filter(output_solution_mappings, &expression_context)?)
+        } else {
+            Ok(output_solution_mappings)
+        }
     }
 }

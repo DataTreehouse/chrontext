@@ -1,17 +1,28 @@
-import datetime
+from datetime import datetime
 from typing import Dict, Literal, Any, List, Union
 
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.base import ColumnCollection
+from sqlalchemy.sql.functions import GenericFunction
+from sqlalchemy_bigquery.base import BigQueryDialect
 
 from chrontext import Expression, VirtualizedQuery, AggregateExpression
-from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, func, cast, \
-    BigInteger, CompoundSelect, and_, literal_column, case, TIMESTAMP
+from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, cast, \
+    BigInteger, CompoundSelect, and_, literal_column, case, func, TIMESTAMP
 
 XSD = "http://www.w3.org/2001/XMLSchema#"
 XSD_INTEGER = "<http://www.w3.org/2001/XMLSchema#integer>"
 FLOOR_DATE_TIME_TO_SECONDS_INTERVAL = "<https://github.com/DataTreehouse/chrontext#FloorDateTimeToSecondsInterval>"
 
+class unnest(GenericFunction):
+    name = "UNNEST"
+    package = "bq"
+    inherit_cache = True
+
+class struct(GenericFunction):
+    name = "STRUCT"
+    package = "bq"
+    inherit_cache = True
 
 def query(arg):
     timestamp = Column("timestamp")
@@ -23,7 +34,7 @@ def query(arg):
         metadata,
         timestamp, value, id
     )}
-    mapper = SPARQLMapper("BigQuery", resource_table_map)
+    mapper = SPARQLMapper("bigquery", resource_table_map)
     sqlq = mapper.virtualized_query_to_sql(arg)
     print("\n")
     print(sqlq)
@@ -33,7 +44,12 @@ def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"]
                   resource_sql_map: Dict[str, Any]) -> str:
     mapper = SPARQLMapper(dialect, resource_sql_map)
     q = mapper.virtualized_query_to_sql(vq)
-    compiled = q.compile(dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True})
+    match dialect:
+        case "bigquery":
+            use_dialect = BigQueryDialect()
+        case "postgres":
+            use_dialect = postgresql.dialect
+    compiled = q.compile(dialect=use_dialect, compile_kwargs={"literal_binds": True})
     print("\n")
     print(compiled)
     return str(compiled)
@@ -45,6 +61,7 @@ class SPARQLMapper:
                  resource_sql_map: Dict[str, Union[Table, CompoundSelect]]):
         self.dialect = dialect
         self.resource_sql_map = resource_sql_map
+        self.counter = 0
 
     def virtualized_query_to_sql(self, query: VirtualizedQuery) -> Select:
         query_type = query.type_name()
@@ -57,7 +74,7 @@ class SPARQLMapper:
 
             case "Basic":
                 table = self.resource_sql_map[query.resource]
-                table = table.subquery("inner")
+                table = table.subquery(self.inner_name())
 
                 to_select = []
                 to_select.append(
@@ -65,17 +82,42 @@ class SPARQLMapper:
                 )
                 for (k, v) in query.column_mapping.items():
                     to_select.append(table.columns[k].label(v))
-                print(to_select)
                 if query.grouping_column_name is not None:
                     if self.dialect == "bigquery":
-                        pass
-                    elif self.dialect == "postgres":
-                        values_sub = values(
-                            Column("id"), Column(query.grouping_column_name),
-                            name="grouping"
-                        ).data(
-                            [(id, group) for (id, group) in query.id_to_grouping_mapping.items()]
+                        structs = []
+                        for (id, group) in query.id_grouping_tuples:
+                            structs.append(f"STRUCT('{id}' as id, {group} as {query.grouping_column_name})")
+                        values_sub = func.bq.unnest(literal_column(f"[{', '.join(structs)}]")).table_valued(
+                            Column("id"),
+                            Column(query.grouping_column_name)
                         )
+                        table = values_sub.join(
+                            table,
+                            onclause=and_(
+                                values_sub.columns["id"] == table.columns["id"],
+                                table.columns["id"].in_(query.ids)
+                            )
+                        )
+                        to_select.append(
+                            cast(
+                                values_sub.columns[query.grouping_column_name], BigInteger
+                            ).label(
+                                query.grouping_column_name
+                            )
+                        )
+
+                        sql_q = select(
+                            *to_select
+                        ).select_from(
+                            table
+                        )
+                    if self.dialect == "postgres":
+                        values_sub = values(
+                                Column("id"), Column(query.grouping_column_name),
+                                name=self.inner_name()
+                            ).data(
+                                query.id_grouping_tuples
+                            )
                         table = values_sub.join(
                             table,
                             onclause=and_(
@@ -112,7 +154,6 @@ class SPARQLMapper:
                     selection.append(
                         self.aggregation_expression_to_sql(agg, sql_quer.columns).label(v.name)
                     )
-
                 sql_quer = select(
                     sql_quer.subquery("inner")
                 ).with_only_columns(
@@ -215,12 +256,15 @@ class SPARQLMapper:
                 return left_sql - right_sql
             case "Literal":
                 native = expression.literal.to_native()
+                if type(native) == datetime:
+                    if native.tzinfo is not None:
+                        return literal(native, TIMESTAMP)
                 return literal(native)
             case "FunctionCall":
                 sql_args = []
                 for a in expression.arguments:
                     sql_args.append(self.expression_to_sql(a, columns))
-                return self.function_call_to_sql(expression.function, sql_args, columns)
+                return self.function_call_to_sql(expression.function, sql_args)
             case "In":
                 sql_collection = []
                 for e in expression.expressions:
@@ -238,27 +282,20 @@ class SPARQLMapper:
 
     def function_call_to_sql(self,
                              function: str,
-                             sql_args: List[Column | ColumnElement | int | float | bool | str],
-                             columns: ColumnCollection[str, ColumnElement]) -> ColumnElement:
+                             sql_args: List[Column | ColumnElement | int | float | bool | str]) -> ColumnElement:
         match function:
             case "SECONDS":
-                if self.dialect == "postgres":
-                    return func.extract("SECOND", sql_args[0])
+                return func.extract("SECOND", sql_args[0])
             case "MINUTES":
-                if self.dialect == "postgres":
-                    return func.extract("MINUTE", sql_args[0])
+                return func.extract("MINUTE", sql_args[0])
             case "HOURS":
-                if self.dialect == "postgres":
-                    return func.extract("HOUR", sql_args[0])
+                return func.extract("HOUR", sql_args[0])
             case "DAY":
-                if self.dialect == "postgres":
-                    return func.extract("DAY", sql_args[0])
+                return func.extract("DAY", sql_args[0])
             case "MONTH":
-                if self.dialect == "postgres":
-                    return func.extract("MONTH", sql_args[0])
+                return func.extract("MONTH", sql_args[0])
             case "YEAR":
-                if self.dialect == "postgres":
-                    return func.extract("YEAR", sql_args[0])
+                 return func.extract("YEAR", sql_args[0])
             case "FLOOR":
                 return func.floor(sql_args[0])
             case "CEILING":
@@ -267,10 +304,24 @@ class SPARQLMapper:
                 if IRI == XSD_INTEGER:
                     return func.cast(sql_args[0], BigInteger)
                 elif IRI == FLOOR_DATE_TIME_TO_SECONDS_INTERVAL:
-                    return func.to_timestamp(
-                            func.extract("EPOCH", sql_args[0]) - func.mod(
-                                func.extract("EPOCH", sql_args[0]),
+                    if self.dialect == "postgres":
+                        return func.to_timestamp(
+                                func.extract("EPOCH", sql_args[0]) - func.mod(
+                                    func.extract("EPOCH", sql_args[0]),
+                                    sql_args[1])
+                                )
+                    elif self.dialect == "bigquery":
+                        return func.TIMESTAMP_SECONDS(
+                            func.UNIX_SECONDS(sql_args[0]) - func.mod(
+                                func.UNIX_SECONDS(sql_args[0]),
                                 sql_args[1])
-                            )
+                        )
+
+
                 print(IRI)
                 print("PANIKK!!")
+
+    def inner_name(self) -> str:
+        name = f"inner_{self.counter}"
+        self.counter += 1
+        return name

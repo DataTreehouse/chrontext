@@ -1,10 +1,14 @@
+from datetime import datetime, date
 from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any, Tuple
 from polars import DataFrame
+from sqlalchemy import Select, Table
 
 
 class VirtualizedPythonDatabase:
     """
     A virtualized database implemented in Python.
+
+    TODO: Example
     """
     def __init__(self,
                  database: Any,
@@ -13,6 +17,38 @@ class VirtualizedPythonDatabase:
         """
 
         :param db_module:
+        """
+
+class VirtualizedBigQueryDatabase:
+    """
+    A virtualized BigQuery database
+    """
+    def __init__(self, resource_sql_map: Dict[str, Union[Select, Table]],
+                       key_json_path: str):
+        """
+        To be able to connect to BigQuery, provide the path to the JSON key.
+        For each resource name in chrontext that you want to associate with BigQuery,
+        provide an sqlalchemy Select or Table that contains each of the parameters
+        referenced in the corresponding template provided to Engine.
+
+        TODO: Example
+
+        :param resource_sql_map: The SQLs associated with the resources
+        :param key_json_path: Path to JSON containing Key to connect to BigQuery.
+        """
+
+class VirtualizedOPCUADatabase:
+    """
+    A virtualized OPC UA Server (History Access)
+    """
+    def __init__(self,
+                 namespace: int,
+                 endpoint: str):
+        """
+        TODO!
+
+        :param namespace:
+        :param endpoint:
         """
 
 class RDFType:
@@ -70,7 +106,6 @@ class Prefix:
         :return:
         """
 
-
 class Literal:
     """
     An RDF literal.
@@ -87,11 +122,26 @@ class Literal:
         :param language: The language tag of the value.
         """
 
-    def to_native(self) -> Union[int, float, bool, str]:
+    def to_native(self) -> Union[int, float, bool, str, datetime, date]:
         """
 
         :return:
         """
+
+
+def triple(subject:Union[IRI, Variable],
+           predicate:Union[IRI,Variable],
+           object:Union[IRI, Variable, Literal],
+           list_expander:Optional[LiteralType["cross", "zipMin", "zipMax"]]=None):
+    """
+    TODO!
+
+    :param subject:
+    :param predicate:
+    :param object:
+    :param list_expander:
+    :return:
+    """
 
 class Expression:
     And:Type["PyExpression__And"]
@@ -161,7 +211,7 @@ class VirtualizedQuery:
     resource: Optional[str]
     ids: Optional[List[str]]
     grouping_column_name: Optional[str]
-    id_to_grouping_mapping: Optional[Dict[str, int]]
+    id_grouping_tuples: Optional[List[Tuple[str, int]]]
     Grouped:Type["PyVirtualizedQuery__Grouped"]
     by: List[Variable]
     aggregations: Optional[List[Tuple[Variable, AggregateExpression]]]
@@ -185,7 +235,7 @@ class PyVirtualizedQuery__Basic:
     resource: str
     ids: List[str]
     grouping_column_name: Optional[str]
-    id_to_grouping_mapping: Optional[Dict[str, int]]
+    id_grouping_tuples: Optional[List[Tuple[str, int]]]
 
 class PyVirtualizedQuery__Filtered:
     """
@@ -280,14 +330,17 @@ class Engine:
     The hybrid query engine of chrontext.
     Initialize Engine using:
         - A SPARQL Database: either in the form of a SPARQL endpoint or an embedded Oxigraph SPARQL database
-        - A Timeseries Database: one of the supported databases: Google Cloud BigQuery or OPC UA HA
+        - A Virtualized Database: one of the supported databases:
+            - A Python defined database (could be anything)
+            - Google Cloud BigQuery
+            - OPC UA History Access
     """
 
     def __init__(self,
                  resources: Dict[str, Template],
                  virtualized_python_database: Optional[VirtualizedPythonDatabase]=None,
-                 virtualized_bigquery: Optional["VirtualizedBigQuery"]=None,
-                 virtualized_opcua: Optional["VirtualizedOPCUA"]=None,
+                 virtualized_bigquery_database: Optional[VirtualizedBigQueryDatabase]=None,
+                 virtualized_opcua_database: Optional[VirtualizedOPCUADatabase]=None,
                  sparql_endpoint: Optional[str]=None,
                  sparql_embedded_oxigraph: Optional[SparqlEmbeddedOxigraph]=None,
         ) -> Engine:
@@ -295,6 +348,7 @@ class Engine:
         Construct a new hybrid query engine.
         Specify exactly one of `sparql_endpoint` and `sparql_embedded_oxigraph`.
 
+        :param resources: The templates associated with each
         :param sparql_endpoint: A SPARQL endpoint (a URL)
         :param sparql_embedded_oxigraph: An embedded oxigraph SPARQL database, see `SparqlEmbeddedOxigraph`.
         """

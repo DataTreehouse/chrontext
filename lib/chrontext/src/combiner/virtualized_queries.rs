@@ -17,42 +17,48 @@ use std::collections::{HashMap, HashSet};
 use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
 
 impl Combiner {
+    pub fn attach_expected_empty_results(&self, vq:&VirtualizedQuery, mut solution_mappings: SolutionMappings) -> SolutionMappings {
+        let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
+        expected_cols.sort();
+        println!("Expected cols: {expected_cols:?}");
+        let drop_cols = get_drop_cols(vq);
+        let mut series_vec = vec![];
+        for e in expected_cols {
+            if !drop_cols.contains(e) {
+                series_vec.push(Series::new_empty(
+                    e,
+                    &BaseRDFNodeType::None.polars_data_type(),
+                ));
+                solution_mappings
+                    .rdf_node_types
+                    .insert(e.to_string(), RDFNodeType::None);
+            }
+        }
+        let df = DataFrame::new(series_vec).unwrap();
+        for d in drop_cols {
+            if solution_mappings.rdf_node_types.contains_key(&d) {
+                solution_mappings.rdf_node_types.remove(&d);
+                solution_mappings.mappings = solution_mappings.mappings.drop(vec![d]);
+            }
+        }
+        solution_mappings.mappings = solution_mappings.mappings.join(
+            df.lazy(),
+            vec![],
+            vec![],
+            JoinArgs::new(JoinType::Cross),
+        );
+        solution_mappings
+    }
+
     pub async fn execute_attach_virtualized_query(
         &mut self,
         vq: &VirtualizedQuery,
         mut solution_mappings: SolutionMappings,
     ) -> Result<SolutionMappings, CombinerError> {
         debug!("Executing time series query: {:?}", vq);
-        if !vq.has_identifiers() {
-            let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
-            expected_cols.sort();
-            let drop_cols = get_drop_cols(vq);
-            let mut series_vec = vec![];
-            for e in expected_cols {
-                if !drop_cols.contains(e) {
-                    series_vec.push(Series::new_empty(
-                        e,
-                        &BaseRDFNodeType::None.polars_data_type(),
-                    ));
-                    solution_mappings
-                        .rdf_node_types
-                        .insert(e.to_string(), RDFNodeType::None);
-                }
-            }
-            let df = DataFrame::new(series_vec).unwrap();
-            for d in drop_cols {
-                if solution_mappings.rdf_node_types.contains_key(&d) {
-                    solution_mappings.rdf_node_types.remove(&d);
-                    solution_mappings.mappings = solution_mappings.mappings.drop(vec![d]);
-                }
-            }
-            solution_mappings.mappings = solution_mappings.mappings.join(
-                df.lazy(),
-                vec![],
-                vec![],
-                JoinArgs::new(JoinType::Cross),
-            );
-            return Ok(solution_mappings);
+        //Filter out degenerate VQs here.
+        if !vq.has_identifiers() || !vq.has_resources() {
+            return Ok(self.attach_expected_empty_results(vq, solution_mappings))
         }
 
         let EagerSolutionMappings {
@@ -185,16 +191,16 @@ pub(crate) fn split_virtualized_queries(
 
 fn get_drop_cols(vq: &VirtualizedQuery) -> HashSet<String> {
     let mut drop_cols = HashSet::new();
+    drop_cols.extend(
+        vq.get_resource_variables()
+            .iter()
+            .map(|x| x.as_str().to_string()),
+    );
     if let Some(colname) = vq.get_groupby_column() {
         drop_cols.insert(colname.to_string());
     } else {
         drop_cols.extend(
             vq.get_identifier_variables()
-                .iter()
-                .map(|x| x.as_str().to_string()),
-        );
-        drop_cols.extend(
-            vq.get_resource_variables()
                 .iter()
                 .map(|x| x.as_str().to_string()),
         );

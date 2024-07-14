@@ -19,6 +19,16 @@ use templates::constants::OTTR_TRIPLE;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{VirtualizedQuery, ID_VARIABLE_NAME};
 
+pub enum Dialect {
+    BigQuery
+}
+
+impl Dialect {
+    pub fn as_str(&self) -> &str {
+        match self { Dialect::BigQuery => "bigquery" }
+    }
+}
+
 #[derive(Debug)]
 pub struct Virtualization {
     pub resources: HashMap<String, Template>,

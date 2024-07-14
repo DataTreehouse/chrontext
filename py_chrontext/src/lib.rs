@@ -61,8 +61,8 @@ pub struct PyEngine {
     sparql_endpoint: Option<String>,
     sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
     virtualized_python_database: Option<VirtualizedPythonDatabase>,
-    virtualized_bigquery: Option<PyVirtualizedBigQuery>,
-    virtualized_opcua: Option<PyVirtualizedOPCUA>,
+    virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
+    virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
     resources: HashMap<String, PyTemplate>,
 }
 
@@ -72,8 +72,8 @@ impl PyEngine {
     pub fn new<'py>(
         resources: HashMap<String, PyTemplate>,
         virtualized_python_database: Option<VirtualizedPythonDatabase>,
-        virtualized_bigquery: Option<PyVirtualizedBigQuery>,
-        virtualized_opcua: Option<PyVirtualizedOPCUA>,
+        virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
+        virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
     ) -> PyResult<PyEngine> {
@@ -87,8 +87,8 @@ impl PyEngine {
             return Err(PyChrontextError::MultipleSPARQLDatabasesError.into());
         }
 
-        let num_virtualized = virtualized_bigquery.is_some() as usize
-            + virtualized_opcua.is_some() as usize
+        let num_virtualized = virtualized_bigquery_database.is_some() as usize
+            + virtualized_opcua_database.is_some() as usize
             + virtualized_python_database.is_some() as usize;
 
         if num_virtualized == 0 {
@@ -103,8 +103,8 @@ impl PyEngine {
             sparql_endpoint,
             sparql_embedded_oxigraph,
             virtualized_python_database,
-            virtualized_bigquery,
-            virtualized_opcua,
+            virtualized_bigquery_database,
+            virtualized_opcua_database,
             resources,
         };
         Ok(engine)
@@ -112,18 +112,14 @@ impl PyEngine {
 
     pub fn init(&mut self) -> PyResult<()> {
         if self.engine.is_none() {
-            let virtualized_database = if let Some(db) = &self.virtualized_opcua {
+            let virtualized_database = if let Some(db) = &self.virtualized_opcua_database {
                 VirtualizedDatabase::VirtualizedOPCUADatabase(VirtualizedOPCUADatabase::new(
                     &db.endpoint,
                     db.namespace,
                 ))
-            } else if let Some(db) = &self.virtualized_bigquery {
-                let mut resource_template_map = HashMap::new();
-                for (k, v) in &db.resource_template_map {
-                    resource_template_map.insert(k.clone(), v.template.clone());
-                }
+            } else if let Some(db) = &self.virtualized_bigquery_database {
                 VirtualizedDatabase::VirtualizedBigQueryDatabase(VirtualizedBigQueryDatabase::new(
-                    db.key.clone(),
+                    db.key_json_path.clone(),
                     db.resource_sql_map.clone(),
                 ))
             } else if let Some(db) = &self.virtualized_python_database {
@@ -232,42 +228,39 @@ impl PySparqlEmbeddedOxigraph {
     }
 }
 
-#[pyclass(name = "VirtualizedBigQuery")]
+#[pyclass(name = "VirtualizedBigQueryDatabase")]
 #[derive(Clone)]
-pub struct PyVirtualizedBigQuery {
+pub struct PyVirtualizedBigQueryDatabase {
     pub resource_sql_map: Py<PyDict>,
-    pub resource_template_map: HashMap<String, PyTemplate>,
-    pub key: String,
+    pub key_json_path: String,
 }
 
 #[pymethods]
-impl PyVirtualizedBigQuery {
+impl PyVirtualizedBigQueryDatabase {
     #[new]
     pub fn new(
         resource_sql_map: Py<PyDict>,
-        resource_template_map: HashMap<String, PyTemplate>,
-        key: String,
-    ) -> PyVirtualizedBigQuery {
-        PyVirtualizedBigQuery {
+        key_json_path: String,
+    ) -> PyVirtualizedBigQueryDatabase {
+        Self {
             resource_sql_map,
-            resource_template_map,
-            key,
+            key_json_path,
         }
     }
 }
 
-#[pyclass(name = "VirtualizedOPCUA")]
+#[pyclass(name = "VirtualizedOPCUADatabase")]
 #[derive(Clone)]
-pub struct PyVirtualizedOPCUA {
+pub struct PyVirtualizedOPCUADatabase {
     namespace: u16,
     endpoint: String,
 }
 
 #[pymethods]
-impl PyVirtualizedOPCUA {
+impl PyVirtualizedOPCUADatabase {
     #[new]
-    pub fn new(endpoint: String, namespace: u16) -> PyVirtualizedOPCUA {
-        PyVirtualizedOPCUA {
+    pub fn new(endpoint: String, namespace: u16) -> PyVirtualizedOPCUADatabase {
+        Self {
             namespace,
             endpoint,
         }
@@ -347,6 +340,8 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEngine>()?;
     m.add_class::<PySparqlEmbeddedOxigraph>()?;
     m.add_class::<VirtualizedPythonDatabase>()?;
+    m.add_class::<PyVirtualizedBigQueryDatabase>()?;
+    m.add_class::<PyVirtualizedOPCUADatabase>()?;
     m.add_class::<PyVirtualizedQuery>()?;
     m.add_class::<PyDataProduct>()?;
     m.add_class::<PyCatalog>()?;
