@@ -54,7 +54,7 @@ pub enum PyVirtualizedQuery {
     },
     Ordered {
         query: Py<PyVirtualizedQuery>,
-        orderings: Vec<Py<PyOrderExpression>>,
+        ordering: Vec<Py<PyOrderExpression>>,
     }
 }
 
@@ -146,7 +146,8 @@ impl PyVirtualizedQuery {
         match self {
             PyVirtualizedQuery::Filtered { query, .. }
             | PyVirtualizedQuery::ExpressionAs { query, .. }
-            | PyVirtualizedQuery::Ordered {query, .. }=> Some(query.clone_ref(py)),
+            | PyVirtualizedQuery::Ordered {query, .. }
+            | PyVirtualizedQuery::Grouped {query, .. } => Some(query.clone_ref(py)),
             _ => None,
         }
     }
@@ -169,9 +170,9 @@ impl PyVirtualizedQuery {
 
 
     #[getter]
-    fn orderings(&self) -> Option<Vec<Py<PyOrderExpression>>> {
+    fn ordering(&self) -> Option<Vec<Py<PyOrderExpression>>> {
         match self {
-            PyVirtualizedQuery::Ordered { orderings, .. } => Some(orderings.clone()),
+            PyVirtualizedQuery::Ordered { ordering, .. } => Some(ordering.clone()),
             _ => None,
         }
     }
@@ -286,7 +287,7 @@ impl PyVirtualizedQuery {
                     let p = PyOrderExpression::new(&o, py)?;
                     py_orderings.push(Py::new(py, p)?);
                 }
-                PyVirtualizedQuery::Ordered { query: Py::new(py, PyVirtualizedQuery::new(*vq, py)?)?, orderings: py_orderings }
+                PyVirtualizedQuery::Ordered { query: Py::new(py, PyVirtualizedQuery::new(*vq, py)?)?, ordering: py_orderings }
             }
             _ => todo!()
         })

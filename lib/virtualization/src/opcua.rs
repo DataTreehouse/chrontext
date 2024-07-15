@@ -20,6 +20,7 @@ use representation::query_context::Context;
 use representation::solution_mapping::EagerSolutionMappings;
 use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function};
 use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 use virtualized_query::pushdown_setting::PushdownSetting;
@@ -90,7 +91,12 @@ impl VirtualizedOPCUADatabase {
 
         let mut colnames_identifiers = vec![];
         let mut grouping_col_lookup = HashMap::new();
-        let mut grouping_col_name = None;
+        let grouping_columns = vq.get_groupby_columns();
+        let mut grouping_col_name = if let Some(g) = grouping_columns.get(0) {
+            Some(g.deref().clone())
+        } else {
+            None
+        };
         if let VirtualizedQuery::Grouped(grouped) = vq {
             let (colname, processed_details_some) =
                 create_read_processed_details(vq, start_time, end_time, &grouped.context);
@@ -102,7 +108,6 @@ impl VirtualizedOPCUADatabase {
                 }
             }
             let mapping_df = grouped.vq.get_groupby_mapping_df().unwrap();
-            grouping_col_name = Some(grouped.vq.get_groupby_column().unwrap());
             let identifier_var = grouped
                 .vq
                 .get_identifier_variables()
@@ -111,7 +116,7 @@ impl VirtualizedOPCUADatabase {
                 .as_str();
             let mut id_iter = mapping_df.column(identifier_var).unwrap().iter();
             let mut grouping_col_iter = mapping_df
-                .column(grouping_col_name.unwrap().as_str())
+                .column(grouping_col_name.as_ref().unwrap().as_str())
                 .unwrap()
                 .iter();
             for _ in 0..mapping_df.height() {
@@ -224,7 +229,7 @@ impl VirtualizedOPCUADatabase {
                     }
                     value_vec.push(val);
                 }
-                let mut identifier_series = if let Some(grouping_col) = grouping_col_name {
+                let mut identifier_series = if let Some(grouping_col) = &grouping_col_name {
                     Series::new_empty(grouping_col, &DataType::Int64)
                 } else {
                     Series::new_empty(
@@ -232,7 +237,7 @@ impl VirtualizedOPCUADatabase {
                         &DataType::String,
                     )
                 };
-                identifier_series = if let Some(_) = grouping_col_name {
+                identifier_series = if let Some(_) = &grouping_col_name {
                     identifier_series
                         .extend_constant(
                             AnyValue::Int64(*grouping_col_lookup.get(k.as_str()).unwrap()),

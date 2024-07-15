@@ -10,6 +10,7 @@ use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern, Variable};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use representation::RDFNodeType;
 use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
 
 pub const ID_VARIABLE_NAME: &str = "id";
@@ -23,6 +24,43 @@ pub enum VirtualizedQuery {
     Grouped(GroupedVirtualizedQuery),
     Limited(Box<VirtualizedQuery>, usize),
     Ordered(Box<VirtualizedQuery>, Vec<OrderExpression>),
+}
+
+impl VirtualizedQuery {
+    pub fn add_sorting_pushdown(mut self, join_cols:&Vec<String>) -> VirtualizedQuery {
+        if !self.try_modify_existing_sort(join_cols) {
+            let orderings = create_orderings(join_cols);
+            VirtualizedQuery::Ordered(Box::new(self), orderings)
+        } else {
+            self
+        }
+    }
+
+    pub fn try_modify_existing_sort(&mut self, join_cols:&Vec<String>) -> bool {
+        match self {
+            VirtualizedQuery::Basic(_) => false,
+            VirtualizedQuery::Filtered(inner, _) => inner.try_modify_existing_sort(join_cols),
+            VirtualizedQuery::InnerJoin(_, _) => false,
+            VirtualizedQuery::ExpressionAs(inner, v, _) => inner.try_modify_existing_sort(join_cols),
+            VirtualizedQuery::Grouped(_) => false,
+            VirtualizedQuery::Limited(inner, _) => inner.try_modify_existing_sort(join_cols),
+            VirtualizedQuery::Ordered(inner, orderings) => {
+                let new_orderings = create_orderings(join_cols);
+                for (i, c) in new_orderings.into_iter().enumerate() {
+                    orderings.insert(i, c);
+                }
+                true
+            }
+        }
+    }
+}
+
+fn create_orderings(join_cols:&Vec<String>) -> Vec<OrderExpression> {
+    let mut orderings = vec![];
+    for c in join_cols {
+        orderings.push(OrderExpression::Asc(Expression::Variable(Variable::new_unchecked(c))));
+    }
+    orderings
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -259,8 +297,8 @@ impl VirtualizedQuery {
                         }
                     }
                 }
-                let grouping_col = self.get_groupby_column();
-                expected_columns.insert(grouping_col.unwrap().as_str());
+                let grouping_col = self.get_groupby_columns();
+                expected_columns.extend(grouping_col.iter().map(|x|x.as_str()));
                 expected_columns
             }
             VirtualizedQuery::ExpressionAs(t, ..) => t.expected_columns(),
@@ -463,33 +501,28 @@ impl BasicVirtualizedQuery {
 }
 
 impl VirtualizedQuery {
-    pub fn get_groupby_column(&self) -> Option<&String> {
+    pub fn get_groupby_columns(&self) -> Vec<&String> {
         match self {
             VirtualizedQuery::Basic(b) => {
                 if let Some(c) = &b.grouping_col {
-                    Some(c)
+                    vec![c]
                 } else {
-                    None
+                    vec![]
                 }
             }
             VirtualizedQuery::Filtered(inner, _)
             | VirtualizedQuery::Limited(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..)
-            | VirtualizedQuery::ExpressionAs(inner, ..) => inner.get_groupby_column(),
+            | VirtualizedQuery::ExpressionAs(inner, ..) => inner.get_groupby_columns(),
             VirtualizedQuery::InnerJoin(vqs, _) => {
-                let mut colname = None;
+                let mut colnames = vec![];
                 for vq in vqs {
-                    let new_colname = vq.get_groupby_column();
-                    if new_colname.is_some() {
-                        if colname.is_some() && colname != new_colname {
-                            panic!("Should never happen")
-                        }
-                        colname = new_colname;
-                    }
+                    let new_colname = vq.get_groupby_columns();
+                    colnames.extend(new_colname);
                 }
-                colname
+                colnames
             }
-            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_groupby_column(),
+            VirtualizedQuery::Grouped(grouped) => grouped.vq.get_groupby_columns(),
         }
     }
 

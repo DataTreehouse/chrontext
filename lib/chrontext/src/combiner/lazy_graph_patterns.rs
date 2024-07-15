@@ -79,7 +79,7 @@ impl Combiner {
                 for vq in vqs {
                     debug!("Attaching time series query");
                     let new_solution_mappings = self
-                        .execute_attach_virtualized_query(&vq, updated_solution_mappings.unwrap())
+                        .execute_attach_virtualized_query(vq, updated_solution_mappings.unwrap())
                         .await?;
                     debug!("Finished attaching time series query");
                     updated_solution_mappings = Some(new_solution_mappings);

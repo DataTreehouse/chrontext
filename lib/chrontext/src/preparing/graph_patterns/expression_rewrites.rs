@@ -50,7 +50,7 @@ pub(crate) fn rewrite_order_expressions(
                 (e,true)
             }
         };
-        let mut rewrite = try_recursive_rewrite_expression(
+        let rewrite = try_recursive_rewrite_expression(
             vq,
             &None,
             e,

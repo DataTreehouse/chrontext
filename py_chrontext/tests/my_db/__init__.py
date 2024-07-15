@@ -49,6 +49,7 @@ class SPARQLMapper:
 
     def virtualized_query_to_sql(self, query: VirtualizedQuery) -> Select:
         query_type = query.type_name()
+
         match query_type:
             case "Filtered":
                 sql_quer = self.virtualized_query_to_sql(query.query)
@@ -182,7 +183,7 @@ class SPARQLMapper:
                 return out_sql_quer
             case "Ordered":
                 sql_quer = self.virtualized_query_to_sql(query.query)
-                for o in query.orderings:
+                for o in query.ordering:
                     sql_expr = self.expression_to_sql(o.expression, sql_quer.selected_columns)
                     if o.ascending:
                         sql_expr_order = sql_expr.asc()
@@ -190,7 +191,6 @@ class SPARQLMapper:
                         sql_expr_order = sql_expr.desc()
                     sql_quer = sql_quer.order_by(sql_expr_order)
                 return sql_quer
-
 
     def aggregation_expression_to_sql(
             self,
