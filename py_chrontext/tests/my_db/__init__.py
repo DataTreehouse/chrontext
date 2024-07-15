@@ -24,22 +24,6 @@ class struct(GenericFunction):
     package = "bq"
     inherit_cache = True
 
-def query(arg):
-    timestamp = Column("timestamp")
-    value = Column("value")
-    id = Column("id")
-    metadata = MetaData()
-    resource_table_map = {"my_resource": Table(
-        "my_table",
-        metadata,
-        timestamp, value, id
-    )}
-    mapper = SPARQLMapper("bigquery", resource_table_map)
-    sqlq = mapper.virtualized_query_to_sql(arg)
-    print("\n")
-    print(sqlq)
-
-
 def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"],
                   resource_sql_map: Dict[str, Any]) -> str:
     mapper = SPARQLMapper(dialect, resource_sql_map)
@@ -143,7 +127,6 @@ class SPARQLMapper:
                     ).where(
                         table.columns["id"].in_(query.ids)
                     )
-
                 return sql_q
 
             case "Grouped":
@@ -169,7 +152,34 @@ class SPARQLMapper:
                 sql_quer = sql_quer.add_columns(sql_expression.label(query.variable.name))
                 return sql_quer
             case "InnerJoin":
-                pass
+                sql_queries = []
+                for q in query.queries:
+                    sql_quer = self.virtualized_query_to_sql(q)
+                    sql_queries.append(sql_quer)
+                cols_keys = set()
+                cols = []
+                out_sql_quer = sql_queries.pop().subquery(self.inner_name())
+                for c in out_sql_quer.columns.keys():
+                    cols_keys.add(c)
+                    cols.append(out_sql_quer.columns[c].label(c))
+                for sql_quer in sql_queries:
+                    on = None
+                    sql_quer = sql_quer.subquery(self.inner_name())
+                    for c in sql_quer.columns.keys():
+                        if c not in cols_keys:
+                            cols_keys.add(c)
+                            cols.append(sql_quer.columns[c].label(c))
+                        if c in out_sql_quer.columns:
+                            new_on = out_sql_quer.columns[c] == sql_quer.columns[c]
+                            if on is not None:
+                                on = on & new_on
+                            else:
+                                on = new_on
+
+                    out_sql_quer = out_sql_quer.join(sql_quer, onclause=on)
+
+                out_sql_quer = select(*cols).select_from(out_sql_quer)
+                return out_sql_quer
 
     def aggregation_expression_to_sql(
             self,
@@ -222,6 +232,10 @@ class SPARQLMapper:
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)
                 return left_sql <= right_sql
+            case "Equal":
+                left_sql = self.expression_to_sql(expression.left, columns)
+                right_sql = self.expression_to_sql(expression.right, columns)
+                return left_sql == right_sql
             case "And":
                 left_sql = self.expression_to_sql(expression.left, columns)
                 right_sql = self.expression_to_sql(expression.right, columns)

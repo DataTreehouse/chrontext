@@ -1,4 +1,4 @@
-use crate::{BasicVirtualizedQuery, VirtualizedQuery};
+use crate::{BasicVirtualizedQuery, Synchronizer, VirtualizedQuery};
 use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
@@ -49,6 +49,9 @@ pub enum PyVirtualizedQuery {
         variable: Py<PyVariable>,
         expression: Py<PyExpression>,
     },
+    InnerJoin {
+        queries: Vec<Py<PyVirtualizedQuery>>,
+    }
 }
 
 #[pymethods]
@@ -59,6 +62,7 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::Filtered { .. } => "Filtered",
             PyVirtualizedQuery::Grouped { .. } => "Grouped",
             PyVirtualizedQuery::ExpressionAs { .. } => "ExpressionAs",
+            PyVirtualizedQuery::InnerJoin { .. } => "InnerJoin",
         }
     }
 
@@ -137,6 +141,14 @@ impl PyVirtualizedQuery {
         match self {
             PyVirtualizedQuery::Filtered { query, .. }
             | PyVirtualizedQuery::ExpressionAs { query, .. } => Some(query.clone_ref(py)),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn queries(&self, py: Python) -> Option<Vec<Py<PyVirtualizedQuery>>> {
+        match self {
+            PyVirtualizedQuery::InnerJoin { queries, .. } => Some(queries.clone()),
             _ => None,
         }
     }
@@ -246,7 +258,14 @@ impl PyVirtualizedQuery {
                     expression: Py::new(py, py_expression)?,
                 }
             }
-            _ => todo!(),
+            VirtualizedQuery::InnerJoin(queries, on) => {
+                let mut py_qs = vec![];
+                for q in queries {
+                    py_qs.push(Py::new(py, PyVirtualizedQuery::new(q, py)?)?);
+                }
+                PyVirtualizedQuery::InnerJoin {queries:py_qs}
+            }
+            _ => todo!()
         })
     }
 }
