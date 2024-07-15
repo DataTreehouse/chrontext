@@ -321,7 +321,7 @@ def test_pushdown_group_by_concat_agg_hybrid_query(engine):
             BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?seconds_5)
             FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime) 
         }
-        ORDER BY ?w ?t
+        ORDER BY ?t
     } GROUP BY ?w ?seconds_5
 """
     by = ["w", "seconds_5"]
@@ -637,4 +637,29 @@ def test_simple_hybrid_query_sugar_agg_avg(engine):
     by = ["w", "s", "timestamp"]
     df = engine.query(q).cast({"timestamp":pl.Datetime(time_zone=None)}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar_agg_avg.csv", try_parse_dates=True).sort(by)
+    assert_frame_equal(df, expected)
+
+@pytest.mark.order(23)
+def test_no_pushdown_group_by_concat_agg_hybrid_query(engine):
+    #TODO: Pushdown order by..
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?seconds_5 (GROUP_CONCAT(?v ; separator="-") as ?cc) WHERE {
+        SELECT * WHERE {
+            ?w types:hasSensor ?s .
+            ?s chrontext:hasTimeseries ?ts .
+            ?ts chrontext:hasDataPoint ?dp .
+            ?dp chrontext:hasTimestamp ?t .
+            ?dp chrontext:hasValue ?v .
+            BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?seconds_5)
+            FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime) 
+        }
+        ORDER BY ?w ?t
+    } GROUP BY ?w ?seconds_5
+"""
+    by = ["w", "seconds_5"]
+    df = engine.query(q).sort(by)
+    expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_concat_agg_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)

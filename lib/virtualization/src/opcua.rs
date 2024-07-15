@@ -280,6 +280,7 @@ fn validate_vq(
         }
         VirtualizedQuery::ExpressionAs(t, _, _) => validate_vq(t, false, inside_grouping),
         VirtualizedQuery::Limited(_, _) => todo!(),
+        VirtualizedQuery::Ordered(_, _ ) => todo!(),
     }
 }
 

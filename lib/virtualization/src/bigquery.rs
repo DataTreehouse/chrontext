@@ -8,7 +8,7 @@ use representation::solution_mapping::EagerSolutionMappings;
 use reqwest::Url;
 use std::collections::{HashSet, HashMap};
 use oxrdf::Variable;
-use spargebra::algebra::{AggregateExpression, Expression};
+use spargebra::algebra::{AggregateExpression, Expression, OrderExpression};
 use spargebra::term::TermPattern;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::{GroupedVirtualizedQuery, VirtualizedQuery};
@@ -130,6 +130,17 @@ fn rename_non_alpha_vars(vq: VirtualizedQuery, rename_map: &mut HashMap<Variable
             rename_non_alpha_expr_vars(&mut expr, rename_map);
             let new_inner = rename_non_alpha_vars(*inner, rename_map);
             VirtualizedQuery::Filtered(Box::new(new_inner), expr)
+        }
+        VirtualizedQuery::Ordered(inner, mut order_expressions) => {
+            for o in &mut order_expressions {
+                let e = match o {
+                    OrderExpression::Asc(e) => {e}
+                    OrderExpression::Desc(e) => {e}
+                };
+                rename_non_alpha_expr_vars(e, rename_map);
+            }
+            let new_inner = rename_non_alpha_vars(*inner, rename_map);
+            VirtualizedQuery::Ordered(Box::new(new_inner), order_expressions)
         }
         VirtualizedQuery::InnerJoin(inners, syncs) => {
             let mut new_inners = vec![];

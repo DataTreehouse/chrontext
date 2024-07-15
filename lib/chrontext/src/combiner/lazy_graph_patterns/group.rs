@@ -11,7 +11,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::find_query_variables::{solution_mappings_has_all_aggregate_expression_variables, solution_mappings_has_all_expression_variables};
+use query_processing::find_query_variables::{solution_mappings_has_all_aggregate_expression_variables};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {

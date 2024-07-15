@@ -180,6 +180,17 @@ class SPARQLMapper:
 
                 out_sql_quer = select(*cols).select_from(out_sql_quer)
                 return out_sql_quer
+            case "Ordered":
+                sql_quer = self.virtualized_query_to_sql(query.query)
+                for o in query.orderings:
+                    sql_expr = self.expression_to_sql(o.expression, sql_quer.selected_columns)
+                    if o.ascending:
+                        sql_expr_order = sql_expr.asc()
+                    else:
+                        sql_expr_order = sql_expr.desc()
+                    sql_quer = sql_quer.order_by(sql_expr_order)
+                return sql_quer
+
 
     def aggregation_expression_to_sql(
             self,

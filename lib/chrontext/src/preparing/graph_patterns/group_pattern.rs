@@ -168,6 +168,14 @@ fn add_basic_groupby_mapping_values(
             )),
             f,
         ),
+        VirtualizedQuery::Ordered(vq, oes) => VirtualizedQuery::Ordered(
+            Box::new(add_basic_groupby_mapping_values(
+                *vq,
+                solution_mappings,
+                grouping_col,
+            )),
+            oes,
+        ),
         VirtualizedQuery::InnerJoin(inners, syncs) => {
             let mut vq_added = vec![];
             for vq in inners {

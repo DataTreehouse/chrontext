@@ -7,8 +7,8 @@ use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
-use std::collections::{HashMap, HashSet};
-use query_processing::find_query_variables::{find_all_used_variables_in_order_expression, solution_mappings_has_all_order_expression_variables};
+use std::collections::{HashMap};
+use query_processing::find_query_variables::{solution_mappings_has_all_order_expression_variables};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {

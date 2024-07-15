@@ -14,7 +14,7 @@ use crate::preparing::expressions::binary_ordinary_expression::BinaryOrdinaryOpe
 use crate::preparing::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
-use spargebra::algebra::Expression;
+use spargebra::algebra::{Expression, OrderExpression};
 use std::collections::HashMap;
 use virtualized_query::VirtualizedQuery;
 
@@ -51,6 +51,34 @@ impl EXPrepReturn {
 }
 
 impl TimeseriesQueryPrepper {
+    pub fn prepare_order_expressions(
+        &mut self,
+        order_expressions: &Vec<OrderExpression>,
+        try_groupby_complex_query: bool,
+        solution_mappings: &mut SolutionMappings,
+        context: &Context,
+    ) -> EXPrepReturn {
+        let mut exprep_out:Option<EXPrepReturn> = None;
+
+        for order_expression in order_expressions {
+            let e = match order_expression {
+                OrderExpression::Asc(e) => { e }
+                OrderExpression::Desc(e) => { e }
+            };
+            let exprep = self.prepare_expression(e, try_groupby_complex_query, solution_mappings, context);
+            if exprep.fail_groupby_complex_query {
+                return EXPrepReturn::fail_groupby_complex_query();
+            }
+            exprep_out = if let Some(mut exprep_out) = exprep_out {
+                exprep_out.with_virtualized_queries_from(exprep);
+                Some(exprep_out)
+            } else {
+                Some(exprep)
+            };
+        }
+        exprep_out.unwrap()
+    }
+
     pub fn prepare_expression(
         &mut self,
         expression: &Expression,

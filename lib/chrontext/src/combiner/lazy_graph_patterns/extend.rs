@@ -13,7 +13,7 @@ use representation::solution_mapping::SolutionMappings;
 use representation::{BaseRDFNodeType, RDFNodeType};
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {

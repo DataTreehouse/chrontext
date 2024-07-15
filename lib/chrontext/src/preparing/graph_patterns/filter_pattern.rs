@@ -1,6 +1,6 @@
 use super::TimeseriesQueryPrepper;
 use crate::change_types::ChangeType;
-use crate::preparing::graph_patterns::filter_expression_rewrites::rewrite_filter_expression;
+use crate::preparing::graph_patterns::expression_rewrites::rewrite_filter_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use log::debug;
 use representation::query_context::{Context, PathEntry};
@@ -48,7 +48,7 @@ impl TimeseriesQueryPrepper {
                     ChangeType::Relaxed
                 };
                 let conj_vec = conjunction_to_vec(self.rewritten_filters.get(&context));
-                let (time_series_condition, lost_value) = rewrite_filter_expression(
+                let (virtualized_condition, lost_value) = rewrite_filter_expression(
                     &t,
                     expression,
                     &use_change_type,
@@ -56,10 +56,10 @@ impl TimeseriesQueryPrepper {
                     &conj_vec,
                     &self.pushdown_settings,
                 );
-                if try_groupby_complex_query && (lost_value || time_series_condition.is_none()) {
+                if try_groupby_complex_query && (lost_value || virtualized_condition.is_none()) {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }
-                if let Some(expr) = time_series_condition {
+                if let Some(expr) = virtualized_condition {
                     out_vq_vec.push(VirtualizedQuery::Filtered(Box::new(t), expr));
                 } else {
                     out_vq_vec.push(t);

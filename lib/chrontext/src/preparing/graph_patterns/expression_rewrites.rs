@@ -1,7 +1,7 @@
 use crate::change_types::ChangeType;
 use oxrdf::Literal;
 use representation::query_context::{Context, PathEntry};
-use spargebra::algebra::Expression;
+use spargebra::algebra::{Expression, OrderExpression};
 use std::collections::HashSet;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::VirtualizedQuery;
@@ -31,6 +31,48 @@ impl RecursiveRewriteReturn {
             lost_value,
         }
     }
+}
+
+pub(crate) fn rewrite_order_expressions(
+    vq: &VirtualizedQuery,
+    order_expressions: &Vec<OrderExpression>,
+    context: &Context,
+    pushdown_settings: &HashSet<PushdownSetting>,
+) -> (Option<Vec<OrderExpression>>, bool) {
+    let mut rewritten_order_expressions = vec![];
+    let mut lost_value = false;
+    for oe in order_expressions {
+        let (e,desc) = match oe {
+            OrderExpression::Asc(e) => {
+                (e,false)
+            }
+            OrderExpression::Desc(e) => {
+                (e,true)
+            }
+        };
+        let mut rewrite = try_recursive_rewrite_expression(
+            vq,
+            &None,
+            e,
+            &ChangeType::NoChange,
+            context,
+            pushdown_settings,
+        );
+        lost_value = lost_value || rewrite.lost_value;
+        if let Some(expression) = rewrite.expression {
+            rewritten_order_expressions.push(if desc {
+                OrderExpression::Desc(expression)
+            } else {
+                OrderExpression::Asc(expression)
+            });
+        } else {
+            lost_value = true;
+        }
+    }
+    if rewritten_order_expressions.is_empty() {
+        return (None, lost_value)
+    }
+    return (Some(rewritten_order_expressions), lost_value);
 }
 
 pub(crate) fn rewrite_filter_expression(

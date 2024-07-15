@@ -3,7 +3,7 @@ use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
-use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression};
+use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, OrderExpression};
 use spargebra::term::{TermPattern, Variable};
 //
 // #[derive(Error, Debug)]
@@ -51,6 +51,10 @@ pub enum PyVirtualizedQuery {
     },
     InnerJoin {
         queries: Vec<Py<PyVirtualizedQuery>>,
+    },
+    Ordered {
+        query: Py<PyVirtualizedQuery>,
+        orderings: Vec<Py<PyOrderExpression>>,
     }
 }
 
@@ -63,6 +67,7 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::Grouped { .. } => "Grouped",
             PyVirtualizedQuery::ExpressionAs { .. } => "ExpressionAs",
             PyVirtualizedQuery::InnerJoin { .. } => "InnerJoin",
+            PyVirtualizedQuery::Ordered { .. } => "Ordered"
         }
     }
 
@@ -140,7 +145,8 @@ impl PyVirtualizedQuery {
     fn query(&self, py: Python) -> Option<Py<PyVirtualizedQuery>> {
         match self {
             PyVirtualizedQuery::Filtered { query, .. }
-            | PyVirtualizedQuery::ExpressionAs { query, .. } => Some(query.clone_ref(py)),
+            | PyVirtualizedQuery::ExpressionAs { query, .. }
+            | PyVirtualizedQuery::Ordered {query, .. }=> Some(query.clone_ref(py)),
             _ => None,
         }
     }
@@ -157,6 +163,15 @@ impl PyVirtualizedQuery {
     fn by(&self) -> Option<Vec<PyVariable>> {
         match self {
             PyVirtualizedQuery::Grouped { by, .. } => Some(by.clone()),
+            _ => None,
+        }
+    }
+
+
+    #[getter]
+    fn orderings(&self) -> Option<Vec<Py<PyOrderExpression>>> {
+        match self {
+            PyVirtualizedQuery::Ordered { orderings, .. } => Some(orderings.clone()),
             _ => None,
         }
     }
@@ -264,6 +279,14 @@ impl PyVirtualizedQuery {
                     py_qs.push(Py::new(py, PyVirtualizedQuery::new(q, py)?)?);
                 }
                 PyVirtualizedQuery::InnerJoin {queries:py_qs}
+            }
+            VirtualizedQuery::Ordered(vq, ordering) => {
+                let mut py_orderings = vec![];
+                for o in ordering {
+                    let p = PyOrderExpression::new(&o, py)?;
+                    py_orderings.push(Py::new(py, p)?);
+                }
+                PyVirtualizedQuery::Ordered { query: Py::new(py, PyVirtualizedQuery::new(*vq, py)?)?, orderings: py_orderings }
             }
             _ => todo!()
         })
@@ -555,6 +578,36 @@ impl PyExpression {
             }
             _ => todo!(),
         })
+    }
+}
+
+#[pyclass(name="OrderExpression")]
+#[derive(Clone)]
+pub struct PyOrderExpression {
+    pub expression: Py<PyExpression>,
+    pub ascending: bool,
+}
+
+impl PyOrderExpression {
+    pub fn new(order_expression: &OrderExpression, py:Python) -> PyResult<Self> {
+        let (e, ascending) = match order_expression {
+            OrderExpression::Asc(e) => {(e, true)}
+            OrderExpression::Desc(e) => {(e, false)}
+        };
+        Ok(PyOrderExpression { expression: Py::new(py,PyExpression::new(e, py)?)?, ascending })
+    }
+}
+
+#[pymethods]
+impl PyOrderExpression {
+    #[getter]
+    fn expression(&self,py:Python) -> Py<PyExpression> {
+        self.expression.clone_ref(py)
+    }
+
+    #[getter]
+    fn ascending(&self) -> bool {
+        self.ascending
     }
 }
 
