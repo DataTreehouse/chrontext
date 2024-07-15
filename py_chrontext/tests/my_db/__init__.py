@@ -32,7 +32,7 @@ def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"]
         case "bigquery":
             use_dialect = BigQueryDialect()
         case "postgres":
-            use_dialect = postgresql.dialect
+            use_dialect = postgresql.dialect()
     compiled = q.compile(dialect=use_dialect, compile_kwargs={"literal_binds": True})
     print("\n")
     print(compiled)

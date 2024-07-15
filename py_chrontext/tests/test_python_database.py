@@ -1,3 +1,5 @@
+import time
+
 import pytest
 import polars as pl
 import duckdb
@@ -26,11 +28,11 @@ class CSVDB():
     def __init__(self):
         con = duckdb.connect()
         con.execute("SET TIME ZONE 'UTC';")
-        con.execute("""CREATE TABLE ts1 ("timestamp" TIMESTAMP, "value" INTEGER)""")
-        ts_1 = pl.read_csv(TS1_CSV, try_parse_dates=True)
+        con.execute("""CREATE TABLE ts1 ("timestamp" TIMESTAMPTZ, "value" INTEGER)""")
+        ts_1 = pl.read_csv(TS1_CSV, try_parse_dates=True).with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
         con.append("ts1", df=ts_1.to_pandas())
-        con.execute("""CREATE TABLE ts2 ("timestamp" TIMESTAMP, "value" INTEGER)""")
-        ts_2 = pl.read_csv(TS2_CSV, try_parse_dates=True)
+        con.execute("""CREATE TABLE ts2 ("timestamp" TIMESTAMPTZ, "value" INTEGER)""")
+        ts_2 = pl.read_csv(TS2_CSV, try_parse_dates=True).with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
         con.append("ts2", df=ts_2.to_pandas())
         self.con = con
 
@@ -40,7 +42,7 @@ class CSVDB():
         return df
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def engine() -> Engine:
     timestamp1 = Column("timestamp")
     value1 = Column("value")
@@ -102,6 +104,7 @@ def engine() -> Engine:
     return engine
 
 
+@pytest.mark.order(1)
 def test_simple_hybrid(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -114,7 +117,7 @@ def test_simple_hybrid(engine):
         ?ts chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasTimestamp ?t .
         ?dp chrontext:hasValue ?v .
-        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
+        FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime && ?v < 200) .
     }
     """
     by = ["w", "s", "t"]
@@ -130,6 +133,7 @@ def test_simple_hybrid(engine):
     print(df)
 
 
+@pytest.mark.order(2)
 def test_simple_hybrid_no_vq_matches_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -142,13 +146,13 @@ def test_simple_hybrid_no_vq_matches_query(engine):
         ?ts chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasTimestamp ?t .
         ?dp chrontext:hasValue ?v .
-        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime && ?v < 200) .
+        FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime && ?v < 200) .
     }
     """
     df = engine.query(q)
     assert df.height == 0
 
-
+@pytest.mark.order(3)
 def test_complex_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -167,7 +171,7 @@ def test_complex_hybrid_query(engine):
         ?dp2 chrontext:hasTimestamp ?t .
         ?dp1 chrontext:hasValue ?v1 .
         ?dp2 chrontext:hasValue ?v2 .
-        FILTER(?t > "2022-06-01T08:46:55"^^xsd:dateTime && ?v1 < ?v2) .
+        FILTER(?t > "2022-06-01T08:46:55Z"^^xsd:dateTime && ?v1 < ?v2) .
     }
     """
     by = ["w1", "w2", "t"]
@@ -179,7 +183,7 @@ def test_complex_hybrid_query(engine):
     assert_frame_equal(df, expected)
     print(df)
 
-
+@pytest.mark.order(4)
 def test_pushdown_group_by_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -191,7 +195,7 @@ def test_pushdown_group_by_hybrid_query(engine):
         ?ts chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasTimestamp ?t .
         ?dp chrontext:hasValue ?v .
-        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime) .
+        FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime) .
     } GROUP BY ?w
     """
     by = ["w"]
@@ -201,6 +205,7 @@ def test_pushdown_group_by_hybrid_query(engine):
     print(df)
 
 
+@pytest.mark.order(5)
 def test_pushdown_group_by_second_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -218,7 +223,7 @@ def test_pushdown_group_by_second_hybrid_query(engine):
         BIND(day(?t) AS ?day)
         BIND(month(?t) AS ?month)
         BIND(year(?t) AS ?year)
-        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+        FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime)
     } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second
     """
     by = ["w", "sum_v"]
@@ -226,6 +231,7 @@ def test_pushdown_group_by_second_hybrid_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(5)
 def test_pushdown_group_by_second_having_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -243,7 +249,7 @@ def test_pushdown_group_by_second_having_hybrid_query(engine):
         BIND(day(?t) AS ?day)
         BIND(month(?t) AS ?month)
         BIND(year(?t) AS ?year)
-        FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+        FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime)
     } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second_5
     HAVING (SUM(?v)>100)
     """
@@ -253,6 +259,7 @@ def test_pushdown_group_by_second_having_hybrid_query(engine):
     assert_frame_equal(df, expected)
 
 
+@pytest.mark.order(6)
 def test_union_of_two_groupby_queries(engine):
     q = """
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -269,7 +276,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
       BIND("under_500" AS ?kind)
       BIND(xsd:integer(FLOOR((SECONDS(?t)) / "5.0"^^xsd:decimal)) AS ?second_5)
       BIND(MINUTES(?t) AS ?minute)
-      FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+      FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime)
     }
     GROUP BY ?w ?kind ?minute ?second_5
     HAVING ((SUM(?v)) < 500 )
@@ -285,7 +292,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
       BIND("over_1000" AS ?kind)
       BIND(xsd:integer(FLOOR((SECONDS(?t)) / "5.0"^^xsd:decimal)) AS ?second_5)
       BIND(MINUTES(?t) AS ?minute)
-      FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime)
+      FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime)
     }
     GROUP BY ?w ?kind ?minute ?second_5
     HAVING ((SUM(?v)) > 1000 )
@@ -297,6 +304,7 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
     expected = pl.read_csv(TESTDATA_PATH / "expected_union_of_two_groupby.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(7)
 def test_pushdown_group_by_concat_agg_hybrid_query(engine):
     #TODO: Pushdown order by..
     q = """
@@ -311,7 +319,7 @@ def test_pushdown_group_by_concat_agg_hybrid_query(engine):
             ?dp chrontext:hasTimestamp ?t .
             ?dp chrontext:hasValue ?v .
             BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?seconds_5)
-            FILTER(?t > "2022-06-01T08:46:53"^^xsd:dateTime) 
+            FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime) 
         }
         ORDER BY ?w ?t
     } GROUP BY ?w ?seconds_5
@@ -322,6 +330,7 @@ def test_pushdown_group_by_concat_agg_hybrid_query(engine):
     assert_frame_equal(df, expected)
 
 
+@pytest.mark.order(8)
 def test_pushdown_groupby_exists_something_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -342,6 +351,7 @@ def test_pushdown_groupby_exists_something_hybrid_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_exists_something_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(9)
 def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -362,8 +372,7 @@ def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_exists_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
-
+@pytest.mark.order(10)
 def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -387,6 +396,7 @@ def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_exists_aggregated_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(11)
 def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -410,6 +420,7 @@ def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(en
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_not_exists_aggregated_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(12)
 def test_path_group_by_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -425,7 +436,7 @@ def test_path_group_by_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_path_group_by_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(13)
 def test_optional_clause_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -445,7 +456,7 @@ def test_optional_clause_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_optional_clause_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(14)
 def test_minus_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -467,6 +478,7 @@ def test_minus_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_minus_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(15)
 def test_in_expression_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -483,7 +495,7 @@ def test_in_expression_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_in_expression.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(16)
 def test_values_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -501,6 +513,7 @@ def test_values_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_values_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(17)
 def test_distinct_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -516,7 +529,7 @@ def test_distinct_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_distinct_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(18)
 def test_union_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -540,7 +553,7 @@ def test_union_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_union_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(19)
 def test_coalesce_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -563,6 +576,7 @@ def test_coalesce_query(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_coalesce_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
+@pytest.mark.order(20)
 def test_simple_hybrid_query_sugar(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -582,7 +596,7 @@ def test_simple_hybrid_query_sugar(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(21)
 def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -603,7 +617,7 @@ def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
     expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
 
-
+@pytest.mark.order(22)
 def test_simple_hybrid_query_sugar_agg_avg(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>

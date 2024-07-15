@@ -126,7 +126,7 @@ fn check_aggregations_are_in_scope(
 ) -> bool {
     for (_, ae) in aggregations {
         let mut used_vars = HashSet::new();
-        find_all_used_variables_in_aggregate_expression(ae, &mut used_vars);
+        find_all_used_variables_in_aggregate_expression(ae, &mut used_vars, true, true);
         for v in &used_vars {
             if vq.has_equivalent_variable(v, context) {
                 continue;

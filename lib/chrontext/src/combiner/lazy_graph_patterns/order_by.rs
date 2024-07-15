@@ -8,7 +8,7 @@ use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
-use query_processing::find_query_variables::{find_all_used_variables_in_order_expression};
+use query_processing::find_query_variables::{find_all_used_variables_in_order_expression, solution_mappings_has_all_order_expression_variables};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -34,16 +34,7 @@ impl Combiner {
             .await?;
         let mut order_expressions = vec![];
         for oe in expression {
-            let mut vars = HashSet::new();
-            find_all_used_variables_in_order_expression(oe, &mut vars);
-            let mut all_exist = true;
-            for v in vars {
-                if !output_solution_mappings.rdf_node_types.contains_key(v.as_str()) {
-                    all_exist = false;
-                    break;
-                }
-            }
-            if all_exist {
+            if solution_mappings_has_all_order_expression_variables(&output_solution_mappings, oe) {
                 //Todo: Avoid clone
                 order_expressions.push(oe.clone());
             }

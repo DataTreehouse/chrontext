@@ -93,7 +93,7 @@ impl Engine {
         let rewriter = StaticQueryRewriter::new(variable_constraints, first_level_virtualized_iris);
         let (static_queries_map, basic_virtualized_queries, rewritten_filters) =
             rewriter.rewrite_query(preprocessed_query.clone());
-        debug!("Produced {} static rewrites", static_queries_map.len());
+        debug!("Produced {} static rewrites with contexts: {:?}", static_queries_map.len(), static_queries_map.keys());
 
         debug!(
             "Produced basic time series queries: {:?}",

@@ -527,7 +527,7 @@ impl VirtualizedQuery {
             VirtualizedQuery::ExpressionAs(vq, v, e) => {
                 let mut tsfs = vec![];
                 let mut used_vars = HashSet::new();
-                find_all_used_variables_in_expression(e, &mut used_vars);
+                find_all_used_variables_in_expression(e, &mut used_vars, true, true);
                 let mut exists_virtalized_var = false;
                 let mut all_are_virtualized_var = true;
                 for v in &used_vars {
