@@ -10,17 +10,17 @@ members = [
 ]
 
 [workspace.dependencies]
-spargebra = { path = "../maplib/lib/spargebra", features = ["rdf-star"]}
-query_processing = { path = "../maplib/lib/query_processing"}
-pydf_io = { path = "../maplib/lib/pydf_io"}
-representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
-templates = { path = "../maplib/lib/templates"}
+#spargebra = { path = "../maplib/lib/spargebra", features = ["rdf-star"]}
+#query_processing = { path = "../maplib/lib/query_processing"}
+#pydf_io = { path = "../maplib/lib/pydf_io"}
+#representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
+#templates = { path = "../maplib/lib/templates"}
 
-#spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="ff0966f86853cd72484c9600b988a27a0724e421", features = ["rdf-star"]}
-#query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="ff0966f86853cd72484c9600b988a27a0724e421" }
-#pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="ff0966f86853cd72484c9600b988a27a0724e421" }
-#representation = { git = "https://github.com/DataTreehouse/maplib", rev="ff0966f86853cd72484c9600b988a27a0724e421", features = ["rdf-star"] }
-#templates = { git = "https://github.com/DataTreehouse/maplib", rev="ff0966f86853cd72484c9600b988a27a0724e421" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc" }
 
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
