@@ -44,21 +44,18 @@ class CSVDB():
 
 @pytest.fixture(scope="module")
 def engine() -> Engine:
-    timestamp1 = Column("timestamp")
-    value1 = Column("value")
     metadata = MetaData()
     ts1_table = Table(
         "ts1",
         metadata,
-        timestamp1, value1
+        Column("timestamp"),
+        Column("value")
     )
-    timestamp2 = Column("timestamp")
-    value2 = Column("value")
     ts2_table = Table(
         "ts2",
         metadata,
-        timestamp2,
-        value2
+        Column("timestamp"),
+        Column("value")
     )
     ts1 = ts1_table.select().add_columns(
         bindparam("id1", "ts1").label("id"),
@@ -67,14 +64,12 @@ def engine() -> Engine:
         bindparam("id2", "ts2").label("id"),
     )
     sql = ts1.union(ts2)
-
     vdb = VirtualizedPythonDatabase(
         database=CSVDB(),
         resource_sql_map={"my_resource": sql},
         sql_dialect="postgres"
     )
 
-    oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file=str(TESTDATA_PATH / "testdata.nt"), path="oxigraph_db")
     ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
     x = xsd()
     id = Variable("id")
@@ -96,6 +91,7 @@ def engine() -> Engine:
             ]
         )
     }
+    oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file=str(TESTDATA_PATH / "testdata.nt"), path="oxigraph_db")
     engine = Engine(
         resources,
         virtualized_python_database=vdb,
