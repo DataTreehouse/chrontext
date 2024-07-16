@@ -92,7 +92,7 @@ impl VirtualizedOPCUADatabase {
         let mut colnames_identifiers = vec![];
         let mut grouping_col_lookup = HashMap::new();
         let grouping_columns = vq.get_groupby_columns();
-        let mut grouping_col_name = if let Some(g) = grouping_columns.get(0) {
+        let grouping_col_name = if let Some(g) = grouping_columns.get(0) {
             Some(g.deref().clone())
         } else {
             None

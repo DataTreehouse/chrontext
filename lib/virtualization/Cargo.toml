@@ -17,7 +17,6 @@ polars = {workspace=true, features=[
     "nightly",
     "performant"] }
 opcua.workspace= true
-log.workspace = true
 oxrdf.workspace = true
 query_processing.workspace = true
 spargebra.workspace=true

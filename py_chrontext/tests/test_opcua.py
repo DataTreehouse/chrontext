@@ -3,6 +3,8 @@ import os
 import pathlib
 import time
 from multiprocessing import Process
+from typing import Dict
+
 import polars as pl
 from polars.testing import assert_frame_equal
 
@@ -87,11 +89,36 @@ def oxigraph_testdata(oxigraph_db):
     res = ep.query()
     #print(res)
 
-def test_simplified_opcua_case(opcua_server, oxigraph_testdata):
+@pytest.fixture(scope="module")
+def resources() -> Dict[str, Template]:
+    ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
+    x = xsd()
+    id = Variable("id")
+    timestamp = Variable("timestamp")
+    value = Variable("value")
+    dp = Variable("dp")
+    resources = {
+        "my_resource": Template(
+            iri=ct.suf("my_resource"),
+            parameters=[
+                Parameter(id, rdf_type=RDFType.Literal(x.string)),
+                Parameter(timestamp, rdf_type=RDFType.Literal(x.dateTime)),
+                Parameter(value, rdf_type=RDFType.Literal(x.double)),
+            ],
+            instances=[
+                triple(id, ct.suf("hasDataPoint"), dp),
+                triple(dp, ct.suf("hasValue"), value),
+                triple(dp, ct.suf("hasTimestamp"), timestamp)
+            ]
+        )
+    }
+    return resources
+
+def test_simplified_opcua_case(opcua_server, oxigraph_testdata, resources):
     print("Begin test")
     opcua_db = VirtualizedOPCUADatabase(namespace=2, endpoint=OPCUA_ENDPOINT)
     print("created opcua backend")
-    engine = Engine(sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, virtualized_opcua_database=opcua_db)
+    engine = Engine(resources=resources, sparql_endpoint=OXIGRAPH_QUERY_ENDPOINT, virtualized_opcua_database=opcua_db)
     print("defined engine")
     df = engine.query("""
         PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>

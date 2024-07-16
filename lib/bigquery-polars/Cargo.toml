@@ -7,6 +7,5 @@ edition = "2021"
 gcp-bigquery-client = {workspace = true, features = ["rust-tls"]}
 polars = {workspace = true, features = ["dtype-full", "cse", "nightly", "performant", "timezones", "lazy"]}
 thiserror.workspace = true
-backoff.workspace = true
 tokio = {workspace = true, features = ["time"]}
 rayon.workspace = true

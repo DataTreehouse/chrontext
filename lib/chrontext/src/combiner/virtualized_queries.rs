@@ -15,6 +15,7 @@ use representation::{BaseRDFNodeType, RDFNodeType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
 use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
+use virtualized_query::pushdown_setting::PushdownSetting;
 
 impl Combiner {
     pub fn attach_expected_empty_results(&self, vq:&VirtualizedQuery, mut solution_mappings: SolutionMappings) -> SolutionMappings {
@@ -61,9 +62,12 @@ impl Combiner {
             return Ok(self.attach_expected_empty_results(&vq, solution_mappings))
         }
 
-        let on_cols = get_join_columns(&vq, &solution_mappings.rdf_node_types);
         //Find the columns we should join on:
-        vq = vq.add_sorting_pushdown(&on_cols);
+        let on_cols = get_join_columns(&vq, &solution_mappings.rdf_node_types);
+
+        if self.prepper.pushdown_settings.contains(&PushdownSetting::Ordering) {
+            vq = vq.add_sorting_pushdown(&on_cols);
+        }
         let EagerSolutionMappings {
             mappings,
             mut rdf_node_types,

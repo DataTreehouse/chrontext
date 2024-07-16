@@ -15,7 +15,7 @@ use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
 
 #[derive(Debug)]
 pub struct TimeseriesQueryPrepper {
-    pushdown_settings: HashSet<PushdownSetting>,
+    pub(crate) pushdown_settings: HashSet<PushdownSetting>,
     pub(crate) basic_virtualized_queries: Vec<BasicVirtualizedQuery>,
     grouping_counter: u16,
     rewritten_filters: HashMap<Context, Expression>,

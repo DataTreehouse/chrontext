@@ -10,8 +10,9 @@ use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern, Variable};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use representation::RDFNodeType;
+use spargebra::remove_sugar::{HAS_TIMESTAMP, HAS_VALUE};
 use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
+use templates::constants::OTTR_TRIPLE;
 
 pub const ID_VARIABLE_NAME: &str = "id";
 
@@ -165,6 +166,33 @@ impl BasicVirtualizedQuery {
             }
         }
         self.column_mapping.extend(new_mappings);
+
+        //Add hard coded stuff ..
+        for t in &template.pattern_list {
+            if t.template_name.as_str() == OTTR_TRIPLE {
+                if let Some(verb) =  t.argument_list.get(1) {
+                    if let StottrTerm::ConstantTerm(ConstantTermOrList::ConstantTerm(ConstantTerm::Iri(v))) = &verb.term {
+                        if v == HAS_TIMESTAMP {
+                            if let Some(obj) = t.argument_list.get(2) {
+                                if let StottrTerm::Variable(v) = &obj.term {
+                                    if let Some(TermPattern::Variable(v)) = self.column_mapping.get(v) {
+                                        self.chrontext_timestamp_variable = Some(v.clone());
+                                    }
+                                }
+                            }
+                        } else if v == HAS_VALUE {
+                            if let Some(obj) = t.argument_list.get(2) {
+                                if let StottrTerm::Variable(v) = &obj.term {
+                                    if let Some(TermPattern::Variable(v)) = self.column_mapping.get(v) {
+                                        self.chrontext_value_variable = Some(v.clone());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -304,15 +332,6 @@ impl VirtualizedQuery {
             VirtualizedQuery::ExpressionAs(t, ..) => t.expected_columns(),
         }
     }
-    //
-    // pub fn has_equivalent_value_variable(&self, variable: &Variable, context: &Context) -> bool {
-    //     for value_variable in self.get_value_variables() {
-    //         if value_variable.equivalent(variable, context) {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // }
 
     pub fn get_ids(&self) -> Vec<&String> {
         match self {

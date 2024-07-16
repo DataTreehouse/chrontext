@@ -1,10 +1,10 @@
-use crate::{BasicVirtualizedQuery, Synchronizer, VirtualizedQuery};
+use crate::{VirtualizedQuery};
 use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
 use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, OrderExpression};
-use spargebra::term::{TermPattern, Variable};
+use spargebra::term::{TermPattern};
 //
 // #[derive(Error, Debug)]
 // pub enum PyExpressionError {

@@ -7,7 +7,6 @@ edition = "2021"
 virtualization = {path = "../virtualization"}
 virtualized_query = { path = "../virtualized_query" }
 
-templates.workspace = true
 polars = { workspace = true, features = [
     "lazy",
     "concat_str",
@@ -21,7 +20,6 @@ polars = { workspace = true, features = [
     "cse",
     "nightly",
     "performant"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "rt"] }
 log.workspace = true
 spargebra.workspace = true
 representation.workspace=true
@@ -29,23 +27,9 @@ query_processing.workspace = true
 sparesults.workspace = true
 oxrdf.workspace = true
 reqwest = { workspace = true, features = ["stream"] }
-env_logger.workspace = true
 thiserror.workspace = true
 async-recursion.workspace = true
 async-trait.workspace = true
 oxigraph.workspace = true
-chrono = { workspace = true, features = ["clock"] }
 serde.workspace = true
-serde_json.workspace = true
 filesize.workspace = true
-pyo3.workspace = true
-
-[dev-dependencies]
-bollard.workspace = true
-rstest.workspace = true
-polars = { workspace = true, features = ["lazy", "unique_counts"] }
-tokio = { workspace = true, features = ["rt-multi-thread"] }
-serial_test.workspace = true
-futures-util.workspace = true
-reqwest = { workspace = true, features = ["stream", "json"] }
-opcua.workspace = true

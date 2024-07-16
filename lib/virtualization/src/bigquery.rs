@@ -159,7 +159,7 @@ fn rename_non_alpha_vars(vq: VirtualizedQuery, rename_map: &mut HashMap<Variable
             rename_non_alpha_expr_vars(&mut e, rename_map);
             VirtualizedQuery::ExpressionAs(Box::new(new_vq), v, e)
         }
-        VirtualizedQuery::Grouped(GroupedVirtualizedQuery{ context, vq, by, mut aggregations }) => {
+        VirtualizedQuery::Grouped(GroupedVirtualizedQuery{ context, vq, by, aggregations }) => {
             let new_vq = rename_non_alpha_vars(*vq, rename_map);
             let mut new_by = vec![];
             for v in by {
