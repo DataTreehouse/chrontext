@@ -104,9 +104,11 @@ class MyDuckDB():
         con = duckdb.connect()
         con.execute("SET TIME ZONE 'UTC';")
         con.execute("""CREATE TABLE ts1 ("timestamp" TIMESTAMPTZ, "value" INTEGER)""")
-        ts_1 = pl.read_csv("ts1.csv", try_parse_dates=True).with_columns(
-            pl.col("timestamp").dt.replace_time_zone("UTC"))
+        ts_1 = pl.read_csv("ts1.csv", try_parse_dates=True).with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
         con.append("ts1", df=ts_1.to_pandas())
+        con.execute("""CREATE TABLE ts2 ("timestamp" TIMESTAMPTZ, "value" INTEGER)""")
+        ts_2 = pl.read_csv("ts2.csv", try_parse_dates=True).with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
+        con.append("ts2", df=ts_2.to_pandas())
         self.con = con
 
 
@@ -125,10 +127,24 @@ We first define a sqlalchemy select query involving the two tables. Chrontext wi
 from sqlalchemy import MetaData, Table, Column, bindparam
 metadata = MetaData()
 ts1_table = Table(
-    "ts1", metadata,
-    Column("timestamp"), Column("value"))
-sql = ts1_table.select().add_columns(
-    bindparam("id1", "ts1").label("id"))
+    "ts1",
+    metadata,
+    Column("timestamp"),
+    Column("value")
+)
+ts2_table = Table(
+    "ts2",
+    metadata,
+    Column("timestamp"),
+    Column("value")
+)
+ts1 = ts1_table.select().add_columns(
+    bindparam("id1", "ts1").label("id"),
+)
+ts2 = ts2_table.select().add_columns(
+    bindparam("id2", "ts2").label("id"),
+)
+sql = ts1.union(ts2)
 ```
 
 Now, we are ready to define the virtualized backend. We will annotate nodes of the graph with a resource data property. 
@@ -164,18 +180,18 @@ timestamp = Variable("timestamp")
 value = Variable("value")
 dp = Variable("dp")
 resources = {
-"my_resource": Template(
-    iri=ct.suf("my_resource"),
-    parameters=[
-        Parameter(id, rdf_type=RDFType.Literal(xsd.string)),
-        Parameter(timestamp, rdf_type=RDFType.Literal(xsd.dateTime)),
-        Parameter(value, rdf_type=RDFType.Literal(xsd.double)),
-    ],
-    instances=[
-        Triple(id, ct.suf("hasDataPoint"), dp),
-        Triple(dp, ct.suf("hasValue"), value),
-        Triple(dp, ct.suf("hasTimestamp"), timestamp)
-    ]
+    "my_resource": Template(
+        iri=ct.suf("my_resource"),
+        parameters=[
+            Parameter(id, rdf_type=RDFType.Literal(xsd.string)),
+            Parameter(timestamp, rdf_type=RDFType.Literal(xsd.dateTime)),
+            Parameter(value, rdf_type=RDFType.Literal(xsd.double)),
+        ],
+        instances=[
+            Triple(id, ct.suf("hasDataPoint"), dp),
+            Triple(dp, ct.suf("hasValue"), value),
+            Triple(dp, ct.suf("hasTimestamp"), timestamp)
+        ]
 )}
 ```
 This means that our instance `ex:myWidget1`, will be associated with a value and a timestamp (and a blank data point) for each row in `ts1.csv`.
@@ -191,11 +207,11 @@ The context for our analytical data (e.g. a model of an industrial asset) has to
 In this case, we use an embedded Oxigraph engine that comes with chrontext. Now we assemble the pieces and create the engine.
 ```python
 from chrontext import Engine, SparqlEmbeddedOxigraph
-oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="my_graph.nt", path="oxigraph_db")
+oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="my_graph.ttl", path="oxigraph_db_tutorial")
 engine = Engine(
-        resources,
-        virtualized_python_database=vdb,
-        sparql_embedded_oxigraph=oxigraph_store)
+    resources,
+    virtualized_python_database=vdb,
+    sparql_embedded_oxigraph=oxigraph_store)
 engine.init()
 ```
 Now we can use our context to query the dataset. The aggregation below are pushed into DuckDB.
@@ -224,6 +240,7 @@ This produces the following result:
 |-------------------------------------|---------------|
 | str                                 | decimal[38,0] |
 | <http://example.org/case#myWidget1> | 1215          |
+| <http://example.org/case#myWidget2> | 1216          |
 
 ## Roadmap in brief
 Let us know if you have suggestions!
