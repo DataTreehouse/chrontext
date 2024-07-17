@@ -1,1 +1,1 @@
-import chrontext.vq.Expression as Expression
+from .vq import *

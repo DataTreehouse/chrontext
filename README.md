@@ -19,7 +19,8 @@ pip install chrontext
 The API is documented [HERE](https://datatreehouse.github.io/chrontext/chrontext/chrontext.html). 
 
 ## Example query in Python
-The code assumes that we have a SPARQL-endpoint and BigQuery set up with time-series.
+The code assumes that we have a SPARQL-endpoint and BigQuery set up with time-series. 
+The query uses a bit of syntactic sugar, but is converted to pure SPARQL before execution. 
 ```python
 ... 
 
@@ -95,7 +96,7 @@ timestamp,value
 We need to create a class with a method `query` that takes a SQL string its argument, returning a Polars DataFrame. 
 In this class, we just hard code the DuckDB setup in the constructor. 
 ```python
-import duckdb
+    import duckdb
 import polars as pl
 
 class MyDuckDB():
@@ -106,16 +107,12 @@ class MyDuckDB():
         ts_1 = pl.read_csv("ts1.csv", try_parse_dates=True).with_columns(
             pl.col("timestamp").dt.replace_time_zone("UTC"))
         con.append("ts1", df=ts_1.to_pandas())
-        con.execute("""CREATE TABLE ts2 ("timestamp" TIMESTAMPTZ, "value" INTEGER)""")
-        ts_2 = pl.read_csv("ts1.csv", try_parse_dates=True).with_columns(
-            pl.col("timestamp").dt.replace_time_zone("UTC"))
-        con.append("ts2", df=ts_2.to_pandas())
         self.con = con
 
-    
+
     def query(self, sql:str) -> pl.DataFrame:
-        # We execute the query and return it as a Polars DataFrame. 
-        # Chrontext expects this method to exist in the provided class. 
+        # We execute the query and return it as a Polars DataFrame.
+        # Chrontext expects this method to exist in the provided class.
         df = self.con.execute(sql).pl()
         return df
 
@@ -130,17 +127,8 @@ metadata = MetaData()
 ts1_table = Table(
     "ts1", metadata,
     Column("timestamp"), Column("value"))
-ts2_table = Table(
-    "ts2", metadata,
-    Column("timestamp"), Column("value")
-)
-
-ts1 = ts1_table.select().add_columns(
+sql = ts1_table.select().add_columns(
     bindparam("id1", "ts1").label("id"))
-ts2 = ts2_table.select().add_columns(
-    bindparam("id2", "ts2").label("id"))
-
-sql = ts1.union(ts2)
 ```
 
 Now, we are ready to define the virtualized backend. We will annotate nodes of the graph with a resource data property. 
@@ -149,7 +137,7 @@ These data properties will be linked to virtualized RDF triples in the DuckDB ba
 from chrontext import VirtualizedPythonDatabase
 
 vdb = VirtualizedPythonDatabase(
-    database=MyDuckDB(),
+    database=my_db,
     resource_sql_map={"my_resource": sql},
     sql_dialect="postgres"
 )
@@ -206,12 +194,12 @@ from chrontext import Engine, SparqlEmbeddedOxigraph
 oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file=str("my_graph.nt"), path="oxigraph_db")
 engine = Engine(
         resources,
-        virtualized_python_database=my_db,
+        virtualized_python_database=vdb,
         sparql_embedded_oxigraph=oxigraph_store)
 engine.init()
 ```
 Now we can use our context to query the dataset. The aggregation below are pushed into DuckDB.
-The example below is a bit simple, but complex conditions can identify the `?w`
+The example below is a bit simple, but complex conditions can identify the `?w` and `?s`.
 ```python
 q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -219,7 +207,7 @@ q = """
     PREFIX types:<http://example.org/types#>
     SELECT ?w (SUM(?v) as ?sum_v) WHERE {
         ?w types:hasSensor ?s .
-        ?s a types:Counter .
+        ?s a types:ThingCounter .
         ?s chrontext:hasTimeseries ?ts .
         ?ts chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasTimestamp ?t .
@@ -232,12 +220,10 @@ print(df)
 ```
 This produces the following result:
 
-| w                                   | sum_v |
-|-------------------------------------|-------|
-| str                                 | Int32 |
-| <http://example.org/case#myWidget1> | 1215  |
-| <http://example.org/case#myWidget2> | 1216  |
-
+| w                                   | sum_v         |
+|-------------------------------------|---------------|
+| str                                 | decimal[38,0] |
+| <http://example.org/case#myWidget1> | 1215          |
 
 ## Roadmap in brief
 Let us know if you have suggestions!

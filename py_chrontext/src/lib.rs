@@ -328,7 +328,7 @@ impl PyDataProduct {
 
 #[pymodule]
 #[pyo3(name = "chrontext")]
-fn _chrontext(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _chrontext(_py:Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let res = env_logger::try_init();
     match res {
         Ok(_) => {}
@@ -364,5 +364,9 @@ fn _chrontext(m: &Bound<'_, PyModule>) -> PyResult<()> {
     child.add_class::<PyOrderExpression>()?;
     child.add_class::<PyAggregateExpression>()?;
     m.add_submodule(&child)?;
+
+    _py.import_bound("sys")?
+        .getattr("modules")?
+        .set_item("chrontext.vq", child)?;
     Ok(())
 }

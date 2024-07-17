@@ -10,17 +10,17 @@ members = [
 ]
 
 [workspace.dependencies]
-spargebra = { path = "../maplib/lib/spargebra", features = ["rdf-star"]}
-query_processing = { path = "../maplib/lib/query_processing"}
-pydf_io = { path = "../maplib/lib/pydf_io"}
-representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
-templates = { path = "../maplib/lib/templates"}
+#spargebra = { path = "../maplib/lib/spargebra", features = ["rdf-star"]}
+#query_processing = { path = "../maplib/lib/query_processing"}
+#pydf_io = { path = "../maplib/lib/pydf_io"}
+#representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
+#templates = { path = "../maplib/lib/templates"}
 
-#spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc", features = ["rdf-star"]}
-#query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc" }
-#pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc" }
-#representation = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc", features = ["rdf-star"] }
-#templates = { git = "https://github.com/DataTreehouse/maplib", rev="32ad6862c3081af5186c65a63f780121ce0d39bc" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386" }
 
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
@@ -30,7 +30,7 @@ oxigraph = "0.4.0-alpha.7"
 polars = "0.41.3"
 tokio = "1.32.1"
 log = "0.4.21"
-pyo3 = "0.22.0"
+pyo3 = "0.22.1"
 reqwest = "0.12.3"
 env_logger = "0.11.3"
 thiserror = "1.0.58"

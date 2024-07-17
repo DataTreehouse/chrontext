@@ -3,59 +3,6 @@ from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional
 from polars import DataFrame
 from sqlalchemy import Select, Table
 
-class VirtualizedPythonDatabase:
-    """
-    A virtualized database implemented in Python.
-    """
-    def __init__(self,
-                 database: Any,
-                 resource_sql_map: Optional[Dict[str, Any]],
-                 sql_dialect: Optional[LiteralType["postgres", "bigquery"]]):
-        """
-        See the tutorial in README.md for guidance on how to use this class.
-        This API is subject to change, it will be possible to specify what parts of the SPARQL query may be pushed down into the database.
-        For advanced use, the resource_sql_map may be omitted, in which case the VirtualizedQuery will be provided to the query method.
-        The user must then translate this VirtualizedQuery (built on SPARQL Algebra) to the target query language.
-
-        :param:database: An instance of a class containing a query method.
-        :param:resource_sql_map: A dict providing a sqlalchemy Select for each resource.
-        :param:sql_dialect: The SQL dialect accepted by the query method.
-        """
-
-class VirtualizedBigQueryDatabase:
-    """
-    A virtualized BigQuery database
-    """
-    def __init__(self, resource_sql_map: Dict[str, Union[Select, Table]],
-                       key_json_path: str):
-        """
-        To be able to connect to BigQuery, provide the path to the JSON key.
-        For each resource name in chrontext that you want to associate with BigQuery,
-        provide an sqlalchemy Select or Table that contains each of the parameters
-        referenced in the corresponding template provided to Engine.
-
-        See test_bigquery.py in the tests for usage.
-
-        :param resource_sql_map: The SQLs associated with the resources
-        :param key_json_path: Path to JSON containing Key to connect to BigQuery.
-        """
-
-class VirtualizedOPCUADatabase:
-    """
-    A virtualized OPC UA Server (History Access), which should be provided to the Engine constructor.
-    """
-    def __init__(self,
-                 namespace: int,
-                 endpoint: str):
-        """
-        Construct new virtualized OPC UA Database.
-        See test_opcua.py for an example of use.
-        This API is subject to change - will move to URI defined namespaces.
-
-        :param namespace:
-        :param endpoint:
-        """
-
 class RDFType:
     """
     The type of a column containing a RDF variable.
@@ -135,53 +82,6 @@ class Literal:
         """
 
 
-def Triple(subject:Union["Argument", IRI, Variable],
-           predicate:Union["Argument", IRI,Variable],
-           object:Union["Argument", IRI, Variable, Literal],
-           list_expander:Optional[LiteralType["cross", "zipMin", "zipMax"]]=None):
-    """
-    An OTTR Triple Pattern used for creating templates.
-    This is the basis pattern which all template instances are rewritten into.
-    ottr = Prefix("http://ns.ottr.xyz/0.4/")
-    Equivalent to Instance(ottr.suf("Triple"), subject, predicate, object, list_expander)
-
-    :param subject:
-    :param predicate:
-    :param object:
-    :param list_expander:
-    :return:
-    """
-
-class XSD():
-    """
-    The xsd namespace, for convenience.
-    """
-    boolean:IRI
-    byte:IRI
-    date:IRI
-    dateTime:IRI
-    dateTimeStamp:IRI
-    decimal:IRI
-    double:IRI
-    duration:IRI
-    float:IRI
-    int_:IRI
-    integer:IRI
-    language:IRI
-    long:IRI
-    short:IRI
-    string:IRI
-
-    def __init__(self):
-        """
-        Create the xsd namespace helper.
-        """
-
-def a() -> IRI:
-    """
-    :return: IRI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-    """
-
 class Parameter:
     def __init__(self,
                  variable: Variable,
@@ -243,6 +143,110 @@ class Template:
         :param arguments: The arguments to the template.
         :param list_expander: (How) should we list-expand?
         :return:
+        """
+
+def Triple(subject:Union["Argument", IRI, Variable],
+           predicate:Union["Argument", IRI,Variable],
+           object:Union["Argument", IRI, Variable, Literal],
+           list_expander:Optional[LiteralType["cross", "zipMin", "zipMax"]]=None):
+    """
+    An OTTR Triple Pattern used for creating templates.
+    This is the basis pattern which all template instances are rewritten into.
+    Equivalent to:
+
+    >>> ottr = Prefix("http://ns.ottr.xyz/0.4/")
+    ... Instance(ottr.suf("Triple"), subject, predicate, object, list_expander)
+
+    :param subject:
+    :param predicate:
+    :param object:
+    :param list_expander:
+    :return:
+    """
+
+class XSD():
+    """
+    The xsd namespace, for convenience.
+    """
+    boolean:IRI
+    byte:IRI
+    date:IRI
+    dateTime:IRI
+    dateTimeStamp:IRI
+    decimal:IRI
+    double:IRI
+    duration:IRI
+    float:IRI
+    int_:IRI
+    integer:IRI
+    language:IRI
+    long:IRI
+    short:IRI
+    string:IRI
+
+    def __init__(self):
+        """
+        Create the xsd namespace helper.
+        """
+
+def a() -> IRI:
+    """
+    :return: IRI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+    """
+
+# END COMMON WITH MAPLIB
+
+class VirtualizedPythonDatabase:
+    """
+    A virtualized database implemented in Python.
+    """
+    def __init__(self,
+                 database: Any,
+                 resource_sql_map: Optional[Dict[str, Any]],
+                 sql_dialect: Optional[LiteralType["postgres", "bigquery"]]):
+        """
+        See the tutorial in README.md for guidance on how to use this class.
+        This API is subject to change, it will be possible to specify what parts of the SPARQL query may be pushed down into the database.
+        For advanced use, the resource_sql_map may be omitted, in which case the VirtualizedQuery will be provided to the query method.
+        The user must then translate this VirtualizedQuery (built on SPARQL Algebra) to the target query language.
+
+        :param:database: An instance of a class containing a query method.
+        :param:resource_sql_map: A dict providing a sqlalchemy Select for each resource.
+        :param:sql_dialect: The SQL dialect accepted by the query method.
+        """
+
+class VirtualizedBigQueryDatabase:
+    """
+    A virtualized BigQuery database
+    """
+    def __init__(self, resource_sql_map: Dict[str, Union[Select, Table]],
+                 key_json_path: str):
+        """
+        To be able to connect to BigQuery, provide the path to the JSON key.
+        For each resource name in chrontext that you want to associate with BigQuery,
+        provide an sqlalchemy Select or Table that contains each of the parameters
+        referenced in the corresponding template provided to Engine.
+
+        See test_bigquery.py in the tests for usage.
+
+        :param resource_sql_map: The SQLs associated with the resources
+        :param key_json_path: Path to JSON containing Key to connect to BigQuery.
+        """
+
+class VirtualizedOPCUADatabase:
+    """
+    A virtualized OPC UA Server (History Access), which should be provided to the Engine constructor.
+    """
+    def __init__(self,
+                 namespace: int,
+                 endpoint: str):
+        """
+        Construct new virtualized OPC UA Database.
+        See test_opcua.py for an example of use.
+        This API is subject to change - will move to URI defined namespaces.
+
+        :param namespace:
+        :param endpoint:
         """
 
 class Engine:
