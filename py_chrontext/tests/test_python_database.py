@@ -6,10 +6,10 @@ import duckdb
 import pathlib
 
 from polars.testing import assert_frame_equal
-from sqlalchemy import Column, Table, MetaData, literal, bindparam, text
+from sqlalchemy import Column, Table, MetaData, bindparam
 
 from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph, Template, Prefix, Variable, Parameter, \
-    RDFType, xsd, triple
+    RDFType, XSD, Triple
 import rdflib
 
 PATH_HERE = pathlib.Path(__file__).parent
@@ -71,7 +71,7 @@ def engine() -> Engine:
     )
 
     ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
-    x = xsd()
+    xsd = XSD()
     id = Variable("id")
     timestamp = Variable("timestamp")
     value = Variable("value")
@@ -80,14 +80,14 @@ def engine() -> Engine:
         "my_resource": Template(
             iri=ct.suf("my_resource"),
             parameters=[
-                Parameter(id, rdf_type=RDFType.Literal(x.string)),
-                Parameter(timestamp, rdf_type=RDFType.Literal(x.dateTime)),
-                Parameter(value, rdf_type=RDFType.Literal(x.double)),
+                Parameter(id, rdf_type=RDFType.Literal(xsd.string)),
+                Parameter(timestamp, rdf_type=RDFType.Literal(xsd.dateTime)),
+                Parameter(value, rdf_type=RDFType.Literal(xsd.double)),
             ],
             instances=[
-                triple(id, ct.suf("hasDataPoint"), dp),
-                triple(dp, ct.suf("hasValue"), value),
-                triple(dp, ct.suf("hasTimestamp"), timestamp)
+                Triple(id, ct.suf("hasDataPoint"), dp),
+                Triple(dp, ct.suf("hasValue"), value),
+                Triple(dp, ct.suf("hasTimestamp"), timestamp)
             ]
         )
     }

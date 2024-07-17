@@ -47,7 +47,7 @@ use pyo3::types::PyDict;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
-use templates::python::{a, py_triple, xsd, PyArgument, PyInstance, PyParameter, PyTemplate};
+use templates::python::{a, py_triple, PyXSD, PyArgument, PyInstance, PyParameter, PyTemplate};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
 use virtualization::opcua::VirtualizedOPCUADatabase;
@@ -328,7 +328,7 @@ impl PyDataProduct {
 
 #[pymodule]
 #[pyo3(name = "chrontext")]
-fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _chrontext(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let res = env_logger::try_init();
     match res {
         Ok(_) => {}
@@ -354,11 +354,15 @@ fn _chrontext(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyArgument>()?;
     m.add_class::<PyTemplate>()?;
     m.add_class::<PyInstance>()?;
-    m.add_class::<PyExpression>()?;
-    m.add_class::<PyOrderExpression>()?;
-    m.add_class::<PyAggregateExpression>()?;
+    m.add_class::<PyXSD>()?;
     m.add_function(wrap_pyfunction!(py_triple, m)?)?;
     m.add_function(wrap_pyfunction!(a, m)?)?;
-    m.add_function(wrap_pyfunction!(xsd, m)?)?;
+
+    let child = PyModule::new_bound(m.py(), "vq")?;
+    child.add_class::<PyVirtualizedQuery>()?;
+    child.add_class::<PyExpression>()?;
+    child.add_class::<PyOrderExpression>()?;
+    child.add_class::<PyAggregateExpression>()?;
+    m.add_submodule(&child)?;
     Ok(())
 }

@@ -1,22 +1,25 @@
 from datetime import datetime, date
-from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any, Tuple
+from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any
 from polars import DataFrame
 from sqlalchemy import Select, Table
-
 
 class VirtualizedPythonDatabase:
     """
     A virtualized database implemented in Python.
-
-    TODO: Example
     """
     def __init__(self,
                  database: Any,
                  resource_sql_map: Optional[Dict[str, Any]],
-                 sql_dialect: Optional[str]):
+                 sql_dialect: Optional[LiteralType["postgres", "bigquery"]]):
         """
+        See the tutorial in README.md for guidance on how to use this class.
+        This API is subject to change, it will be possible to specify what parts of the SPARQL query may be pushed down into the database.
+        For advanced use, the resource_sql_map may be omitted, in which case the VirtualizedQuery will be provided to the query method.
+        The user must then translate this VirtualizedQuery (built on SPARQL Algebra) to the target query language.
 
-        :param db_module:
+        :param:database: An instance of a class containing a query method.
+        :param:resource_sql_map: A dict providing a sqlalchemy Select for each resource.
+        :param:sql_dialect: The SQL dialect accepted by the query method.
         """
 
 class VirtualizedBigQueryDatabase:
@@ -31,7 +34,7 @@ class VirtualizedBigQueryDatabase:
         provide an sqlalchemy Select or Table that contains each of the parameters
         referenced in the corresponding template provided to Engine.
 
-        TODO: Example
+        See test_bigquery.py in the tests for usage.
 
         :param resource_sql_map: The SQLs associated with the resources
         :param key_json_path: Path to JSON containing Key to connect to BigQuery.
@@ -39,13 +42,15 @@ class VirtualizedBigQueryDatabase:
 
 class VirtualizedOPCUADatabase:
     """
-    A virtualized OPC UA Server (History Access)
+    A virtualized OPC UA Server (History Access), which should be provided to the Engine constructor.
     """
     def __init__(self,
                  namespace: int,
                  endpoint: str):
         """
-        TODO!
+        Construct new virtualized OPC UA Database.
+        See test_opcua.py for an example of use.
+        This API is subject to change - will move to URI defined namespaces.
 
         :param namespace:
         :param endpoint:
@@ -54,10 +59,11 @@ class VirtualizedOPCUADatabase:
 class RDFType:
     """
     The type of a column containing a RDF variable.
+    For instance, xsd:string is RDFType.Literal("http://www.w3.org/2001/XMLSchema#string")
     """
     IRI: Callable[[], "RDFType"]
     Blank: Callable[[], "RDFType"]
-    Literal: Callable[[str], "RDFType"]
+    Literal: Callable[[Union[str, "IRI"]], "RDFType"]
     Nested: Callable[["RDFType"], "RDFType"]
     Unknown: Callable[[], "RDFType"]
 
@@ -129,12 +135,15 @@ class Literal:
         """
 
 
-def triple(subject:Union[IRI, Variable],
-           predicate:Union[IRI,Variable],
-           object:Union[IRI, Variable, Literal],
+def Triple(subject:Union["Argument", IRI, Variable],
+           predicate:Union["Argument", IRI,Variable],
+           object:Union["Argument", IRI, Variable, Literal],
            list_expander:Optional[LiteralType["cross", "zipMin", "zipMax"]]=None):
     """
-    TODO!
+    An OTTR Triple Pattern used for creating templates.
+    This is the basis pattern which all template instances are rewritten into.
+    ottr = Prefix("http://ns.ottr.xyz/0.4/")
+    Equivalent to Instance(ottr.suf("Triple"), subject, predicate, object, list_expander)
 
     :param subject:
     :param predicate:
@@ -143,124 +152,35 @@ def triple(subject:Union[IRI, Variable],
     :return:
     """
 
-class Expression:
-    And:Type["PyExpression__And"]
-    Greater:Type["PyExpression__Greater"]
-    Less:Type["PyExpression__Less"]
-    left:Optional[Expression]
-    right:Optional[Expression]
-    Variable:Type["PyExpression__Variable"]
-    variable:Optional[Variable]
-    IRI:Type["PyExpression__IRI"]
-    Literal:Type["PyExpression__Literal"]
-    literal:Optional[Literal]
-    FunctionCall:["PyExpression__FunctionCall"]
-    function: Optional[str]
-    arguments: Optional[List[Expression]]
-
-    def expression_type(self) -> str:
-        """
-        Workaround for pyo3 issue with constructing enums. 
-        :return:
-        """
-    
-    
-
-class PyExpression__And(Expression):
-    left:Expression
-    right:Expression
-
-class PyExpression__Variable(Expression):
-    variable:Variable
-
-class PyExpression__IRI(Expression):
-    iri:IRI
-
-class PyExpression__Literal(Expression):
-    literal:Literal
-
-class PyExpression__Greater(Expression):
-    left:Expression
-    right:Expression
-
-class PyExpression__Less(Expression):
-    left:Expression
-    right:Expression
-
-class PyExpression__FunctionCall(Expression):
-    function: str
-    arguments: List[Expression]
-
-
-class AggregateExpression:
+class XSD():
     """
-
+    The xsd namespace, for convenience.
     """
-    name: str
-    expression: Expression
-    separator: Optional[str]
+    boolean:IRI
+    byte:IRI
+    date:IRI
+    dateTime:IRI
+    dateTimeStamp:IRI
+    decimal:IRI
+    double:IRI
+    duration:IRI
+    float:IRI
+    int_:IRI
+    integer:IRI
+    language:IRI
+    long:IRI
+    short:IRI
+    string:IRI
 
-
-class VirtualizedQuery:
-    Filtered:Type["PyVirtualizedQuery__Filtered"]
-    filter: Optional[Expression]
-    query: Optional[VirtualizedQuery]
-    Basic:Type["PyVirtualizedQuery__Basic"]
-    identifier_name: Optional[str]
-    column_mapping: Optional[Dict[str, str]]
-    resource: Optional[str]
-    ids: Optional[List[str]]
-    grouping_column_name: Optional[str]
-    id_grouping_tuples: Optional[List[Tuple[str, int]]]
-    Grouped:Type["PyVirtualizedQuery__Grouped"]
-    by: List[Variable]
-    aggregations: Optional[List[Tuple[Variable, AggregateExpression]]]
-    ExpressionAs:Type["PyVirtualizedQuery__ExpressionAs"]
-    variable: Optional[Variable]
-    expression: Optional[Expression]
-
-    def type_name(self) -> LiteralType["Filtered", "Basic"]:
+    def __init__(self):
+        """
+        Create the xsd namespace helper.
         """
 
-        :return:
-        """
-
-
-class PyVirtualizedQuery__Basic:
+def a() -> IRI:
     """
-
+    :return: IRI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
     """
-    identifier_name: str
-    column_mapping: Dict[str, str]
-    resource: str
-    ids: List[str]
-    grouping_column_name: Optional[str]
-    id_grouping_tuples: Optional[List[Tuple[str, int]]]
-
-class PyVirtualizedQuery__Filtered:
-    """
-
-    """
-    query: VirtualizedQuery
-    filter: Expression
-
-
-class PyVirtualizedQuery__Grouped:
-    """
-
-    """
-    by: List[Variable]
-    aggregations: List[Tuple[Variable, AggregateExpression]]
-
-
-class PyVirtualizedQuery__ExpressionAs:
-    """
-
-    """
-    query: VirtualizedQuery
-    variable: Variable
-    expression: Expression
-
 
 class Parameter:
     def __init__(self,
@@ -269,7 +189,7 @@ class Parameter:
                  allow_blank: bool = True,
                  rdf_type: RDFType = None):
         """
-        Create a new parameter.
+        Create a new parameter for a Template.
         :param variable: The variable.
         :param optional: Can the variable be unbound?
         :param allow_blank: Can the variable be bound to a blank node?
@@ -371,6 +291,8 @@ class Engine:
 
     def serve_postgres(self, catalog:Catalog):
         """
+        Serve the data product catalog as a postgres endpoint.
+        Contact DataTreehouse to try.
 
         :param catalog:
         :return:

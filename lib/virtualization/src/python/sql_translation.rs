@@ -7,7 +7,7 @@ from sqlalchemy.sql.base import ColumnCollection
 from sqlalchemy.sql.functions import GenericFunction
 from sqlalchemy_bigquery.base import BigQueryDialect
 
-from chrontext import Expression, VirtualizedQuery, AggregateExpression
+from chrontext.vq import Expression, VirtualizedQuery, AggregateExpression
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, cast, \
     BigInteger, CompoundSelect, and_, literal_column, case, func, TIMESTAMP
 

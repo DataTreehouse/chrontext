@@ -19,12 +19,9 @@ def sql_resources() -> Dict[str, Select]:
     nist2 = Table("nist2",
           metadata,
           Column("external_id"),
-          Column("TIMESTAMP", quote=False),
-          Column("VALUE", quote=False),
-          schema=SCHEMA,
-          quote=False,
-          #quote_schema=False,
-          )
+          Column("TIMESTAMP"),
+          Column("VALUE"),
+          schema=SCHEMA)
     nist2_select = select(
         nist2.columns["external_id"].label("id"),
         nist2.columns["TIMESTAMP"].label("timestamp"),
@@ -34,12 +31,9 @@ def sql_resources() -> Dict[str, Select]:
     dataproducts = Table("dataproducts",
                   metadata,
                   Column("external_id"),
-                  Column("TIMESTAMP", quote=False),
-                  Column("VALUE", quote=False),
-                  schema=SCHEMA,
-                         quote=False,
-                         #quote_schema=False,
-                  )
+                  Column("TIMESTAMP"),
+                  Column("VALUE"),
+                  schema=SCHEMA)
     dataproducts_select = select(
         dataproducts.columns["external_id"].label("id"),
         dataproducts.columns["TIMESTAMP"].label("timestamp"),
@@ -56,7 +50,7 @@ def engine(sql_resources):
     bq_db = VirtualizedBigQueryDatabase(key_json_path=BIGQUERY_CONN, resource_sql_map=sql_resources)
     oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file="solar.nt", path="oxigraph_db_bq")
     ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
-    x = xsd()
+    xsd = XSD()
     id = Variable("id")
     timestamp = Variable("timestamp")
     value = Variable("value")
@@ -64,14 +58,14 @@ def engine(sql_resources):
     ts_template =Template(
         iri=ct.suf("ts_template"),
         parameters=[
-            Parameter(id, rdf_type=RDFType.Literal(x.string)),
-            Parameter(timestamp, rdf_type=RDFType.Literal(x.dateTime)),
-            Parameter(value, rdf_type=RDFType.Literal(x.double)),
+            Parameter(id, rdf_type=RDFType.Literal(xsd.string)),
+            Parameter(timestamp, rdf_type=RDFType.Literal(xsd.dateTime)),
+            Parameter(value, rdf_type=RDFType.Literal(xsd.double)),
         ],
         instances=[
-            triple(id, ct.suf("hasDataPoint"), dp),
-            triple(dp, ct.suf("hasValue"), value),
-            triple(dp, ct.suf("hasTimestamp"), timestamp)
+            Triple(id, ct.suf("hasDataPoint"), dp),
+            Triple(dp, ct.suf("hasValue"), value),
+            Triple(dp, ct.suf("hasTimestamp"), timestamp)
         ]
     )
     resources = {
