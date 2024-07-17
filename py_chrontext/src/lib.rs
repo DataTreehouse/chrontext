@@ -361,7 +361,6 @@ fn _chrontext(_py:Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<VirtualizedPythonDatabase>()?;
     m.add_class::<PyVirtualizedBigQueryDatabase>()?;
     m.add_class::<PyVirtualizedOPCUADatabase>()?;
-    m.add_class::<PyVirtualizedQuery>()?;
     m.add_class::<PyDataProduct>()?;
     m.add_class::<PyCatalog>()?;
     m.add_class::<PyRDFType>()?;
