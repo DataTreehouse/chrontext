@@ -26,6 +26,7 @@ templates = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb8
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
 oxrdf = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
 oxigraph = "0.4.0-alpha.7"
+oxrdfio = { version= "0.1.0-alpha.6", features = ["rdf-star"] }
 
 polars = "0.41.3"
 tokio = "1.32.1"

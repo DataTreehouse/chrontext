@@ -31,5 +31,4 @@ thiserror.workspace = true
 async-recursion.workspace = true
 async-trait.workspace = true
 oxigraph.workspace = true
-serde.workspace = true
 filesize.workspace = true

@@ -307,12 +307,15 @@ class SparqlEmbeddedOxigraph:
     Embedded oxigraph SPARQL database, stored in a local folder.
     """
 
-    def __init__(self, ntriples_file: str, path: str=None) -> SparqlEmbeddedOxigraph:
+    def __init__(self, rdf_file: str,
+                 rdf_format:LiteralType["NTriples", "TTL", "RDF/XML"]=None,
+                 path: str=None) -> SparqlEmbeddedOxigraph:
         """
-        Initialize from NTriples or open an embedded SPARQL oxigraph from a path.
+        Initialize from an RDF file (e.g. ttl or ntriples) or open an embedded SPARQL oxigraph from a path.
         If you want to re-initialize the database, simply delete the folder.
 
-        :param ntriples_file: The path of the NTriples (.nt) file that should be loaded into the embedded database.
+        :param rdf_file: The path of the RDF file that should be loaded into the embedded database.
+        :param rdf_format: The format of the RDF file.
         :param path: The path (a folder) where the embedded oxigraph should be stored.
         """
 

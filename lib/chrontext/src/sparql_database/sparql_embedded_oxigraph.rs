@@ -4,7 +4,6 @@ use filesize::PathExt;
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxigraph::sparql::QueryResults;
 use oxigraph::store::Store;
-use serde::{Deserialize, Serialize};
 use sparesults::QuerySolution;
 use spargebra::Query;
 use std::error::Error;
@@ -15,7 +14,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::SystemTime;
 
-const TTL_FILE_METADATA: &str = "ttl_file_data.txt";
+const RDF_FILE_METADATA: &str = "rdf_file_data.txt";
 
 #[derive(Debug)]
 pub enum EmbeddedOxigraphError {
@@ -44,10 +43,11 @@ impl Display for EmbeddedOxigraphError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct EmbeddedOxigraphConfig {
     pub path: Option<String>,
-    pub ntriples_file: String,
+    pub rdf_file: String,
+    pub rdf_format: Option<RdfFormat>,
 }
 
 pub struct EmbeddedOxigraph {
@@ -76,8 +76,23 @@ impl EmbeddedOxigraph {
     pub fn from_config(
         config: EmbeddedOxigraphConfig,
     ) -> Result<EmbeddedOxigraph, EmbeddedOxigraphError> {
-        let ntriples_path = Path::new(&config.ntriples_file);
-        let ntriples_file_metadata = file_metadata_string(ntriples_path)
+        let path = Path::new(&config.rdf_file);
+
+        let rdf_format = if let Some(rdf_format) = &config.rdf_format {
+            rdf_format.clone()
+        } else {
+            if path.extension() == Some("ttl".as_ref()) {
+                RdfFormat::Turtle
+            } else if path.extension() == Some("nt".as_ref()) {
+                RdfFormat::NTriples
+            } else if path.extension() == Some("xml".as_ref()) {
+                RdfFormat::RdfXml
+            } else {
+                todo!("Have not implemented file format {:?}", path);
+            }
+        };
+
+        let rdf_file_metadata = file_metadata_string(path)
             .map_err(|x| EmbeddedOxigraphError::DBMetadataIOError(x.to_string()))?;
 
         let store = if let Some(p) = &config.path {
@@ -89,12 +104,12 @@ impl EmbeddedOxigraph {
 
         let need_read_file = if let Some(p) = &config.path {
             let mut pb = Path::new(p).to_path_buf();
-            pb.push(Path::new(TTL_FILE_METADATA));
+            pb.push(Path::new(RDF_FILE_METADATA));
             let dbdata_path = pb.as_path();
             if dbdata_path.exists() {
-                let existing_db_ntriples_metadata = read_to_string(dbdata_path)
+                let existing_db_rdf_metadata = read_to_string(dbdata_path)
                     .map_err(|x| EmbeddedOxigraphError::DBMetadataIOError(x.to_string()))?;
-                existing_db_ntriples_metadata != ntriples_file_metadata
+                existing_db_rdf_metadata != rdf_file_metadata
             } else {
                 true
             }
@@ -103,21 +118,21 @@ impl EmbeddedOxigraph {
         };
 
         if need_read_file {
-            let file = File::open(&config.ntriples_file)
+            let file = File::open(&config.rdf_file)
                 .map_err(|x| EmbeddedOxigraphError::ReadNTriplesFileError(x.to_string()))?;
             let mut reader = BufReader::new(file);
             store
                 .bulk_loader()
                 .load_from_read(
-                    RdfParser::from_format(RdfFormat::NQuads).unchecked(),
+                    RdfParser::from_format(rdf_format).unchecked(),
                     &mut reader,
                 )
                 .map_err(|x| EmbeddedOxigraphError::LoaderError(x.to_string()))?;
             if let Some(p) = &config.path {
                 let mut pb = Path::new(p).to_path_buf();
-                pb.push(TTL_FILE_METADATA);
+                pb.push(RDF_FILE_METADATA);
                 let mut f = File::create(pb).unwrap();
-                write!(f, "{}", ntriples_file_metadata).unwrap();
+                write!(f, "{}", rdf_file_metadata).unwrap();
             }
         }
         let oxi = EmbeddedOxigraph { store };

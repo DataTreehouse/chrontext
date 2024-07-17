@@ -39,6 +39,7 @@ use crate::errors::PyChrontextError;
 use chrontext::engine::{Engine, EngineConfig};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
 use log::debug;
+use oxrdfio::RdfFormat;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
@@ -205,14 +206,16 @@ impl PyEngine {
 #[pyclass(name = "SparqlEmbeddedOxigraph")]
 pub struct PySparqlEmbeddedOxigraph {
     path: Option<String>,
-    ntriples_file: String,
+    rdf_file: String,
+    rdf_format: Option<RdfFormat>,
 }
 
 impl PySparqlEmbeddedOxigraph {
     pub fn as_config(&self) -> EmbeddedOxigraphConfig {
         EmbeddedOxigraphConfig {
             path: self.path.clone(),
-            ntriples_file: self.ntriples_file.clone(),
+            rdf_file: self.rdf_file.clone(),
+            rdf_format: self.rdf_format.clone()
         }
     }
 }
@@ -220,11 +223,27 @@ impl PySparqlEmbeddedOxigraph {
 #[pymethods]
 impl PySparqlEmbeddedOxigraph {
     #[new]
-    pub fn new(ntriples_file: String, path: Option<String>) -> PySparqlEmbeddedOxigraph {
+    pub fn new(rdf_file: String, rdf_format:Option<String>, path: Option<String> ) -> PySparqlEmbeddedOxigraph {
+        let rdf_format = if let Some(format) = rdf_format {
+            Some(resolve_format(&format))
+        } else {
+            None
+        };
         PySparqlEmbeddedOxigraph {
             path,
-            ntriples_file,
+            rdf_file,
+            rdf_format,
         }
+    }
+}
+
+
+fn resolve_format(format: &str) -> RdfFormat {
+    match format.to_lowercase().as_str() {
+        "ntriples" => RdfFormat::NTriples,
+        "turtle" => RdfFormat::Turtle,
+        "rdf/xml" | "xml" | "rdfxml" => RdfFormat::RdfXml,
+        _ => unimplemented!("Unknown format {}", format),
     }
 }
 

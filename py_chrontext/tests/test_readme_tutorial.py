@@ -60,7 +60,7 @@ def test_tutorial():
         )}
 
     from chrontext import Engine, SparqlEmbeddedOxigraph
-    oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file=str("my_graph.nt"), path="oxigraph_db_tutorial")
+    oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="my_graph.nt", path="oxigraph_db_tutorial")
     engine = Engine(
         resources,
         virtualized_python_database=vdb,

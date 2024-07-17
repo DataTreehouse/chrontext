@@ -1,4 +1,4 @@
-# chrontext: High-performance hybrid query engine for knowledge graphs and time-series
+# chrontext: High-performance hybrid query engine for knowledge graphs and analytical data (e.g. time-series)
 Chrontext allows you to use your knowledge graph to access large amounts of time-series or other analytical data. It uses a commodity SPARQL Triplestore and your existing data storage infrastructure.
 It currently supports time-series stored in a PostgreSQL-compatible Database such as DuckDB, Google Cloud BigQuery (SQL) and OPC UA HA, but can easily be extended to other APIs and databases.
 ![Chrontext Architecture](doc/chrontext_arch.png)
@@ -191,7 +191,7 @@ The context for our analytical data (e.g. a model of an industrial asset) has to
 In this case, we use an embedded Oxigraph engine that comes with chrontext. Now we assemble the pieces and create the engine.
 ```python
 from chrontext import Engine, SparqlEmbeddedOxigraph
-oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file=str("my_graph.nt"), path="oxigraph_db")
+oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="my_graph.nt", path="oxigraph_db")
 engine = Engine(
         resources,
         virtualized_python_database=vdb,

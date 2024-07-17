@@ -14,10 +14,6 @@ import rdflib
 
 PATH_HERE = pathlib.Path(__file__).parent
 TESTDATA_PATH = PATH_HERE / "testdata" / "python_based"
-g = rdflib.Graph()
-g.parse(TESTDATA_PATH / "testdata.ttl")
-g.serialize(TESTDATA_PATH / "testdata.nt", format="nt")
-
 TS1_CSV = str(TESTDATA_PATH / "ts1.csv")
 TS2_CSV = str(TESTDATA_PATH / "ts2.csv")
 
@@ -91,7 +87,7 @@ def engine() -> Engine:
             ]
         )
     }
-    oxigraph_store = SparqlEmbeddedOxigraph(ntriples_file=str(TESTDATA_PATH / "testdata.nt"), path="oxigraph_db")
+    oxigraph_store = SparqlEmbeddedOxigraph(rdf_file=str(TESTDATA_PATH / "testdata.ttl"), path="oxigraph_db")
     engine = Engine(
         resources,
         virtualized_python_database=vdb,
