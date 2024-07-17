@@ -96,7 +96,7 @@ timestamp,value
 We need to create a class with a method `query` that takes a SQL string its argument, returning a Polars DataFrame. 
 In this class, we just hard code the DuckDB setup in the constructor. 
 ```python
-    import duckdb
+import duckdb
 import polars as pl
 
 class MyDuckDB():
@@ -164,19 +164,19 @@ timestamp = Variable("timestamp")
 value = Variable("value")
 dp = Variable("dp")
 resources = {
-    "my_resource": Template(
-        iri=ct.suf("my_resource"),
-        parameters=[
-            Parameter(id, rdf_type=RDFType.Literal(xsd.string)),
-            Parameter(timestamp, rdf_type=RDFType.Literal(xsd.dateTime)),
-            Parameter(value, rdf_type=RDFType.Literal(xsd.double)),
-        ],
-        instances=[
-            Triple(id, ct.suf("hasDataPoint"), dp),
-            Triple(dp, ct.suf("hasValue"), value),
-            Triple(dp, ct.suf("hasTimestamp"), timestamp)
-        ]
-    )}
+"my_resource": Template(
+    iri=ct.suf("my_resource"),
+    parameters=[
+        Parameter(id, rdf_type=RDFType.Literal(xsd.string)),
+        Parameter(timestamp, rdf_type=RDFType.Literal(xsd.dateTime)),
+        Parameter(value, rdf_type=RDFType.Literal(xsd.double)),
+    ],
+    instances=[
+        Triple(id, ct.suf("hasDataPoint"), dp),
+        Triple(dp, ct.suf("hasValue"), value),
+        Triple(dp, ct.suf("hasTimestamp"), timestamp)
+    ]
+)}
 ```
 This means that our instance `ex:myWidget1`, will be associated with a value and a timestamp (and a blank data point) for each row in `ts1.csv`.
 For instance, the first row means we have: 
