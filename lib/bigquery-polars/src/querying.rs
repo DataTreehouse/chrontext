@@ -40,6 +40,7 @@ use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
 use std::time::Duration;
+use polars::export::chrono::Utc;
 use tokio::time::sleep;
 
 pub struct BigQueryExecutor {
@@ -112,6 +113,7 @@ impl BigQueryExecutor {
         }
         let mut rows_processed = 0;
         let mut all_lfs = vec![];
+        let some_utc = Some("UTC".to_string());
         loop {
             if let Some(rows) = &rs.rows {
                 let any_value_vecs: Vec<_> = types
@@ -122,7 +124,7 @@ impl BigQueryExecutor {
                         for r in rows {
                             if let Some(columns) = &r.columns {
                                 any_values
-                                    .push(table_cell_to_any(columns.get(i).unwrap(), field_type));
+                                    .push(table_cell_to_any(columns.get(i).unwrap(), field_type, &some_utc));
                             }
                         }
                         return any_values;
@@ -183,7 +185,7 @@ impl BigQueryExecutor {
     }
 }
 
-fn table_cell_to_any<'a>(table_cell: &'a TableCell, field_type: &FieldType) -> AnyValue<'a> {
+fn table_cell_to_any<'a>(table_cell: &'a TableCell, field_type: &FieldType, some_utc:&'a Option<String>) -> AnyValue<'a> {
     if table_cell.value.is_none() {
         return AnyValue::Null;
     }
@@ -208,7 +210,7 @@ fn table_cell_to_any<'a>(table_cell: &'a TableCell, field_type: &FieldType) -> A
         FieldType::Timestamp => {
             let ts_str = value_as_ref.as_str().unwrap();
             let timestamp_ns = (ts_str.parse::<f64>().unwrap() * (1e9f64)) as i64;
-            AnyValue::Datetime(timestamp_ns, TimeUnit::Nanoseconds, &None)
+            AnyValue::Datetime(timestamp_ns, TimeUnit::Nanoseconds, some_utc)
         }
         FieldType::Date => {
             todo!()

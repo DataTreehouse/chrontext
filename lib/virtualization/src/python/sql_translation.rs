@@ -60,6 +60,8 @@ class SPARQLMapper:
 
             case "Basic":
                 table = self.resource_sql_map[query.resource]
+                if isinstance(table, Table):
+                    table = select(*[t for t in table.columns])
                 table = table.subquery(self.inner_name())
 
                 to_select = []
