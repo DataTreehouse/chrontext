@@ -35,8 +35,6 @@ def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"]
         case "postgres":
             use_dialect = postgresql.dialect()
     compiled = q.compile(dialect=use_dialect, compile_kwargs={"literal_binds": True})
-    print("\n")
-    print(compiled)
     return str(compiled)
 
 
@@ -217,7 +215,9 @@ class SPARQLMapper:
                 else:
                     return func.aggregate_strings(sql_expression, separator=literal_column("''"))
             case _:
+                print("Unknown aggregate expression")
                 print(aggregate_expression.name)
+                assert False
 
     def expression_to_sql(
             self,
@@ -305,8 +305,10 @@ class SPARQLMapper:
                     sql_collection.append(self.expression_to_sql(e, columns))
                 return func.coalesce(sql_collection)
             case _:
+                print("Unknown expression")
                 print(type(expression))
                 print(expression)
+                assert False
 
     def function_call_to_sql(self,
                              function: str,
@@ -344,6 +346,9 @@ class SPARQLMapper:
                                 func.UNIX_SECONDS(sql_args[0]),
                                 sql_args[1])
                         )
+        print("Unknown function")
+        print(function)
+        assert False
 
     def inner_name(self) -> str:
         name = f"inner_{self.counter}"
