@@ -5,24 +5,6 @@ use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
 use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, OrderExpression};
 use spargebra::term::{TermPattern};
-//
-// #[derive(Error, Debug)]
-// pub enum PyExpressionError {
-//     #[error("Bad method call: `{0}`")]
-//     BadMethodCallError(String),
-// }
-//
-// impl std::convert::From<PyExpressionError> for PyErr {
-//     fn from(err: PyExpressionError) -> PyErr {
-//         match &err {
-//             PyExpressionError::BadMethodCallError(err) => {
-//                 BadMethodCallErrorException::new_err(format!("{}", err))
-//             }
-//         }
-//     }
-// }
-//
-// create_exception!(exceptions, BadMethodCallErrorException, PyException);
 
 #[derive(Clone)]
 #[pyclass(name = "VirtualizedQuery")]
