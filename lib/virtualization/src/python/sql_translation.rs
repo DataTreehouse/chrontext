@@ -11,9 +11,19 @@ from chrontext.vq import Expression, VirtualizedQuery, AggregateExpression
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, cast, \
     BigInteger, CompoundSelect, and_, literal_column, case, func, TIMESTAMP
 
+
 XSD = "http://www.w3.org/2001/XMLSchema#"
 XSD_INTEGER = "<http://www.w3.org/2001/XMLSchema#integer>"
 FLOOR_DATE_TIME_TO_SECONDS_INTERVAL = "<https://github.com/DataTreehouse/chrontext#FloorDateTimeToSecondsInterval>"
+
+import warnings
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore")
+    class unnest(GenericFunction):
+        name = "UNNEST"
+        package = "bq"
+        inherit_cache = True
 
 def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"],
                   resource_sql_map: Dict[str, Any]) -> str:
@@ -63,7 +73,7 @@ class SPARQLMapper:
                         structs = []
                         for (id, group) in query.id_grouping_tuples:
                             structs.append(f"STRUCT('{id}' as id, {group} as {query.grouping_column_name})")
-                        values_sub = func.unnest(literal_column(f"[{', '.join(structs)}]")).table_valued(
+                        values_sub = func.bq.unnest(literal_column(f"[{', '.join(structs)}]")).table_valued(
                             Column("id"),
                             Column(query.grouping_column_name)
                         )
