@@ -1,15 +1,15 @@
 mod sql_translation;
 
+use log::debug;
 use polars::prelude::DataFrame;
 use pydf_io::to_rust::polars_df_to_rust_df;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use std::collections::{HashSet};
-use log::debug;
+use sql_translation::PYTHON_CODE;
+use std::collections::HashSet;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::python::PyVirtualizedQuery;
 use virtualized_query::VirtualizedQuery;
-use sql_translation::PYTHON_CODE;
 
 #[derive(Clone, Debug)]
 #[pyclass]
@@ -43,7 +43,11 @@ impl VirtualizedPythonDatabase {
     pub fn query(&self, vq: &VirtualizedQuery) -> PyResult<DataFrame> {
         Python::with_gil(|py| {
             let py_df = if let Some(resource_sql_map) = &self.resource_sql_map {
-                let s = translate_sql(vq, resource_sql_map, self.sql_dialect.as_ref().unwrap().as_str())?;
+                let s = translate_sql(
+                    vq,
+                    resource_sql_map,
+                    self.sql_dialect.as_ref().unwrap().as_str(),
+                )?;
                 let query_func = self.database.getattr(py, "query")?;
                 query_func.call1(py, (s,))?
             } else {
@@ -56,8 +60,11 @@ impl VirtualizedPythonDatabase {
     }
 }
 
-pub fn translate_sql(vq: &VirtualizedQuery, resource_sql_map: &Py<PyDict>, dialect:&str) -> PyResult<String> {
-    debug!("Trying this...");
+pub fn translate_sql(
+    vq: &VirtualizedQuery,
+    resource_sql_map: &Py<PyDict>,
+    dialect: &str,
+) -> PyResult<String> {
     Python::with_gil(|py| {
         let pyvq = PyVirtualizedQuery::new(vq.clone(), py)?;
         let db_mod = PyModule::from_code_bound(py, PYTHON_CODE, "my_translator", "my_translator")?;

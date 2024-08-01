@@ -4,13 +4,13 @@ use crate::combiner::virtualized_queries::split_virtualized_queries;
 use crate::combiner::CombinerError;
 use async_recursion::async_recursion;
 use log::debug;
+use query_processing::find_query_variables::solution_mappings_has_all_expression_variables;
 use query_processing::graph_patterns::filter;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::find_query_variables::solution_mappings_has_all_expression_variables;
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -50,7 +50,8 @@ impl Combiner {
                 &inner_context,
             )
             .await?;
-        let has_all = solution_mappings_has_all_expression_variables(&output_solution_mappings, expression);
+        let has_all =
+            solution_mappings_has_all_expression_variables(&output_solution_mappings, expression);
         if has_all {
             output_solution_mappings = self
                 .lazy_expression(

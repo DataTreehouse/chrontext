@@ -5,13 +5,13 @@ use crate::combiner::CombinerError;
 use log::debug;
 use oxrdf::Variable;
 use query_processing::aggregates::AggregateReturn;
+use query_processing::find_query_variables::solution_mappings_has_all_aggregate_expression_variables;
 use query_processing::graph_patterns::{group_by, prepare_group_by};
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
 use spargebra::Query;
 use std::collections::HashMap;
-use query_processing::find_query_variables::{solution_mappings_has_all_aggregate_expression_variables};
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -48,7 +48,10 @@ impl Combiner {
         for i in 0..aggregates.len() {
             let aggregate_context = context.extension_with(PathEntry::GroupAggregation(i as u16));
             let (v, a) = aggregates.get(i).unwrap();
-            if solution_mappings_has_all_aggregate_expression_variables(&output_solution_mappings, a) {
+            if solution_mappings_has_all_aggregate_expression_variables(
+                &output_solution_mappings,
+                a,
+            ) {
                 let AggregateReturn {
                     solution_mappings: aggregate_solution_mappings,
                     expr,

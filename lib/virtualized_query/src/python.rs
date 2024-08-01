@@ -1,10 +1,10 @@
-use crate::{VirtualizedQuery};
+use crate::VirtualizedQuery;
 use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
 use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, OrderExpression};
-use spargebra::term::{TermPattern};
+use spargebra::term::TermPattern;
 
 #[derive(Clone)]
 #[pyclass(name = "VirtualizedQuery")]
@@ -37,7 +37,7 @@ pub enum PyVirtualizedQuery {
     Ordered {
         query: Py<PyVirtualizedQuery>,
         ordering: Vec<Py<PyOrderExpression>>,
-    }
+    },
 }
 
 #[pymethods]
@@ -49,7 +49,7 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::Grouped { .. } => "Grouped",
             PyVirtualizedQuery::ExpressionAs { .. } => "ExpressionAs",
             PyVirtualizedQuery::InnerJoin { .. } => "InnerJoin",
-            PyVirtualizedQuery::Ordered { .. } => "Ordered"
+            PyVirtualizedQuery::Ordered { .. } => "Ordered",
         }
     }
 
@@ -95,8 +95,7 @@ impl PyVirtualizedQuery {
     fn id_grouping_tuples(&self) -> Option<Vec<(String, i64)>> {
         match self {
             PyVirtualizedQuery::Basic {
-                id_grouping_tuples,
-                ..
+                id_grouping_tuples, ..
             } => {
                 if let Some(id_grouping_tuples) = id_grouping_tuples {
                     Some(id_grouping_tuples.clone())
@@ -128,8 +127,8 @@ impl PyVirtualizedQuery {
         match self {
             PyVirtualizedQuery::Filtered { query, .. }
             | PyVirtualizedQuery::ExpressionAs { query, .. }
-            | PyVirtualizedQuery::Ordered {query, .. }
-            | PyVirtualizedQuery::Grouped {query, .. } => Some(query.clone_ref(py)),
+            | PyVirtualizedQuery::Ordered { query, .. }
+            | PyVirtualizedQuery::Grouped { query, .. } => Some(query.clone_ref(py)),
             _ => None,
         }
     }
@@ -149,7 +148,6 @@ impl PyVirtualizedQuery {
             _ => None,
         }
     }
-
 
     #[getter]
     fn ordering(&self) -> Option<Vec<Py<PyOrderExpression>>> {
@@ -261,7 +259,7 @@ impl PyVirtualizedQuery {
                 for q in queries {
                     py_qs.push(Py::new(py, PyVirtualizedQuery::new(q, py)?)?);
                 }
-                PyVirtualizedQuery::InnerJoin {queries:py_qs}
+                PyVirtualizedQuery::InnerJoin { queries: py_qs }
             }
             VirtualizedQuery::Ordered(vq, ordering) => {
                 let mut py_orderings = vec![];
@@ -269,9 +267,12 @@ impl PyVirtualizedQuery {
                     let p = PyOrderExpression::new(&o, py)?;
                     py_orderings.push(Py::new(py, p)?);
                 }
-                PyVirtualizedQuery::Ordered { query: Py::new(py, PyVirtualizedQuery::new(*vq, py)?)?, ordering: py_orderings }
+                PyVirtualizedQuery::Ordered {
+                    query: Py::new(py, PyVirtualizedQuery::new(*vq, py)?)?,
+                    ordering: py_orderings,
+                }
             }
-            _ => todo!()
+            _ => todo!(),
         })
     }
 }
@@ -331,13 +332,29 @@ pub enum PyExpression {
         function: String,
         arguments: Vec<Py<PyExpression>>,
     },
-    Divide { left: Py<PyExpression>, right: Py<PyExpression> },
-    Add { left: Py<PyExpression>, right: Py<PyExpression> },
-    Subtract { left: Py<PyExpression>, right: Py<PyExpression> },
-    Multiply { left: Py<PyExpression>, right: Py<PyExpression> },
-    In {expression:Py<PyExpression>, expressions: Vec<Py<PyExpression>>},
-    Coalesce {expressions: Vec<Py<PyExpression>>}
-
+    Divide {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    Add {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    Subtract {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    Multiply {
+        left: Py<PyExpression>,
+        right: Py<PyExpression>,
+    },
+    In {
+        expression: Py<PyExpression>,
+        expressions: Vec<Py<PyExpression>>,
+    },
+    Coalesce {
+        expressions: Vec<Py<PyExpression>>,
+    },
 }
 
 #[pymethods]
@@ -352,7 +369,7 @@ impl PyExpression {
             PyExpression::Literal { .. } => "Literal",
             PyExpression::FunctionCall { .. } => "FunctionCall",
             PyExpression::Divide { .. } => "Divide",
-            PyExpression::In {..} => "In",
+            PyExpression::In { .. } => "In",
             PyExpression::GreaterOrEqual { .. } => "GreaterOrEqual",
             PyExpression::LessOrEqual { .. } => "LessOrEqual",
             PyExpression::Or { .. } => "Or",
@@ -363,7 +380,7 @@ impl PyExpression {
             PyExpression::Multiply { .. } => "Multiply",
             PyExpression::Coalesce { .. } => "Coalesce",
             PyExpression::Bound { .. } => "Bound",
-            PyExpression::Equal { .. } => "Equal"
+            PyExpression::Equal { .. } => "Equal",
         }
     }
 
@@ -377,11 +394,11 @@ impl PyExpression {
             | PyExpression::Equal { left, .. }
             | PyExpression::And { left, .. }
             | PyExpression::Or { left, .. }
-            | PyExpression::Divide {left, ..}
-            | PyExpression::Multiply {left, ..}
-            | PyExpression::Add {left, ..}
-            | PyExpression::Subtract {left, ..}
-            | PyExpression::If {left, ..} => Some(left.clone_ref(py)),
+            | PyExpression::Divide { left, .. }
+            | PyExpression::Multiply { left, .. }
+            | PyExpression::Add { left, .. }
+            | PyExpression::Subtract { left, .. }
+            | PyExpression::If { left, .. } => Some(left.clone_ref(py)),
             _ => None,
         }
     }
@@ -389,7 +406,7 @@ impl PyExpression {
     #[getter]
     fn middle(&self, py: Python) -> Option<Py<PyExpression>> {
         match self {
-            PyExpression::If {middle, ..} => Some(middle.clone_ref(py)),
+            PyExpression::If { middle, .. } => Some(middle.clone_ref(py)),
             _ => None,
         }
     }
@@ -404,11 +421,11 @@ impl PyExpression {
             | PyExpression::Equal { right, .. }
             | PyExpression::And { right, .. }
             | PyExpression::Or { right, .. }
-            | PyExpression::Divide {right, ..}
-            | PyExpression::Multiply {right, ..}
-            | PyExpression::Add {right, ..}
-            | PyExpression::Subtract {right, ..}
-            | PyExpression::If {right, ..} => Some(right.clone_ref(py)),
+            | PyExpression::Divide { right, .. }
+            | PyExpression::Multiply { right, .. }
+            | PyExpression::Add { right, .. }
+            | PyExpression::Subtract { right, .. }
+            | PyExpression::If { right, .. } => Some(right.clone_ref(py)),
             _ => None,
         }
     }
@@ -416,7 +433,9 @@ impl PyExpression {
     #[getter]
     fn variable(&self, py: Python) -> Option<Py<PyVariable>> {
         match self {
-            PyExpression::Variable { variable } | PyExpression::Bound { variable }  => Some(variable.clone_ref(py)),
+            PyExpression::Variable { variable } | PyExpression::Bound { variable } => {
+                Some(variable.clone_ref(py))
+            }
             _ => None,
         }
     }
@@ -456,7 +475,9 @@ impl PyExpression {
     #[getter]
     fn expressions(&self) -> Option<Vec<Py<PyExpression>>> {
         match self {
-            PyExpression::In { expressions, .. } | PyExpression::Coalesce {expressions, ..}=> Some(expressions.clone()),
+            PyExpression::In { expressions, .. } | PyExpression::Coalesce { expressions, .. } => {
+                Some(expressions.clone())
+            }
             _ => None,
         }
     }
@@ -482,7 +503,7 @@ impl PyExpression {
                     py_expressions.push(Py::new(py, PyExpression::new(e, py)?)?);
                 }
                 PyExpression::Coalesce {
-                    expressions: py_expressions
+                    expressions: py_expressions,
                 }
             }
             Expression::Bound(variable) => PyExpression::Bound {
@@ -570,7 +591,7 @@ impl PyExpression {
     }
 }
 
-#[pyclass(name="OrderExpression")]
+#[pyclass(name = "OrderExpression")]
 #[derive(Clone)]
 pub struct PyOrderExpression {
     pub expression: Py<PyExpression>,
@@ -578,19 +599,22 @@ pub struct PyOrderExpression {
 }
 
 impl PyOrderExpression {
-    pub fn new(order_expression: &OrderExpression, py:Python) -> PyResult<Self> {
+    pub fn new(order_expression: &OrderExpression, py: Python) -> PyResult<Self> {
         let (e, ascending) = match order_expression {
-            OrderExpression::Asc(e) => {(e, true)}
-            OrderExpression::Desc(e) => {(e, false)}
+            OrderExpression::Asc(e) => (e, true),
+            OrderExpression::Desc(e) => (e, false),
         };
-        Ok(PyOrderExpression { expression: Py::new(py,PyExpression::new(e, py)?)?, ascending })
+        Ok(PyOrderExpression {
+            expression: Py::new(py, PyExpression::new(e, py)?)?,
+            ascending,
+        })
     }
 }
 
 #[pymethods]
 impl PyOrderExpression {
     #[getter]
-    fn expression(&self,py:Python) -> Py<PyExpression> {
+    fn expression(&self, py: Python) -> Py<PyExpression> {
         self.expression.clone_ref(py)
     }
 
@@ -640,10 +664,8 @@ impl PyAggregateExpression {
     #[getter]
     fn separator(&self) -> Option<String> {
         match &self.function {
-            AggregateFunction::GroupConcat { separator } => {
-                separator.clone()
-            }
-            _ => {None}
+            AggregateFunction::GroupConcat { separator } => separator.clone(),
+            _ => None,
         }
     }
 }

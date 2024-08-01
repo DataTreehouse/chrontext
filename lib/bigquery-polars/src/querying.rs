@@ -122,8 +122,11 @@ impl BigQueryExecutor {
                         let mut any_values = vec![];
                         for r in rows {
                             if let Some(columns) = &r.columns {
-                                any_values
-                                    .push(table_cell_to_any(columns.get(i).unwrap(), field_type, &some_utc));
+                                any_values.push(table_cell_to_any(
+                                    columns.get(i).unwrap(),
+                                    field_type,
+                                    &some_utc,
+                                ));
                             }
                         }
                         return any_values;
@@ -184,7 +187,11 @@ impl BigQueryExecutor {
     }
 }
 
-fn table_cell_to_any<'a>(table_cell: &'a TableCell, field_type: &FieldType, some_utc:&'a Option<String>) -> AnyValue<'a> {
+fn table_cell_to_any<'a>(
+    table_cell: &'a TableCell,
+    field_type: &FieldType,
+    some_utc: &'a Option<String>,
+) -> AnyValue<'a> {
     if table_cell.value.is_none() {
         return AnyValue::Null;
     }

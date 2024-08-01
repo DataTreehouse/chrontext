@@ -280,7 +280,12 @@ impl Preprocessor {
                 );
                 for (variable, agg) in aggregates {
                     let mut used_vars = HashSet::new();
-                    find_all_used_variables_in_aggregate_expression(agg, &mut used_vars, false, false);
+                    find_all_used_variables_in_aggregate_expression(
+                        agg,
+                        &mut used_vars,
+                        false,
+                        false,
+                    );
                     for v in used_vars.drain() {
                         if let Some(ctr) = self.variable_constraints.get_constraint(&v, context) {
                             if ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived

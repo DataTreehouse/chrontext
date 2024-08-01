@@ -1,5 +1,6 @@
 mod bgp_pattern;
 mod distinct_pattern;
+mod expression_rewrites;
 mod extend_pattern;
 mod filter_pattern;
 mod graph_pattern;
@@ -15,7 +16,6 @@ mod service_pattern;
 mod sliced_pattern;
 mod union_pattern;
 mod values_pattern;
-mod expression_rewrites;
 
 use super::TimeseriesQueryPrepper;
 use log::debug;

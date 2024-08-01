@@ -42,13 +42,9 @@ pub(crate) fn rewrite_order_expressions(
     let mut rewritten_order_expressions = vec![];
     let mut lost_value = false;
     for oe in order_expressions {
-        let (e,desc) = match oe {
-            OrderExpression::Asc(e) => {
-                (e,false)
-            }
-            OrderExpression::Desc(e) => {
-                (e,true)
-            }
+        let (e, desc) = match oe {
+            OrderExpression::Asc(e) => (e, false),
+            OrderExpression::Desc(e) => (e, true),
         };
         let rewrite = try_recursive_rewrite_expression(
             vq,
@@ -70,7 +66,7 @@ pub(crate) fn rewrite_order_expressions(
         }
     }
     if rewritten_order_expressions.is_empty() {
-        return (None, lost_value)
+        return (None, lost_value);
     }
     return (Some(rewritten_order_expressions), lost_value);
 }

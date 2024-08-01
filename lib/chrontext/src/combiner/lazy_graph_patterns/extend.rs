@@ -6,14 +6,14 @@ use async_recursion::async_recursion;
 use log::debug;
 use oxrdf::Variable;
 use polars::prelude::{lit, LiteralValue};
-use query_processing::find_query_variables::{solution_mappings_has_all_expression_variables};
+use query_processing::find_query_variables::solution_mappings_has_all_expression_variables;
 use query_processing::graph_patterns::extend;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use representation::{BaseRDFNodeType, RDFNodeType};
 use spargebra::algebra::{Expression, GraphPattern};
 use spargebra::Query;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
@@ -54,7 +54,8 @@ impl Combiner {
             )
             .await?;
 
-        let has_all = solution_mappings_has_all_expression_variables(&output_solution_mappings, expression);
+        let has_all =
+            solution_mappings_has_all_expression_variables(&output_solution_mappings, expression);
         if has_all {
             output_solution_mappings = self
                 .lazy_expression(

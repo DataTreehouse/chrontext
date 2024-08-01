@@ -2,13 +2,13 @@ use super::Combiner;
 use crate::combiner::CombinerError;
 use async_recursion::async_recursion;
 use log::debug;
+use query_processing::find_query_variables::solution_mappings_has_all_order_expression_variables;
 use query_processing::graph_patterns::order_by;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use spargebra::Query;
-use std::collections::{HashMap};
-use query_processing::find_query_variables::{solution_mappings_has_all_order_expression_variables};
+use std::collections::HashMap;
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {

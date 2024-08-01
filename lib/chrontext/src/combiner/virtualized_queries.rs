@@ -14,11 +14,15 @@ use representation::solution_mapping::{EagerSolutionMappings, SolutionMappings};
 use representation::{BaseRDFNodeType, RDFNodeType};
 use sparesults::QuerySolution;
 use std::collections::{HashMap, HashSet};
-use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
 use virtualized_query::pushdown_setting::PushdownSetting;
+use virtualized_query::{BasicVirtualizedQuery, VirtualizedQuery};
 
 impl Combiner {
-    pub fn attach_expected_empty_results(&self, vq:&VirtualizedQuery, mut solution_mappings: SolutionMappings) -> SolutionMappings {
+    pub fn attach_expected_empty_results(
+        &self,
+        vq: &VirtualizedQuery,
+        mut solution_mappings: SolutionMappings,
+    ) -> SolutionMappings {
         let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
         expected_cols.sort();
         println!("Expected cols: {expected_cols:?}");
@@ -59,13 +63,17 @@ impl Combiner {
         debug!("Executing time series query: {:?}", vq);
         //Filter out degenerate VQs here.
         if !vq.has_identifiers() || !vq.has_resources() {
-            return Ok(self.attach_expected_empty_results(&vq, solution_mappings))
+            return Ok(self.attach_expected_empty_results(&vq, solution_mappings));
         }
 
         //Find the columns we should join on:
         let on_cols = get_join_columns(&vq, &solution_mappings.rdf_node_types);
 
-        if self.prepper.pushdown_settings.contains(&PushdownSetting::Ordering) {
+        if self
+            .prepper
+            .pushdown_settings
+            .contains(&PushdownSetting::Ordering)
+        {
             vq = vq.add_sorting_pushdown(&on_cols);
         }
         let EagerSolutionMappings {
@@ -81,8 +89,17 @@ impl Combiner {
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
         let mut mappings = mappings.lazy();
         let drop_cols = get_drop_cols(&vq);
-        let groupby_cols: Vec<_> = vq.get_groupby_columns().into_iter().filter(|x|on_cols.contains(x)).collect();
-        let id_cols: Vec<_> = vq.get_identifier_variables().into_iter().map(|x|x.as_str().to_string()).filter(|x|on_cols.contains(x)).collect();
+        let groupby_cols: Vec<_> = vq
+            .get_groupby_columns()
+            .into_iter()
+            .filter(|x| on_cols.contains(x))
+            .collect();
+        let id_cols: Vec<_> = vq
+            .get_identifier_variables()
+            .into_iter()
+            .map(|x| x.as_str().to_string())
+            .filter(|x| on_cols.contains(x))
+            .collect();
         for c in groupby_cols {
             //When there are no results we need to cast to the appropriate type
             if let Some(&RDFNodeType::None) = rdf_node_types.get(c) {
@@ -182,10 +199,10 @@ fn get_drop_cols(vq: &VirtualizedQuery) -> HashSet<String> {
         drop_cols.insert(c.clone());
     }
     drop_cols.extend(
-            vq.get_identifier_variables()
-                .iter()
-                .map(|x| x.as_str().to_string()),
-        );
+        vq.get_identifier_variables()
+            .iter()
+            .map(|x| x.as_str().to_string()),
+    );
     drop_cols
 }
 
@@ -234,8 +251,10 @@ pub(crate) fn complete_basic_virtualized_queries(
     Ok(())
 }
 
-
-pub fn get_join_columns(vq: &VirtualizedQuery, existing:&HashMap<String, RDFNodeType>) -> Vec<String> {
+pub fn get_join_columns(
+    vq: &VirtualizedQuery,
+    existing: &HashMap<String, RDFNodeType>,
+) -> Vec<String> {
     let mut new_order = vec![];
     let expected = vq.expected_columns();
     let grouping_cols = vq.get_groupby_columns();

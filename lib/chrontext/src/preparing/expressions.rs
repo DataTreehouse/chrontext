@@ -58,14 +58,15 @@ impl TimeseriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
-        let mut exprep_out:Option<EXPrepReturn> = None;
+        let mut exprep_out: Option<EXPrepReturn> = None;
 
         for order_expression in order_expressions {
             let e = match order_expression {
-                OrderExpression::Asc(e) => { e }
-                OrderExpression::Desc(e) => { e }
+                OrderExpression::Asc(e) => e,
+                OrderExpression::Desc(e) => e,
             };
-            let exprep = self.prepare_expression(e, try_groupby_complex_query, solution_mappings, context);
+            let exprep =
+                self.prepare_expression(e, try_groupby_complex_query, solution_mappings, context);
             if exprep.fail_groupby_complex_query {
                 return EXPrepReturn::fail_groupby_complex_query();
             }

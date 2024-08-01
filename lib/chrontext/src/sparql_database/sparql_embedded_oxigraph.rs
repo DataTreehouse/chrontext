@@ -123,10 +123,7 @@ impl EmbeddedOxigraph {
             let mut reader = BufReader::new(file);
             store
                 .bulk_loader()
-                .load_from_read(
-                    RdfParser::from_format(rdf_format).unchecked(),
-                    &mut reader,
-                )
+                .load_from_read(RdfParser::from_format(rdf_format).unchecked(), &mut reader)
                 .map_err(|x| EmbeddedOxigraphError::LoaderError(x.to_string()))?;
             if let Some(p) = &config.path {
                 let mut pb = Path::new(p).to_path_buf();

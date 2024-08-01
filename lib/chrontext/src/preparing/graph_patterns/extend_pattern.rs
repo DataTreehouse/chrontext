@@ -27,7 +27,7 @@ impl TimeseriesQueryPrepper {
         );
         if try_groupby_complex_query {
             let mut expression_vars = HashSet::new();
-            find_all_used_variables_in_expression(expr, &mut expression_vars, true ,true);
+            find_all_used_variables_in_expression(expr, &mut expression_vars, true, true);
             let mut found_i = None;
             let mut found_context = None;
 

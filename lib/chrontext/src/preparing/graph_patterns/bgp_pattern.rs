@@ -19,10 +19,7 @@ impl TimeseriesQueryPrepper {
             if &vq.query_source_context == &bgp_context {
                 if let Some(resource) = &vq.resource {
                     let template = self.virtualization.resources.get(resource).unwrap();
-                    vq.finish_column_mapping(
-                        patterns,
-                        template,
-                    );
+                    vq.finish_column_mapping(patterns, template);
                 }
                 //We create a degenerate VQ to be able to remove the columns later.
                 local_vqs.push(VirtualizedQuery::Basic(vq.clone()));

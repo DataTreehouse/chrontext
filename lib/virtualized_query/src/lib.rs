@@ -6,11 +6,11 @@ use polars::frame::DataFrame;
 use query_processing::find_query_variables::find_all_used_variables_in_expression;
 use representation::query_context::{Context, VariableInContext};
 use spargebra::algebra::{AggregateExpression, Expression, OrderExpression};
+use spargebra::remove_sugar::{HAS_TIMESTAMP, HAS_VALUE};
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern, Variable};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use spargebra::remove_sugar::{HAS_TIMESTAMP, HAS_VALUE};
 use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
 use templates::constants::OTTR_TRIPLE;
 
@@ -28,7 +28,7 @@ pub enum VirtualizedQuery {
 }
 
 impl VirtualizedQuery {
-    pub fn add_sorting_pushdown(mut self, join_cols:&Vec<String>) -> VirtualizedQuery {
+    pub fn add_sorting_pushdown(mut self, join_cols: &Vec<String>) -> VirtualizedQuery {
         if !self.try_modify_existing_sort(join_cols) {
             let orderings = create_orderings(join_cols);
             VirtualizedQuery::Ordered(Box::new(self), orderings)
@@ -37,12 +37,14 @@ impl VirtualizedQuery {
         }
     }
 
-    pub fn try_modify_existing_sort(&mut self, join_cols:&Vec<String>) -> bool {
+    pub fn try_modify_existing_sort(&mut self, join_cols: &Vec<String>) -> bool {
         match self {
             VirtualizedQuery::Basic(_) => false,
             VirtualizedQuery::Filtered(inner, _) => inner.try_modify_existing_sort(join_cols),
             VirtualizedQuery::InnerJoin(_, _) => false,
-            VirtualizedQuery::ExpressionAs(inner, _, _) => inner.try_modify_existing_sort(join_cols),
+            VirtualizedQuery::ExpressionAs(inner, _, _) => {
+                inner.try_modify_existing_sort(join_cols)
+            }
             VirtualizedQuery::Grouped(_) => false,
             VirtualizedQuery::Limited(inner, _) => inner.try_modify_existing_sort(join_cols),
             VirtualizedQuery::Ordered(_, orderings) => {
@@ -56,10 +58,12 @@ impl VirtualizedQuery {
     }
 }
 
-fn create_orderings(join_cols:&Vec<String>) -> Vec<OrderExpression> {
+fn create_orderings(join_cols: &Vec<String>) -> Vec<OrderExpression> {
     let mut orderings = vec![];
     for c in join_cols {
-        orderings.push(OrderExpression::Asc(Expression::Variable(Variable::new_unchecked(c))));
+        orderings.push(OrderExpression::Asc(Expression::Variable(
+            Variable::new_unchecked(c),
+        )));
     }
     orderings
 }
@@ -170,12 +174,17 @@ impl BasicVirtualizedQuery {
         //Add hard coded stuff ..
         for t in &template.pattern_list {
             if t.template_name.as_str() == OTTR_TRIPLE {
-                if let Some(verb) =  t.argument_list.get(1) {
-                    if let StottrTerm::ConstantTerm(ConstantTermOrList::ConstantTerm(ConstantTerm::Iri(v))) = &verb.term {
+                if let Some(verb) = t.argument_list.get(1) {
+                    if let StottrTerm::ConstantTerm(ConstantTermOrList::ConstantTerm(
+                        ConstantTerm::Iri(v),
+                    )) = &verb.term
+                    {
                         if v == HAS_TIMESTAMP {
                             if let Some(obj) = t.argument_list.get(2) {
                                 if let StottrTerm::Variable(v) = &obj.term {
-                                    if let Some(TermPattern::Variable(v)) = self.column_mapping.get(v) {
+                                    if let Some(TermPattern::Variable(v)) =
+                                        self.column_mapping.get(v)
+                                    {
                                         self.chrontext_timestamp_variable = Some(v.clone());
                                     }
                                 }
@@ -183,7 +192,9 @@ impl BasicVirtualizedQuery {
                         } else if v == HAS_VALUE {
                             if let Some(obj) = t.argument_list.get(2) {
                                 if let StottrTerm::Variable(v) = &obj.term {
-                                    if let Some(TermPattern::Variable(v)) = self.column_mapping.get(v) {
+                                    if let Some(TermPattern::Variable(v)) =
+                                        self.column_mapping.get(v)
+                                    {
                                         self.chrontext_value_variable = Some(v.clone());
                                     }
                                 }
@@ -326,7 +337,7 @@ impl VirtualizedQuery {
                     }
                 }
                 let grouping_col = self.get_groupby_columns();
-                expected_columns.extend(grouping_col.iter().map(|x|x.as_str()));
+                expected_columns.extend(grouping_col.iter().map(|x| x.as_str()));
                 expected_columns
             }
             VirtualizedQuery::ExpressionAs(t, ..) => t.expected_columns(),

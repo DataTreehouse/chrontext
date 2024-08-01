@@ -1,12 +1,12 @@
-use std::collections::HashMap;
 use super::TimeseriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
+use std::collections::HashMap;
 
+use crate::preparing::graph_patterns::expression_rewrites::rewrite_order_expressions;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{GraphPattern, OrderExpression};
 use virtualized_query::VirtualizedQuery;
-use crate::preparing::graph_patterns::expression_rewrites::rewrite_order_expressions;
 
 impl TimeseriesQueryPrepper {
     pub fn prepare_order_by(
@@ -45,7 +45,7 @@ impl TimeseriesQueryPrepper {
                     &self.pushdown_settings,
                 );
                 if try_groupby_complex_query && lost_value {
-                    return GPPrepReturn::fail_groupby_complex_query()
+                    return GPPrepReturn::fail_groupby_complex_query();
                 } else {
                     if let Some(ordering) = rewritten {
                         out_vq_vec.push(VirtualizedQuery::Ordered(Box::new(vq), ordering));

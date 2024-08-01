@@ -48,13 +48,15 @@ use pyo3::types::PyDict;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
-use templates::python::{a, py_triple, PyXSD, PyArgument, PyInstance, PyParameter, PyTemplate};
+use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
 use virtualization::opcua::VirtualizedOPCUADatabase;
 use virtualization::python::VirtualizedPythonDatabase;
 use virtualization::{Virtualization, VirtualizedDatabase};
-use virtualized_query::python::{PyAggregateExpression, PyExpression, PyOrderExpression, PyVirtualizedQuery};
+use virtualized_query::python::{
+    PyAggregateExpression, PyExpression, PyOrderExpression, PyVirtualizedQuery,
+};
 
 #[pyclass(name = "Engine")]
 pub struct PyEngine {
@@ -185,7 +187,7 @@ impl PyEngine {
         Ok(pydf)
     }
 
-    pub fn serve_postgres(&mut self, catalog: PyCatalog, py:Python) -> PyResult<()> {
+    pub fn serve_postgres(&mut self, catalog: PyCatalog, py: Python) -> PyResult<()> {
         py.allow_threads(move || {
             if self.engine.is_none() {
                 self.init()?;
@@ -217,7 +219,7 @@ impl PySparqlEmbeddedOxigraph {
         EmbeddedOxigraphConfig {
             path: self.path.clone(),
             rdf_file: self.rdf_file.clone(),
-            rdf_format: self.rdf_format.clone()
+            rdf_format: self.rdf_format.clone(),
         }
     }
 }
@@ -225,7 +227,11 @@ impl PySparqlEmbeddedOxigraph {
 #[pymethods]
 impl PySparqlEmbeddedOxigraph {
     #[new]
-    pub fn new(rdf_file: String, rdf_format:Option<String>, path: Option<String> ) -> PySparqlEmbeddedOxigraph {
+    pub fn new(
+        rdf_file: String,
+        rdf_format: Option<String>,
+        path: Option<String>,
+    ) -> PySparqlEmbeddedOxigraph {
         let rdf_format = if let Some(format) = rdf_format {
             Some(resolve_format(&format))
         } else {
@@ -238,7 +244,6 @@ impl PySparqlEmbeddedOxigraph {
         }
     }
 }
-
 
 fn resolve_format(format: &str) -> RdfFormat {
     match format.to_lowercase().as_str() {
@@ -349,7 +354,7 @@ impl PyDataProduct {
 
 #[pymodule]
 #[pyo3(name = "chrontext")]
-fn _chrontext(_py:Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let res = env_logger::try_init();
     match res {
         Ok(_) => {}
