@@ -135,7 +135,7 @@ impl PyVirtualizedQuery {
     }
 
     #[getter]
-    fn queries(&self, py: Python) -> Option<Vec<Py<PyVirtualizedQuery>>> {
+    fn queries(&self) -> Option<Vec<Py<PyVirtualizedQuery>>> {
         match self {
             PyVirtualizedQuery::InnerJoin { queries, .. } => Some(queries.clone()),
             _ => None,
@@ -256,7 +256,7 @@ impl PyVirtualizedQuery {
                     expression: Py::new(py, py_expression)?,
                 }
             }
-            VirtualizedQuery::InnerJoin(queries, on) => {
+            VirtualizedQuery::InnerJoin(queries, _on) => {
                 let mut py_qs = vec![];
                 for q in queries {
                     py_qs.push(Py::new(py, PyVirtualizedQuery::new(q, py)?)?);
@@ -430,7 +430,7 @@ impl PyExpression {
     }
 
     #[getter]
-    fn function(&self, py: Python) -> Option<String> {
+    fn function(&self) -> Option<String> {
         match self {
             PyExpression::FunctionCall { function, .. } => Some(function.clone()),
             _ => None,
@@ -438,7 +438,7 @@ impl PyExpression {
     }
 
     #[getter]
-    fn arguments(&self, py: Python) -> Option<Vec<Py<PyExpression>>> {
+    fn arguments(&self) -> Option<Vec<Py<PyExpression>>> {
         match self {
             PyExpression::FunctionCall { arguments, .. } => Some(arguments.clone()),
             _ => None,
@@ -476,9 +476,15 @@ impl PyExpression {
             Expression::Not(expression) => PyExpression::Not {
                 expression: Py::new(py, PyExpression::new(expression, py)?)?,
             },
-            Expression::Coalesce(expressions) => PyExpression::Not {
-                expression: Py::new(py, PyExpression::new(expression, py)?)?,
-            },
+            Expression::Coalesce(expressions) => {
+                let mut py_expressions = vec![];
+                for e in expressions {
+                    py_expressions.push(Py::new(py, PyExpression::new(e, py)?)?);
+                }
+                PyExpression::Coalesce {
+                    expressions: py_expressions
+                }
+            }
             Expression::Bound(variable) => PyExpression::Bound {
                 variable: Py::new(
                     py,

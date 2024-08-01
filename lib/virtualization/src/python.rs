@@ -5,6 +5,7 @@ use pydf_io::to_rust::polars_df_to_rust_df;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use std::collections::{HashSet};
+use log::debug;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::python::PyVirtualizedQuery;
 use virtualized_query::VirtualizedQuery;
@@ -56,6 +57,7 @@ impl VirtualizedPythonDatabase {
 }
 
 pub fn translate_sql(vq: &VirtualizedQuery, resource_sql_map: &Py<PyDict>, dialect:&str) -> PyResult<String> {
+    debug!("Trying this...");
     Python::with_gil(|py| {
         let pyvq = PyVirtualizedQuery::new(vq.clone(), py)?;
         let db_mod = PyModule::from_code_bound(py, PYTHON_CODE, "my_translator", "my_translator")?;

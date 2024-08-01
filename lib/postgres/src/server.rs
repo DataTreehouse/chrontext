@@ -15,6 +15,7 @@ pub async fn start_server(
 }
 
 #[derive(Clone, Default)]
+#[allow(dead_code)]
 pub struct Config {
     pub(crate) pg_date_time_style: PGDateTimeStyle,
     pub(crate) pg_date_order: PGDateOrder,

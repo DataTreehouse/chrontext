@@ -42,10 +42,10 @@ impl VirtualizedQuery {
             VirtualizedQuery::Basic(_) => false,
             VirtualizedQuery::Filtered(inner, _) => inner.try_modify_existing_sort(join_cols),
             VirtualizedQuery::InnerJoin(_, _) => false,
-            VirtualizedQuery::ExpressionAs(inner, v, _) => inner.try_modify_existing_sort(join_cols),
+            VirtualizedQuery::ExpressionAs(inner, _, _) => inner.try_modify_existing_sort(join_cols),
             VirtualizedQuery::Grouped(_) => false,
             VirtualizedQuery::Limited(inner, _) => inner.try_modify_existing_sort(join_cols),
-            VirtualizedQuery::Ordered(inner, orderings) => {
+            VirtualizedQuery::Ordered(_, orderings) => {
                 let new_orderings = create_orderings(join_cols);
                 for (i, c) in new_orderings.into_iter().enumerate() {
                     orderings.insert(i, c);
@@ -426,7 +426,7 @@ impl VirtualizedQuery {
 
     pub fn get_extend_functions(&self) -> Vec<(&Variable, &Expression)> {
         match self {
-            VirtualizedQuery::Basic(b) => vec![],
+            VirtualizedQuery::Basic(_) => vec![],
             VirtualizedQuery::Filtered(inner, _)
             | VirtualizedQuery::Limited(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.get_extend_functions(),

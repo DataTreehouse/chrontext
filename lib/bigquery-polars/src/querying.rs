@@ -40,7 +40,6 @@ use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
 use std::time::Duration;
-use polars::export::chrono::Utc;
 use tokio::time::sleep;
 
 pub struct BigQueryExecutor {

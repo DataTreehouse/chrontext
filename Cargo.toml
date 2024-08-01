@@ -1,7 +1,6 @@
 [workspace]
 resolver = "1"
 members = [
-    "lib/bigquery-polars",
     "lib/chrontext",
     "lib/virtualization",
     "lib/postgres",
@@ -16,11 +15,11 @@ members = [
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
 
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="7e7c870b8eb89231bd88c54457e52ca75734a386" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="614639ddb8a1a1af55323a80a2cec3dcfd85592d", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="614639ddb8a1a1af55323a80a2cec3dcfd85592d" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="614639ddb8a1a1af55323a80a2cec3dcfd85592d" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="614639ddb8a1a1af55323a80a2cec3dcfd85592d", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="614639ddb8a1a1af55323a80a2cec3dcfd85592d" }
 
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }

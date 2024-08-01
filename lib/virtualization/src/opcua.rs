@@ -93,6 +93,7 @@ impl VirtualizedOPCUADatabase {
         let mut grouping_col_lookup = HashMap::new();
         let grouping_columns = vq.get_groupby_columns();
         let grouping_col_name = if let Some(g) = grouping_columns.get(0) {
+            #[allow(suspicious_double_ref_op)]
             Some(g.deref().clone())
         } else {
             None
@@ -657,7 +658,7 @@ fn datetime_from_expression(
     }
 }
 
-fn find_grouping_interval(vq: &VirtualizedQuery, context: &Context) -> Option<(String, f64)> {
+fn find_grouping_interval(vq: &VirtualizedQuery, _context: &Context) -> Option<(String, f64)> {
     if let VirtualizedQuery::Grouped(grouped) = vq {
         let mut tsf = None;
         let mut grvar = None;

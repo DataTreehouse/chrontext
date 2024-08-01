@@ -90,10 +90,6 @@ impl VirtualizedBigQueryDatabase {
         let datatypes = get_datatype_map(&df);
         Ok(EagerSolutionMappings::new(df, datatypes))
     }
-
-    fn allow_compound_timeseries_queries(&self) -> bool {
-        true
-    }
 }
 
 fn rename_non_alpha_vars(vq: VirtualizedQuery, rename_map: &mut HashMap<Variable, Variable>) -> VirtualizedQuery {

@@ -185,20 +185,22 @@ impl PyEngine {
         Ok(pydf)
     }
 
-    pub fn serve_postgres(&mut self, catalog: PyCatalog) -> PyResult<()> {
-        if self.engine.is_none() {
-            self.init()?;
-        }
-        let mut builder = Builder::new_multi_thread();
-        builder.enable_all();
-        let config = Config::default();
-        let catalog = catalog.to_rust()?;
-        builder
-            .build()
-            .unwrap()
-            .block_on(start_server(self.engine.take().unwrap(), config, catalog))
-            .unwrap();
-        Ok(())
+    pub fn serve_postgres(&mut self, catalog: PyCatalog, py:Python) -> PyResult<()> {
+        py.allow_threads(move || {
+            if self.engine.is_none() {
+                self.init()?;
+            }
+            let mut builder = Builder::new_multi_thread();
+            builder.enable_all();
+            let config = Config::default();
+            let catalog = catalog.to_rust()?;
+            builder
+                .build()
+                .unwrap()
+                .block_on(start_server(self.engine.take().unwrap(), config, catalog))
+                .unwrap();
+            Ok(())
+        })
     }
 }
 

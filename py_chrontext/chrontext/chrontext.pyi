@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Type, Any
+from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Any
 from polars import DataFrame
 from sqlalchemy import Select, Table
 
@@ -9,7 +9,7 @@ class RDFType:
     For instance, xsd:string is RDFType.Literal("http://www.w3.org/2001/XMLSchema#string")
     """
     IRI: Callable[[], "RDFType"]
-    Blank: Callable[[], "RDFType"]
+    BlankNode: Callable[[], "RDFType"]
     Literal: Callable[[Union[str, "IRI"]], "RDFType"]
     Nested: Callable[["RDFType"], "RDFType"]
     Unknown: Callable[[], "RDFType"]
@@ -29,6 +29,7 @@ class Variable:
 
 
 class IRI:
+    iri:str
     """
     An IRI.
     """
@@ -39,6 +40,17 @@ class IRI:
         :param iri: IRI (without < and >).
         """
 
+class BlankNode:
+    """
+    A Blank Node.
+    """
+    name: str
+
+    def __init__(self, name: str):
+        """
+        Create a new Blank Node
+        :param name: Name of blank node (without _:).
+        """
 
 class Prefix:
     """
@@ -83,22 +95,33 @@ class Literal:
 
 
 class Parameter:
+    variable: Variable
+    optional: bool
+    allow_blank: bool
+    rdf_type: Optional[RDFType]
+    default_value: Optional[Union[Literal, IRI, BlankNode]]
+    """
+    Parameters for template signatures.
+    """
+
     def __init__(self,
                  variable: Variable,
-                 optional: bool = False,
-                 allow_blank: bool = True,
-                 rdf_type: RDFType = None):
+                 optional: Optional[bool] = False,
+                 allow_blank: Optional[bool] = True,
+                 rdf_type: Optional[RDFType] = None,
+                 default_value: Optional[Union[Literal, IRI, BlankNode]] = None):
         """
         Create a new parameter for a Template.
         :param variable: The variable.
         :param optional: Can the variable be unbound?
         :param allow_blank: Can the variable be bound to a blank node?
         :param rdf_type: The type of the variable. Can be nested.
+        :param default_value: Default value when no value provided.
         """
 
 
 class Argument:
-    def __init__(self, term: Union[Variable, IRI, Literal], list_expand: bool):
+    def __init__(self, term: Union[Variable, IRI, Literal], list_expand: Optional[bool] = False):
         """
         An argument for a template instance.
         :param term: The term.
@@ -109,8 +132,8 @@ class Argument:
 class Instance:
     def __init__(self,
                  iri: IRI,
-                 arguments: List[Union[Argument, Variable, IRI, Literal]],
-                 list_expander: LiteralType["cross", "zipMin", "zipMax"] = None):
+                 arguments: List[Union[Argument, Variable, IRI, Literal, BlankNode, None]],
+                 list_expander: Optional[LiteralType["cross", "zipMin", "zipMax"]] = None):
         """
         A template instance.
         :param iri: The IRI of the template to be instantiated.
@@ -120,13 +143,18 @@ class Instance:
 
 
 class Template:
+    iri: str
+    parameters: List[Parameter]
+    instances: List[Instance]
     """
     An OTTR Template.
+    Note that accessing parameters- or instances-fields returns copies. 
+    To change these fields, you must assign new lists of parameters or instances.  
     """
 
     def __init__(self,
                  iri: IRI,
-                 parameters: List[Parameter],
+                 parameters: List[Union[Parameter, Variable]],
                  instances: List[Instance]):
         """
         Create a new OTTR Template
@@ -136,7 +164,7 @@ class Template:
         """
 
     def instance(self,
-                 arguments: List[Union[Argument, Variable, IRI, Literal]],
+                 arguments: List[Union[Argument, Variable, IRI, Literal, None]],
                  list_expander: LiteralType["cross", "zipMin", "zipMax"] = None) -> Instance:
         """
 
@@ -145,9 +173,9 @@ class Template:
         :return:
         """
 
-def Triple(subject:Union["Argument", IRI, Variable],
-           predicate:Union["Argument", IRI,Variable],
-           object:Union["Argument", IRI, Variable, Literal],
+def Triple(subject:Union["Argument", IRI, Variable, BlankNode],
+           predicate:Union["Argument", IRI,Variable, BlankNode],
+           object:Union["Argument", IRI, Variable, Literal, BlankNode],
            list_expander:Optional[LiteralType["cross", "zipMin", "zipMax"]]=None):
     """
     An OTTR Triple Pattern used for creating templates.
