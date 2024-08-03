@@ -193,6 +193,15 @@ class SPARQLMapper:
                     sql_quer = sql_quer.order_by(sql_expr_order)
                 return sql_quer
 
+            case "Sliced":
+                sql_quer = self.virtualized_query_to_sql(query.query)
+                if query.offset > 0:
+                    sql_quer = sql_quer.offset(query.offset)
+                if query.limit is not None:
+                    sql_quer = sql_quer.limit(query.limit)
+                return sql_quer
+
+
     def aggregation_expression_to_sql(
             self,
             aggregate_expression: AggregateExpression,

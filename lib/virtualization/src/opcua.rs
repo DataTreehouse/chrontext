@@ -285,7 +285,7 @@ fn validate_vq(
             Err(VirtualizedDatabaseError::VirtualizedQueryTypeNotSupported)
         }
         VirtualizedQuery::ExpressionAs(t, _, _) => validate_vq(t, false, inside_grouping),
-        VirtualizedQuery::Limited(_, _) => todo!(),
+        VirtualizedQuery::Sliced(..) => todo!(),
         VirtualizedQuery::Ordered(_, _) => todo!(),
     }
 }

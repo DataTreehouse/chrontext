@@ -196,12 +196,13 @@ fn add_basic_groupby_mapping_values(
             v,
             e,
         ),
-        VirtualizedQuery::Limited(inner, limit) => VirtualizedQuery::Limited(
+        VirtualizedQuery::Sliced(inner, offset, limit) => VirtualizedQuery::Sliced(
             Box::new(add_basic_groupby_mapping_values(
                 *inner,
                 solution_mappings,
                 grouping_col,
             )),
+            offset,
             limit,
         ),
         VirtualizedQuery::Grouped(_) => {

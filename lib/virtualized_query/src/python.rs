@@ -38,6 +38,11 @@ pub enum PyVirtualizedQuery {
         query: Py<PyVirtualizedQuery>,
         ordering: Vec<Py<PyOrderExpression>>,
     },
+    Sliced {
+        query: Py<PyVirtualizedQuery>,
+        offset: usize,
+        limit: Option<usize>,
+    },
 }
 
 #[pymethods]
@@ -50,6 +55,7 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::ExpressionAs { .. } => "ExpressionAs",
             PyVirtualizedQuery::InnerJoin { .. } => "InnerJoin",
             PyVirtualizedQuery::Ordered { .. } => "Ordered",
+            PyVirtualizedQuery::Sliced { .. } => "Sliced",
         }
     }
 
@@ -128,7 +134,8 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::Filtered { query, .. }
             | PyVirtualizedQuery::ExpressionAs { query, .. }
             | PyVirtualizedQuery::Ordered { query, .. }
-            | PyVirtualizedQuery::Grouped { query, .. } => Some(query.clone_ref(py)),
+            | PyVirtualizedQuery::Grouped { query, .. }
+            | PyVirtualizedQuery::Sliced { query, .. } => Some(query.clone_ref(py)),
             _ => None,
         }
     }
@@ -177,6 +184,28 @@ impl PyVirtualizedQuery {
     fn expression(&self, py: Python) -> Option<Py<PyExpression>> {
         match self {
             PyVirtualizedQuery::ExpressionAs { expression, .. } => Some(expression.clone_ref(py)),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn limit(&self) -> Option<usize> {
+        match self {
+            PyVirtualizedQuery::Sliced { limit, .. } => {
+                if let Some(limit) = limit {
+                    Some(*limit)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn offset(&self) -> Option<usize> {
+        match self {
+            PyVirtualizedQuery::Sliced { offset, .. } => Some(*offset),
             _ => None,
         }
     }
@@ -272,7 +301,11 @@ impl PyVirtualizedQuery {
                     ordering: py_orderings,
                 }
             }
-            _ => todo!(),
+            VirtualizedQuery::Sliced(vq, offset, limit) => PyVirtualizedQuery::Sliced {
+                query: Py::new(py, PyVirtualizedQuery::new(*vq, py)?)?,
+                limit,
+                offset,
+            },
         })
     }
 }

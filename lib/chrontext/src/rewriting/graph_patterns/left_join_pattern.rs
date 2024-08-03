@@ -17,11 +17,6 @@ impl StaticQueryRewriter {
         let right_context = context.extension_with(PathEntry::LeftJoinRightSide);
         let mut right_rewrite = self.rewrite_graph_pattern(right, &right_context);
 
-        // println!("Left variables in scope before {:?}", &left_rewrite.variables_in_scope);
-        // //Important for expressions to be able to see all variables
-        // left_rewrite.variables_in_scope.extend(right_rewrite.variables_in_scope.clone());
-        // println!("Left variables in scope after {:?}", &left_rewrite.variables_in_scope);
-
         let expression_context = context.extension_with(PathEntry::LeftJoinExpression);
         let mut expression_rewrite = None;
 

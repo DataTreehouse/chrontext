@@ -13,7 +13,7 @@ mod path_pattern;
 mod project_pattern;
 mod reduced_pattern;
 mod service_pattern;
-mod sliced_pattern;
+mod slice_pattern;
 mod union_pattern;
 mod values_pattern;
 

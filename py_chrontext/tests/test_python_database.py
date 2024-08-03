@@ -124,7 +124,6 @@ def test_simple_hybrid(engine):
     assert_frame_equal(df, expected)
     print(df)
 
-
 @pytest.mark.order(2)
 def test_simple_hybrid_no_vq_matches_query(engine):
     q = """
@@ -656,3 +655,48 @@ def test_no_pushdown_group_by_concat_agg_hybrid_query(engine):
     df = engine.query(q).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_concat_agg_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+
+
+
+
+@pytest.mark.order(24)
+def test_simple_hybrid_limit(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s ?t ?v WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+    } LIMIT 5
+    """
+    df = engine.query(q)
+    assert df.height == 5
+    assert df.columns == ["w", "s", "t", "v"]
+    assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()
+
+
+@pytest.mark.order(25)
+@pytest.mark.skip(reason="not implemented")
+def test_simple_hybrid_offset(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s ?t ?v WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+    } OFFSET 5
+    """
+    df = engine.query(q)
+    assert df.height == 5
+    assert df.columns == ["w", "s", "t", "v"]
+    assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()

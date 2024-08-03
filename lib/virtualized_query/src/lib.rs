@@ -23,7 +23,7 @@ pub enum VirtualizedQuery {
     InnerJoin(Vec<VirtualizedQuery>, Vec<Synchronizer>),
     ExpressionAs(Box<VirtualizedQuery>, Variable, Expression),
     Grouped(GroupedVirtualizedQuery),
-    Limited(Box<VirtualizedQuery>, usize),
+    Sliced(Box<VirtualizedQuery>, usize, Option<usize>),
     Ordered(Box<VirtualizedQuery>, Vec<OrderExpression>),
 }
 
@@ -46,7 +46,7 @@ impl VirtualizedQuery {
                 inner.try_modify_existing_sort(join_cols)
             }
             VirtualizedQuery::Grouped(_) => false,
-            VirtualizedQuery::Limited(inner, _) => inner.try_modify_existing_sort(join_cols),
+            VirtualizedQuery::Sliced(inner, ..) => inner.try_modify_existing_sort(join_cols),
             VirtualizedQuery::Ordered(_, orderings) => {
                 let new_orderings = create_orderings(join_cols);
                 for (i, c) in new_orderings.into_iter().enumerate() {
@@ -270,7 +270,7 @@ impl VirtualizedQuery {
                 }
             }
             VirtualizedQuery::Filtered(i, _)
-            | VirtualizedQuery::Limited(i, _)
+            | VirtualizedQuery::Sliced(i, ..)
             | VirtualizedQuery::Ordered(i, _) => i.has_identifiers(),
             VirtualizedQuery::InnerJoin(i, _) => i.iter().any(|x| x.has_identifiers()),
             VirtualizedQuery::ExpressionAs(t, _, _) => t.has_identifiers(),
@@ -282,7 +282,7 @@ impl VirtualizedQuery {
         match self {
             VirtualizedQuery::Basic(b) => b.resource.is_some(),
             VirtualizedQuery::Filtered(i, _)
-            | VirtualizedQuery::Limited(i, _)
+            | VirtualizedQuery::Sliced(i, ..)
             | VirtualizedQuery::Ordered(i, _) => i.has_resources(),
             VirtualizedQuery::InnerJoin(i, _) => i.iter().any(|x| x.has_resources()),
             VirtualizedQuery::ExpressionAs(t, _, _) => t.has_resources(),
@@ -314,7 +314,7 @@ impl VirtualizedQuery {
         match self {
             VirtualizedQuery::Basic(b) => b.expected_columns(),
             VirtualizedQuery::Filtered(inner, ..)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.expected_columns(),
             VirtualizedQuery::InnerJoin(inners, _synchronizers) => {
                 inners.iter().fold(HashSet::new(), |mut exp, vq| {
@@ -354,7 +354,7 @@ impl VirtualizedQuery {
                 }
             }
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..)
             | VirtualizedQuery::ExpressionAs(inner, ..) => inner.get_ids(),
             VirtualizedQuery::InnerJoin(inners, _) => {
@@ -365,7 +365,6 @@ impl VirtualizedQuery {
                 ss
             }
             VirtualizedQuery::Grouped(grouped) => grouped.vq.get_ids(),
-            VirtualizedQuery::ExpressionAs(vq, ..) => vq.get_ids(),
         }
     }
 
@@ -373,7 +372,7 @@ impl VirtualizedQuery {
         match self {
             VirtualizedQuery::Basic(b) => b.get_virtualized_variables(),
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..)
             | VirtualizedQuery::ExpressionAs(inner, ..) => inner.get_virtualized_variables(),
             VirtualizedQuery::InnerJoin(inners, _) => {
@@ -397,7 +396,7 @@ impl VirtualizedQuery {
                 }
             }
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::ExpressionAs(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.get_timestamp_variables(),
             VirtualizedQuery::InnerJoin(inners, _) => {
@@ -421,7 +420,7 @@ impl VirtualizedQuery {
                 }
             }
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::ExpressionAs(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.get_value_variables(),
             VirtualizedQuery::InnerJoin(inners, _) => {
@@ -439,7 +438,7 @@ impl VirtualizedQuery {
         match self {
             VirtualizedQuery::Basic(_) => vec![],
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.get_extend_functions(),
             VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut vs = vec![];
@@ -463,7 +462,7 @@ impl VirtualizedQuery {
                 vec![&b.identifier_variable]
             }
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.get_identifier_variables(),
             VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut vs = vec![];
@@ -483,7 +482,7 @@ impl VirtualizedQuery {
                 vec![&b.resource_variable]
             }
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..) => inner.get_resource_variables(),
             VirtualizedQuery::InnerJoin(inners, _) => {
                 let mut vs = vec![];
@@ -541,7 +540,7 @@ impl VirtualizedQuery {
                 }
             }
             VirtualizedQuery::Filtered(inner, _)
-            | VirtualizedQuery::Limited(inner, ..)
+            | VirtualizedQuery::Sliced(inner, ..)
             | VirtualizedQuery::Ordered(inner, ..)
             | VirtualizedQuery::ExpressionAs(inner, ..) => inner.get_groupby_columns(),
             VirtualizedQuery::InnerJoin(vqs, _) => {
@@ -567,7 +566,7 @@ impl VirtualizedQuery {
             }
             VirtualizedQuery::Filtered(vq, _)
             | VirtualizedQuery::ExpressionAs(vq, ..)
-            | VirtualizedQuery::Limited(vq, ..)
+            | VirtualizedQuery::Sliced(vq, ..)
             | VirtualizedQuery::Ordered(vq, ..) => vq.get_groupby_mapping_df(),
             VirtualizedQuery::InnerJoin(vqs, _) => {
                 let mut colname = None;
@@ -592,7 +591,7 @@ impl VirtualizedQuery {
                 vec![]
             }
             VirtualizedQuery::Filtered(vq, _)
-            | VirtualizedQuery::Limited(vq, ..)
+            | VirtualizedQuery::Sliced(vq, ..)
             | VirtualizedQuery::Ordered(vq, ..) => vq.get_virtualized_functions(context),
             VirtualizedQuery::InnerJoin(vqs, _) => {
                 let mut out_tsfs = vec![];

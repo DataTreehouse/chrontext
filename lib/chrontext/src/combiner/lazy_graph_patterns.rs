@@ -7,6 +7,7 @@ mod left_join;
 mod minus;
 mod order_by;
 mod project;
+mod slice;
 mod union;
 
 use super::Combiner;
@@ -231,8 +232,21 @@ impl Combiner {
             GraphPattern::Reduced { .. } => {
                 todo!()
             }
-            GraphPattern::Slice { .. } => {
-                todo!()
+            GraphPattern::Slice {
+                inner,
+                start,
+                length,
+            } => {
+                self.lazy_slice(
+                    inner,
+                    start,
+                    length,
+                    updated_solution_mappings,
+                    static_query_map,
+                    new_prepared_virtualized_queries,
+                    context,
+                )
+                .await
             }
             GraphPattern::Group {
                 inner,

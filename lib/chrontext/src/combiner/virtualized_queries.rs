@@ -25,7 +25,6 @@ impl Combiner {
     ) -> SolutionMappings {
         let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
         expected_cols.sort();
-        println!("Expected cols: {expected_cols:?}");
         let drop_cols = get_drop_cols(vq);
         let mut series_vec = vec![];
         for e in expected_cols {

@@ -192,9 +192,9 @@ fn rename_non_alpha_vars(
                 aggregations: new_aggregations,
             })
         }
-        VirtualizedQuery::Limited(vq, limit) => {
+        VirtualizedQuery::Sliced(vq, offset, limit) => {
             let new_vq = rename_non_alpha_vars(*vq, rename_map);
-            VirtualizedQuery::Limited(Box::new(new_vq), limit)
+            VirtualizedQuery::Sliced(Box::new(new_vq), offset, limit)
         }
     }
 }

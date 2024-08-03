@@ -1,6 +1,5 @@
 mod sql_translation;
 
-use log::debug;
 use polars::prelude::DataFrame;
 use pydf_io::to_rust::polars_df_to_rust_df;
 use pyo3::prelude::*;
