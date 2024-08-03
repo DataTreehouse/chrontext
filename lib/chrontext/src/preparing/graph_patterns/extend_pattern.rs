@@ -75,6 +75,7 @@ impl TimeseriesQueryPrepper {
                     .get_mut(context)
                     .unwrap()
                     .push(new_vq);
+
                 inner_prepare
             } else {
                 GPPrepReturn::fail_groupby_complex_query()

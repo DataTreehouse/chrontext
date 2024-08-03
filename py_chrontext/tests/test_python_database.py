@@ -700,3 +700,50 @@ def test_simple_hybrid_offset(engine):
     assert df.height == 5
     assert df.columns == ["w", "s", "t", "v"]
     assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()
+
+
+@pytest.mark.order(26)
+def test_simple_hybrid_limit_filter(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s ?t ?v WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        FILTER(?t > "2022-06-01T08:46:55Z"^^xsd:dateTime) 
+    } LIMIT 3
+    """
+    df = engine.query(q)
+    assert df.height == 3
+    assert df.columns == ["w", "s", "t", "v"]
+    assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()
+    #Todo: check pushdown
+
+@pytest.mark.order(27)
+def test_simple_hybrid_limit_filter_expression(engine):
+    q = """
+    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+    PREFIX chrontext:<https://github.com/DataTreehouse/chrontext#>
+    PREFIX types:<http://example.org/types#>
+    SELECT ?w ?s ?t ?v ?seconds_5 WHERE {
+        ?w a types:BigWidget .
+        ?w types:hasSensor ?s .
+        ?s chrontext:hasTimeseries ?ts .
+        ?ts chrontext:hasDataPoint ?dp .
+        ?dp chrontext:hasTimestamp ?t .
+        ?dp chrontext:hasValue ?v .
+        BIND(xsd:integer(FLOOR(seconds(?t) / 5.0)) as ?seconds_5)
+        FILTER(?t > "2022-06-01T08:46:55Z"^^xsd:dateTime) 
+    } LIMIT 3
+    """
+    df = engine.query(q)
+    assert df.height == 3
+    assert df.columns == ["w", "s", "t", "v", "seconds_5"]
+    assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()
+    #Todo: check pushdown, does not work currently..
+

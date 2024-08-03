@@ -39,6 +39,7 @@ impl TimeseriesQueryPrepper {
 
         let mut out_vqs = HashMap::new();
         out_vqs.extend(expression_prepare.virtualized_queries);
+        let mut lost_any = false;
         for (inner_context, vqs) in inner_prepare.virtualized_queries {
             let mut out_vq_vec = vec![];
             for t in vqs {
@@ -56,6 +57,7 @@ impl TimeseriesQueryPrepper {
                     &conj_vec,
                     &self.pushdown_settings,
                 );
+                let lost_any = lost_value || lost_any;
                 if try_groupby_complex_query && (lost_value || virtualized_condition.is_none()) {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }
@@ -66,7 +68,11 @@ impl TimeseriesQueryPrepper {
                 }
             }
             if !out_vq_vec.is_empty() {
-                out_vqs.insert(inner_context, out_vq_vec);
+                if !lost_any && inner_context.path.len() == context.path.len() + 1 {
+                    out_vqs.insert(context.clone(), out_vq_vec);
+                } else {
+                    out_vqs.insert(inner_context, out_vq_vec);
+                }
             }
         }
         GPPrepReturn::new(out_vqs)
