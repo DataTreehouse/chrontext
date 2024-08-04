@@ -15,7 +15,6 @@ def test_tutorial():
             con.append("ts2", df=ts_2.to_pandas())
             self.con = con
 
-
         def query(self, sql:str) -> pl.DataFrame:
             # We execute the query and return it as a Polars DataFrame.
             # Chrontext expects this method to exist in the provided class.

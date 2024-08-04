@@ -42,7 +42,7 @@ use log::debug;
 use oxrdfio::RdfFormat;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
-use pydf_io::to_python::{df_to_py_df, dtypes_map, fix_cats_and_multicolumns};
+use pydf_io::to_python::{df_to_py_df, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
@@ -167,6 +167,7 @@ impl PyEngine {
         &mut self,
         sparql: &str,
         native_dataframe: Option<bool>,
+        include_datatypes: Option<bool>,
         py: Python<'_>,
     ) -> PyResult<PyObject> {
         if self.engine.is_none() {
@@ -175,7 +176,7 @@ impl PyEngine {
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let (mut df, mut datatypes) = builder
+        let (mut df, mut datatypes, pushdown_contexts) = builder
             .build()
             .unwrap()
             .block_on(self.engine.as_mut().unwrap().query(sparql))
@@ -183,7 +184,13 @@ impl PyEngine {
 
         (df, datatypes) =
             fix_cats_and_multicolumns(df, datatypes, native_dataframe.unwrap_or(false));
-        let pydf = df_to_py_df(df, dtypes_map(datatypes), py)?;
+        let pydf = df_to_py_df(
+            df,
+            datatypes,
+            Some(pushdown_contexts),
+            include_datatypes.unwrap_or(false),
+            py,
+        )?;
         Ok(pydf)
     }
 

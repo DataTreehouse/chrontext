@@ -113,7 +113,8 @@ def test_simple_hybrid(engine):
     }
     """
     by = ["w", "s", "t"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(
         TESTDATA_PATH / "expected_simple_hybrid.csv", try_parse_dates=True
     ).cast(
@@ -122,7 +123,7 @@ def test_simple_hybrid(engine):
         by
     )
     assert_frame_equal(df, expected)
-    print(df)
+    assert sm.pushdown_paths == [['ProjectInner']]
 
 @pytest.mark.order(2)
 def test_simple_hybrid_no_vq_matches_query(engine):
@@ -140,8 +141,10 @@ def test_simple_hybrid_no_vq_matches_query(engine):
         FILTER(?t > "2022-06-01T08:46:53Z"^^xsd:dateTime && ?v < 200) .
     }
     """
-    df = engine.query(q)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings
     assert df.height == 0
+    assert sm.pushdown_paths == [['ProjectInner']]
 
 @pytest.mark.order(3)
 def test_complex_hybrid_query(engine):
@@ -166,13 +169,14 @@ def test_complex_hybrid_query(engine):
     }
     """
     by = ["w1", "w2", "t"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(
         TESTDATA_PATH / "expected_complex_hybrid.csv", try_parse_dates=True).cast(
         {"v1": pl.Int32, "v2": pl.Int32}
     ).sort(by)
     assert_frame_equal(df, expected)
-    print(df)
+    assert sm.pushdown_paths == [['ProjectInner']]
 
 @pytest.mark.order(4)
 def test_pushdown_group_by_hybrid_query(engine):
@@ -190,10 +194,11 @@ def test_pushdown_group_by_hybrid_query(engine):
     } GROUP BY ?w
     """
     by = ["w"]
-    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by).cast({"sum_v": pl.Int64})
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
-    print(df)
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner']]
 
 
 @pytest.mark.order(5)
@@ -218,9 +223,11 @@ def test_pushdown_group_by_second_hybrid_query(engine):
     } GROUP BY ?w ?year ?month ?day ?hour ?minute ?second
     """
     by = ["w", "sum_v"]
-    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner']]
 
 @pytest.mark.order(5)
 def test_pushdown_group_by_second_having_hybrid_query(engine):
@@ -245,9 +252,11 @@ def test_pushdown_group_by_second_having_hybrid_query(engine):
     HAVING (SUM(?v)>100)
     """
     by = ["w", "period"]
-    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_having_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'ExtendInner', 'FilterInner']]
 
 
 @pytest.mark.order(6)
@@ -291,9 +300,31 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
 }
 """
     by = ["w", "second_5", "kind"]
-    df = engine.query(q).cast({"sum_v": pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_union_of_two_groupby.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    #Todo: should pushdown group
+    assert sm.pushdown_paths == [['ProjectInner',
+                                  'UnionLeftSide',
+                                  'ProjectInner',
+                                  'ExtendInner',
+                                  'FilterInner',
+                                  'GroupInner',
+                                  'FilterInner',
+                                  'ExtendInner',
+                                  'ExtendInner',
+                                  'ExtendInner'],
+                                 ['ProjectInner',
+                                  'UnionRightSide',
+                                  'ProjectInner',
+                                  'ExtendInner',
+                                  'FilterInner',
+                                  'GroupInner',
+                                  'FilterInner',
+                                  'ExtendInner',
+                                  'ExtendInner',
+                                  'ExtendInner']]
 
 @pytest.mark.order(7)
 def test_pushdown_group_by_concat_agg_hybrid_query(engine):
@@ -316,9 +347,11 @@ def test_pushdown_group_by_concat_agg_hybrid_query(engine):
     } GROUP BY ?w ?seconds_5
 """
     by = ["w", "seconds_5"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_concat_agg_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'GroupInner', 'ProjectInner', 'OrderByInner', 'FilterInner', 'ExtendInner']]
 
 
 @pytest.mark.order(8)
@@ -338,9 +371,12 @@ def test_pushdown_groupby_exists_something_hybrid_query(engine):
     } GROUP BY ?w ?seconds_3
 """
     by = ["w", "seconds_3"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_exists_something_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    #TODO: This one should really be able to push down group inner.
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'GroupInner', 'FilterInner', 'ExtendInner']]
 
 @pytest.mark.order(9)
 def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
@@ -359,9 +395,11 @@ def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
     }
     """
     by = ["w", "s"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_exists_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'FilterExpression', 'Exists', 'ProjectInner']]
 
 @pytest.mark.order(10)
 def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine):
@@ -383,9 +421,11 @@ def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine
     }
     """
     by = ["w", "s"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_exists_aggregated_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'FilterExpression', 'Exists', 'ProjectInner', 'FilterInner', 'GroupInner']]
 
 @pytest.mark.order(11)
 def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(engine):
@@ -407,9 +447,11 @@ def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(en
     }
     """
     by = ["w", "s"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_not_exists_aggregated_timeseries_value_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'FilterExpression', 'Not', 'Exists', 'ProjectInner', 'FilterInner', 'GroupInner']]
 
 @pytest.mark.order(12)
 def test_path_group_by_query(engine):
@@ -423,9 +465,11 @@ def test_path_group_by_query(engine):
         ORDER BY ASC(?max_v)
     """
     by = ["w", "max_v"]
-    df = engine.query(q).cast({"max_v":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by).cast({"max_v":pl.Int64})
     expected = pl.read_csv(TESTDATA_PATH / "expected_path_group_by_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'OrderByInner', 'ExtendInner']]
 
 @pytest.mark.order(13)
 def test_optional_clause_query(engine):
@@ -443,9 +487,11 @@ def test_optional_clause_query(engine):
     }
     """
     by = ["w", "v"]
-    df = engine.query(q).cast({"greater":pl.String, "v":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"greater":pl.String, "v":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_optional_clause_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'LeftJoinLeftSide']]
 
 @pytest.mark.order(14)
 def test_minus_query(engine):
@@ -465,9 +511,11 @@ def test_minus_query(engine):
     }
     """
     by = ["w", "v"]
-    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"v":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_minus_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'MinusLeftSide'], ['ProjectInner', 'MinusRightSide']]
 
 @pytest.mark.order(15)
 def test_in_expression_query(engine):
@@ -482,9 +530,11 @@ def test_in_expression_query(engine):
     }
     """
     by = ["w", "v"]
-    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"v":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_in_expression.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner']]
 
 @pytest.mark.order(16)
 def test_values_query(engine):
@@ -500,9 +550,11 @@ def test_values_query(engine):
     }
     """
     by = ["w", "v"]
-    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"v":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_values_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'FilterInner', 'JoinLeftSide']]
 
 @pytest.mark.order(17)
 def test_distinct_query(engine):
@@ -516,9 +568,11 @@ def test_distinct_query(engine):
     }
     """
     by = ["w", "v_with_min"]
-    df = engine.query(q).cast({"v_with_min":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"v_with_min":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_distinct_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['DistinctInner', 'ProjectInner', 'ExtendInner']]
 
 @pytest.mark.order(18)
 def test_union_query(engine):
@@ -540,9 +594,11 @@ def test_union_query(engine):
     }
     """
     by = ["w", "v"]
-    df = engine.query(q).cast({"v":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"v":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_union_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'UnionLeftSide'], ['ProjectInner', 'UnionRightSide']]
 
 @pytest.mark.order(19)
 @pytest.mark.skip()
@@ -564,9 +620,11 @@ def test_coalesce_query(engine):
     }
     """
     by = ["s1", "t1", "v1", "v2"]
-    df = engine.query(q).cast({"v1":pl.Int64, "v2":pl.Int64, "c":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"v1":pl.Int64, "v2":pl.Int64, "c":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_coalesce_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    print(sm.pushdown_paths)
 
 @pytest.mark.order(20)
 def test_simple_hybrid_query_sugar(engine):
@@ -584,9 +642,11 @@ def test_simple_hybrid_query_sugar(engine):
     }
     """
     by = ["w", "s", "timestamp"]
-    df = engine.query(q).cast({"ts_value":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"ts_value":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'JoinRightSide']]
 
 @pytest.mark.order(21)
 def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
@@ -605,9 +665,11 @@ def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
     }
     """
     by = ["w", "s", "timestamp"]
-    df = engine.query(q).cast({"ts_value":pl.Int64}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"ts_value":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner', 'JoinRightSide']]
 
 @pytest.mark.order(22)
 def test_simple_hybrid_query_sugar_agg_avg(engine):
@@ -627,9 +689,11 @@ def test_simple_hybrid_query_sugar_agg_avg(engine):
     }
     """
     by = ["w", "s", "timestamp"]
-    df = engine.query(q).cast({"timestamp":pl.Datetime(time_zone=None)}).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.cast({"timestamp":pl.Datetime(time_zone=None)}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_simple_hybrid_sugar_agg_avg.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
+    assert sm.pushdown_paths == [['ProjectInner']]
 
 @pytest.mark.order(23)
 def test_no_pushdown_group_by_concat_agg_hybrid_query(engine):
@@ -652,10 +716,12 @@ def test_no_pushdown_group_by_concat_agg_hybrid_query(engine):
     } GROUP BY ?w ?seconds_5
 """
     by = ["w", "seconds_5"]
-    df = engine.query(q).sort(by)
+    sm = engine.query(q, include_datatypes=True)
+    df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_concat_agg_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
-
+    # No pushdown yet due to ordering within group by:
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'GroupInner', 'ProjectInner', 'OrderByInner', 'FilterInner', 'ExtendInner']]
 
 
 
@@ -674,10 +740,11 @@ def test_simple_hybrid_limit(engine):
         ?dp chrontext:hasValue ?v .
     } LIMIT 5
     """
-    df = engine.query(q)
-    assert df.height == 5
-    assert df.columns == ["w", "s", "t", "v"]
-    assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()
+    sm = engine.query(q, include_datatypes=True)
+    assert sm.mappings.height == 5
+    assert sm.mappings.columns == ["w", "s", "t", "v"]
+    assert not sm.mappings.null_count().sum_horizontal().cast(pl.Boolean).any()
+    assert sm.pushdown_paths == [['SliceInner', 'ProjectInner']]
 
 
 @pytest.mark.order(25)

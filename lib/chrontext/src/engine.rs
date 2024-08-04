@@ -9,6 +9,7 @@ use crate::splitter::parse_sparql_select_query;
 use log::debug;
 use polars::enable_string_cache;
 use polars::frame::DataFrame;
+use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
 use std::collections::{HashMap, HashSet};
@@ -78,10 +79,10 @@ impl Engine {
     pub async fn query<'py>(
         &self,
         query: &str,
-    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>), Box<dyn Error>> {
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>, Vec<Context>), Box<dyn Error>> {
         enable_string_cache();
         let parsed_query = parse_sparql_select_query(query)?;
-        debug!("Parsed query: {}", &parsed_query);
+        debug!("Parsed query: {}", parsed_query.to_string());
         debug!("Parsed query algebra: {:?}", &parsed_query);
         let virtualized_iris = self.virtualization.get_virtualized_iris();
         let first_level_virtualized_iris = self.virtualization.get_first_level_virtualized_iris();
@@ -120,6 +121,10 @@ impl Engine {
             rdf_node_types,
         } = solution_mappings;
 
-        Ok((mappings.collect()?, rdf_node_types))
+        Ok((
+            mappings.collect()?,
+            rdf_node_types,
+            combiner.virtualized_contexts,
+        ))
     }
 }

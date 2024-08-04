@@ -77,6 +77,7 @@ impl Combiner {
 
         if let Some(vqs_map) = &mut new_prepared_virtualized_queries {
             if let Some(vqs) = vqs_map.remove(context) {
+                self.virtualized_contexts.push(context.clone());
                 for vq in vqs {
                     debug!("Attaching time series query");
                     let new_solution_mappings = self

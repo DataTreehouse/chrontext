@@ -11,8 +11,16 @@ class RDFType:
     IRI: Callable[[], "RDFType"]
     BlankNode: Callable[[], "RDFType"]
     Literal: Callable[[Union[str, "IRI"]], "RDFType"]
+    Multi: Callable[[List["RDFType"]], "RDFType"]
     Nested: Callable[["RDFType"], "RDFType"]
     Unknown: Callable[[], "RDFType"]
+
+class SolutionMappings:
+    """
+    Detailed information about the solution mappings and the types of the variables.
+    """
+    mappings: DataFrame
+    rdf_types: Dict[str, RDFType]
 
 class Variable:
     """
@@ -312,12 +320,17 @@ class Engine:
         :return: 
         """
 
-    def query(self, query:str, native_dataframe:bool=False) -> DataFrame:
+    def query(self,
+              query:str,
+              native_dataframe:bool=False,
+              include_datatypes: bool = False,
+              ) -> Union[DataFrame, SolutionMappings]:
         """
         Execute a query
 
         :param query: The SPARQL query.
         :param native_dataframe: Return columns with chrontext-native formatting. Useful for round-trips into e.g. maplib.
+        :param include_datatypes: Return datatypes of the results DataFrame (returns SolutionMappings instead of DataFrame).
         :return: The query result.
         """
 

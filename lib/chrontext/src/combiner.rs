@@ -77,6 +77,7 @@ pub struct Combiner {
     pub sparql_database: Arc<dyn SparqlQueryable>,
     pub virtualized_database: Arc<VirtualizedDatabase>,
     prepper: TimeseriesQueryPrepper,
+    pub virtualized_contexts: Vec<Context>,
 }
 
 impl Combiner {
@@ -99,6 +100,7 @@ impl Combiner {
             sparql_database,
             virtualized_database,
             prepper,
+            virtualized_contexts: vec![],
         }
     }
 
