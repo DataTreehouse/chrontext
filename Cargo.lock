@@ -1822,7 +1822,7 @@ dependencies = [
 [[package]]
 name = "oxigraph"
 version = "0.4.0-alpha.7"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "dashmap",
  "digest",
@@ -1867,7 +1867,7 @@ checksum = "d05417ee46e2eb40dd9d590b4d67fc2408208b3a48a6b7f71d2bc1d7ce12a3e0"
 [[package]]
 name = "oxrdf"
 version = "0.2.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "oxilangtag",
  "oxiri",
@@ -1879,7 +1879,7 @@ dependencies = [
 [[package]]
 name = "oxrdfio"
 version = "0.1.0-alpha.6"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "oxrdf",
  "oxrdfxml",
@@ -1890,7 +1890,7 @@ dependencies = [
 [[package]]
 name = "oxrdfxml"
 version = "0.1.0-alpha.6"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "oxilangtag",
  "oxiri",
@@ -1902,7 +1902,7 @@ dependencies = [
 [[package]]
 name = "oxrocksdb-sys"
 version = "0.4.0-alpha.7"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "bindgen",
  "cc",
@@ -1912,7 +1912,7 @@ dependencies = [
 [[package]]
 name = "oxsdatatypes"
 version = "0.2.0-alpha.2"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "thiserror",
 ]
@@ -1920,7 +1920,7 @@ dependencies = [
 [[package]]
 name = "oxttl"
 version = "0.1.0-alpha.6"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "memchr",
  "oxilangtag",
@@ -2611,7 +2611,7 @@ dependencies = [
 [[package]]
 name = "pydf_io"
 version = "0.7.6"
-source = "git+https://github.com/DataTreehouse/maplib?rev=6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183#6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183"
+source = "git+https://github.com/DataTreehouse/maplib?rev=1ea75a57fe3431b2ff71f0306b2651bca016523a#1ea75a57fe3431b2ff71f0306b2651bca016523a"
 dependencies = [
  "polars",
  "polars-core",
@@ -2688,7 +2688,7 @@ dependencies = [
 [[package]]
 name = "query_processing"
 version = "0.3.12"
-source = "git+https://github.com/DataTreehouse/maplib?rev=6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183#6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183"
+source = "git+https://github.com/DataTreehouse/maplib?rev=1ea75a57fe3431b2ff71f0306b2651bca016523a#1ea75a57fe3431b2ff71f0306b2651bca016523a"
 dependencies = [
  "log",
  "oxrdf",
@@ -2867,7 +2867,7 @@ checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 [[package]]
 name = "representation"
 version = "0.6.10"
-source = "git+https://github.com/DataTreehouse/maplib?rev=6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183#6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183"
+source = "git+https://github.com/DataTreehouse/maplib?rev=1ea75a57fe3431b2ff71f0306b2651bca016523a#1ea75a57fe3431b2ff71f0306b2651bca016523a"
 dependencies = [
  "chrono",
  "chrono-tz 0.9.0",
@@ -3263,7 +3263,7 @@ dependencies = [
 [[package]]
 name = "sparesults"
 version = "0.2.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "json-event-parser",
  "memchr",
@@ -3275,7 +3275,7 @@ dependencies = [
 [[package]]
 name = "spargebra"
 version = "0.3.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "oxilangtag",
  "oxiri",
@@ -3288,7 +3288,7 @@ dependencies = [
 [[package]]
 name = "spargebra"
 version = "0.3.0-alpha.5-parparse"
-source = "git+https://github.com/DataTreehouse/maplib?rev=6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183#6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183"
+source = "git+https://github.com/DataTreehouse/maplib?rev=1ea75a57fe3431b2ff71f0306b2651bca016523a#1ea75a57fe3431b2ff71f0306b2651bca016523a"
 dependencies = [
  "chrono",
  "fundu",
@@ -3303,7 +3303,7 @@ dependencies = [
 [[package]]
 name = "sparopt"
 version = "0.1.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=676207f568d57c60c8335cfa9bc5d073dbc20c5b#676207f568d57c60c8335cfa9bc5d073dbc20c5b"
+source = "git+https://github.com/magbak/oxigraph.git?rev=70028ad09cfa29e62bce0d3920717c0a09b939d0#70028ad09cfa29e62bce0d3920717c0a09b939d0"
 dependencies = [
  "oxrdf",
  "rand",
@@ -3480,7 +3480,7 @@ dependencies = [
 [[package]]
 name = "templates"
 version = "0.1.0"
-source = "git+https://github.com/DataTreehouse/maplib?rev=6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183#6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183"
+source = "git+https://github.com/DataTreehouse/maplib?rev=1ea75a57fe3431b2ff71f0306b2651bca016523a#1ea75a57fe3431b2ff71f0306b2651bca016523a"
 dependencies = [
  "log",
  "nom",

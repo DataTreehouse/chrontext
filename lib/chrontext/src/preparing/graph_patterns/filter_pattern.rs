@@ -57,7 +57,7 @@ impl TimeseriesQueryPrepper {
                     &conj_vec,
                     &self.pushdown_settings,
                 );
-                let lost_any = lost_value || lost_any;
+                lost_any = lost_value || lost_any;
                 if try_groupby_complex_query && (lost_value || virtualized_condition.is_none()) {
                     return GPPrepReturn::fail_groupby_complex_query();
                 }

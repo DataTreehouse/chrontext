@@ -15,11 +15,11 @@ members = [
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
 
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="6e0b8c6c7ec47ce91b9ae3df2e1df26e71687183" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="1ea75a57fe3431b2ff71f0306b2651bca016523a", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="1ea75a57fe3431b2ff71f0306b2651bca016523a" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="1ea75a57fe3431b2ff71f0306b2651bca016523a" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="1ea75a57fe3431b2ff71f0306b2651bca016523a", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="1ea75a57fe3431b2ff71f0306b2651bca016523a" }
 
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
@@ -47,9 +47,9 @@ opcua = {version="0.12.0", features = ["vendored-openssl"]}
 url = "2.5.2"
 
 [patch.crates-io]
-oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "676207f568d57c60c8335cfa9bc5d073dbc20c5b"}
-oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "676207f568d57c60c8335cfa9bc5d073dbc20c5b"}
-oxrdfio = { git = 'https://github.com/magbak/oxigraph.git', rev = "676207f568d57c60c8335cfa9bc5d073dbc20c5b"}
-oxigraph = { git = 'https://github.com/magbak/oxigraph.git', rev = "676207f568d57c60c8335cfa9bc5d073dbc20c5b"}
-sparesults = { git = 'https://github.com/magbak/oxigraph.git', rev = "676207f568d57c60c8335cfa9bc5d073dbc20c5b"}
+oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
+oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
+oxrdfio = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
+oxigraph = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
+sparesults = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
 
