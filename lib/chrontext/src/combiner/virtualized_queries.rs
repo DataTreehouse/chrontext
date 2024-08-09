@@ -157,7 +157,7 @@ impl Combiner {
                 on_cols.as_slice(),
                 JoinArgs::new(JoinType::Inner),
             )
-            .drop(drop_cols.iter().map(|x|col(x)));
+            .drop(drop_cols.iter());
         for c in &drop_cols {
             solution_mappings.rdf_node_types.remove(c);
         }
