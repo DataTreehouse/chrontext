@@ -14,11 +14,11 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="f1075160c06bc5d323c4903c3896f17280366757", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="f1075160c06bc5d323c4903c3896f17280366757" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="f1075160c06bc5d323c4903c3896f17280366757" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="f1075160c06bc5d323c4903c3896f17280366757", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="f1075160c06bc5d323c4903c3896f17280366757" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78" }
 
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
@@ -51,5 +51,5 @@ oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e
 oxrdfio = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
 oxigraph = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
 sparesults = { git = 'https://github.com/magbak/oxigraph.git', rev = "70028ad09cfa29e62bce0d3920717c0a09b939d0"}
-polars = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
-polars-core = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
+#polars = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
+#polars-core = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
