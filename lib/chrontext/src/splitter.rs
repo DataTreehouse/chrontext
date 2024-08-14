@@ -1,36 +1,17 @@
 use spargebra::{Query, SparqlSyntaxError};
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum SelectQueryErrorKind {
+#[derive(Debug, Error)]
+pub enum QueryParseError {
+    #[error(transparent)]
     Parse(SparqlSyntaxError),
+    #[error("Not a select query")]
     NotSelectQuery,
+    #[error("Unsupported construct: `{0}`")]
     Unsupported(String),
 }
 
-#[derive(Debug)]
-pub struct SelectQueryError {
-    kind: SelectQueryErrorKind,
-}
-
-impl Display for SelectQueryError {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match &self.kind {
-            SelectQueryErrorKind::Parse(pe) => std::fmt::Display::fmt(&pe, f),
-            SelectQueryErrorKind::NotSelectQuery => {
-                write!(f, "Not a select query")
-            }
-            SelectQueryErrorKind::Unsupported(s) => {
-                write!(f, "Unsupported construct: {}", s)
-            }
-        }
-    }
-}
-
-impl Error for SelectQueryError {}
-
-pub fn parse_sparql_select_query(query_str: &str) -> Result<Query, SelectQueryError> {
+pub fn parse_sparql_select_query(query_str: &str) -> Result<Query, QueryParseError> {
     let q_res = Query::parse(query_str, None);
     match q_res {
         Ok(q) => match q {
@@ -47,9 +28,9 @@ pub fn parse_sparql_select_query(query_str: &str) -> Result<Query, SelectQueryEr
                     unsupported_constructs.push("BaseIri")
                 }
                 if unsupported_constructs.len() > 0 {
-                    Err(SelectQueryError {
-                        kind: SelectQueryErrorKind::Unsupported(unsupported_constructs.join(",")),
-                    })
+                    Err(QueryParseError::Unsupported(
+                        unsupported_constructs.join(","),
+                    ))
                 } else {
                     Ok(Query::Select {
                         dataset,
@@ -58,12 +39,8 @@ pub fn parse_sparql_select_query(query_str: &str) -> Result<Query, SelectQueryEr
                     })
                 }
             }
-            _ => Err(SelectQueryError {
-                kind: SelectQueryErrorKind::NotSelectQuery,
-            }),
+            _ => Err(QueryParseError::NotSelectQuery),
         },
-        Err(e) => Err(SelectQueryError {
-            kind: SelectQueryErrorKind::Parse(e),
-        }),
+        Err(e) => Err(QueryParseError::Parse(e)),
     }
 }

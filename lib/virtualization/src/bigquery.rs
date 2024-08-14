@@ -1,4 +1,4 @@
-use crate::errors::VirtualizedDatabaseError;
+use crate::errors::ChrontextError;
 use crate::python::translate_sql;
 use crate::{get_datatype_map, Dialect};
 use bigquery_polars::{BigQueryExecutor, Client};
@@ -35,7 +35,7 @@ impl VirtualizedBigQueryDatabase {
     pub async fn query(
         &self,
         vq: &VirtualizedQuery,
-    ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
+    ) -> Result<EagerSolutionMappings, ChrontextError> {
         let mut rename_map = HashMap::new();
         let new_vq = rename_non_alpha_vars(vq.clone(), &mut rename_map);
         let query_string =

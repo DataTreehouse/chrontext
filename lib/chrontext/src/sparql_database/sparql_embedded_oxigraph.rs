@@ -1,4 +1,4 @@
-use super::SparqlQueryable;
+use super::{SparqlQueryError, SparqlQueryable};
 use async_trait::async_trait;
 use filesize::PathExt;
 use oxigraph::io::{RdfFormat, RdfParser};
@@ -6,41 +6,27 @@ use oxigraph::sparql::QueryResults;
 use oxigraph::store::Store;
 use sparesults::QuerySolution;
 use spargebra::Query;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use std::fs::{read_to_string, File};
 use std::io::BufReader;
 use std::io::Write;
 use std::path::Path;
 use std::time::SystemTime;
+use thiserror::Error;
 
 const RDF_FILE_METADATA: &str = "rdf_file_data.txt";
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum EmbeddedOxigraphError {
+    #[error("Error opening oxigraph storage path `{0}`")]
     OpenStorageError(String),
+    #[error("Error reading NTriples file `{0}`")]
     ReadNTriplesFileError(String),
+    #[error("Error reading loading NTriples file `{0}`")]
     LoaderError(String),
+    #[error("Oxigraph metadata IO Error `{0}`")]
     DBMetadataIOError(String),
-}
-
-impl Display for EmbeddedOxigraphError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EmbeddedOxigraphError::OpenStorageError(o) => {
-                write!(f, "Error opening oxigraph storage path {}", o)
-            }
-            EmbeddedOxigraphError::ReadNTriplesFileError(s) => {
-                write!(f, "Error reading NTriples file {}", s)
-            }
-            EmbeddedOxigraphError::LoaderError(s) => {
-                write!(f, "Error reading loading NTriples file {}", s)
-            }
-            EmbeddedOxigraphError::DBMetadataIOError(s) => {
-                write!(f, "Oxigraph metadata IO Error {}", s)
-            }
-        }
-    }
+    #[error("Oxigraph evaluation error")]
+    EvaluationError(String),
 }
 
 #[derive(Debug)]
@@ -56,14 +42,22 @@ pub struct EmbeddedOxigraph {
 
 #[async_trait]
 impl SparqlQueryable for EmbeddedOxigraph {
-    async fn execute(&self, query: &Query) -> Result<Vec<QuerySolution>, Box<dyn Error>> {
+    async fn execute(&self, query: &Query) -> Result<Vec<QuerySolution>, SparqlQueryError> {
         let oxiquery = oxigraph::sparql::Query::parse(query.to_string().as_str(), None).unwrap();
-        let res = self.store.query(oxiquery).map_err(|x| Box::new(x))?;
+        let res = self.store.query(oxiquery).map_err(|x| {
+            SparqlQueryError::EmbeddedOxigraphError(EmbeddedOxigraphError::EvaluationError(
+                x.to_string(),
+            ))
+        })?;
         match res {
             QueryResults::Solutions(sols) => {
                 let mut output = vec![];
                 for s in sols {
-                    output.push(s?);
+                    output.push(s.map_err(|x| {
+                        SparqlQueryError::EmbeddedOxigraphError(
+                            EmbeddedOxigraphError::EvaluationError(x.to_string()),
+                        )
+                    })?);
                 }
                 Ok(output)
             }

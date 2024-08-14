@@ -1,4 +1,4 @@
-use crate::errors::VirtualizedDatabaseError;
+use crate::errors::ChrontextError;
 use crate::get_datatype_map;
 use chrono::NaiveDateTime;
 use opcua::client::prelude::{
@@ -79,7 +79,7 @@ impl VirtualizedOPCUADatabase {
     pub async fn query(
         &self,
         vq: &VirtualizedQuery,
-    ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
+    ) -> Result<EagerSolutionMappings, ChrontextError> {
         validate_vq(vq, true, false)?;
         let session = self.session.write();
         let start_time = find_time(vq, &FindTime::Start);
@@ -269,21 +269,19 @@ fn validate_vq(
     vq: &VirtualizedQuery,
     toplevel: bool,
     inside_grouping: bool,
-) -> Result<(), VirtualizedDatabaseError> {
+) -> Result<(), ChrontextError> {
     match vq {
         //Todo add validation when basic has grouped..
         VirtualizedQuery::Basic(_) => Ok(()),
         VirtualizedQuery::Filtered(f, _) => validate_vq(f, false, inside_grouping),
         VirtualizedQuery::Grouped(g) => {
             if !toplevel {
-                Err(VirtualizedDatabaseError::VirtualizedQueryTypeNotSupported)
+                Err(ChrontextError::VirtualizedQueryTypeNotSupported)
             } else {
                 validate_vq(&g.vq, false, true)
             }
         }
-        VirtualizedQuery::InnerJoin(_, _) => {
-            Err(VirtualizedDatabaseError::VirtualizedQueryTypeNotSupported)
-        }
+        VirtualizedQuery::InnerJoin(_, _) => Err(ChrontextError::VirtualizedQueryTypeNotSupported),
         VirtualizedQuery::ExpressionAs(t, _, _) => validate_vq(t, false, inside_grouping),
         VirtualizedQuery::Sliced(..) => todo!(),
         VirtualizedQuery::Ordered(_, _) => todo!(),
@@ -728,20 +726,20 @@ fn from_numeric_datatype(lit: &Literal) -> Option<f64> {
     }
 }
 
-fn node_id_from_string(s: &str) -> Result<NodeId, VirtualizedDatabaseError> {
+fn node_id_from_string(s: &str) -> Result<NodeId, ChrontextError> {
     let mut splitstring = s.split(";");
     let ns_str = if let Some(ns_str) = splitstring.next() {
         ns_str
     } else {
-        return Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()));
+        return Err(ChrontextError::InvalidNodeIdError(s.to_string()));
     };
     let identifier_string = splitstring.collect::<Vec<&str>>().join(";");
     let namespace: u16 = if let Some(namespace_str) = ns_str.strip_prefix("ns=") {
         namespace_str
             .parse()
-            .map_err(|_| VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))?
+            .map_err(|_| ChrontextError::InvalidNodeIdError(s.to_string()))?
     } else {
-        return Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()));
+        return Err(ChrontextError::InvalidNodeIdError(s.to_string()));
     };
     if identifier_string.starts_with("s=") {
         let identifier = identifier_string.strip_prefix("s=").unwrap();
@@ -754,7 +752,7 @@ fn node_id_from_string(s: &str) -> Result<NodeId, VirtualizedDatabaseError> {
             .strip_prefix("i=")
             .unwrap()
             .parse()
-            .map_err(|_| VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))?;
+            .map_err(|_| ChrontextError::InvalidNodeIdError(s.to_string()))?;
         Ok(NodeId {
             namespace,
             identifier: Identifier::Numeric(identifier),
@@ -765,7 +763,7 @@ fn node_id_from_string(s: &str) -> Result<NodeId, VirtualizedDatabaseError> {
             namespace,
             identifier: Identifier::Guid(
                 Guid::from_str(identifier)
-                    .map_err(|_| VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))?,
+                    .map_err(|_| ChrontextError::InvalidNodeIdError(s.to_string()))?,
             ),
         })
     } else if identifier_string.starts_with("b=") {
@@ -773,13 +771,13 @@ fn node_id_from_string(s: &str) -> Result<NodeId, VirtualizedDatabaseError> {
         let byte_string = if let Some(byte_string) = ByteString::from_base64(identifier) {
             byte_string
         } else {
-            return Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()));
+            return Err(ChrontextError::InvalidNodeIdError(s.to_string()));
         };
         Ok(NodeId {
             namespace,
             identifier: Identifier::ByteString(byte_string),
         })
     } else {
-        Err(VirtualizedDatabaseError::InvalidNodeIdError(s.to_string()))
+        Err(ChrontextError::InvalidNodeIdError(s.to_string()))
     }
 }

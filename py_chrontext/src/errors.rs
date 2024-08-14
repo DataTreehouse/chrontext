@@ -1,4 +1,6 @@
+use chrontext::combiner::CombinerError;
 use chrontext::errors::ChrontextError as RustChrontextError;
+use chrontext::splitter::QueryParseError;
 use oxrdf::IriParseError;
 use pyo3::{create_exception, exceptions::PyException, prelude::*};
 use spargebra::SparqlSyntaxError;
@@ -10,8 +12,6 @@ pub enum PyChrontextError {
     DatatypeIRIParseError(#[from] IriParseError),
     #[error(transparent)]
     DataProductQueryParseError(#[from] SparqlSyntaxError),
-    #[error(transparent)]
-    QueryExecutionError(Box<dyn std::error::Error>),
     #[error("Missing SPARQL database")]
     MissingSPARQLDatabaseError,
     #[error("SPARQL database defined multiple times")]
@@ -30,9 +30,6 @@ impl std::convert::From<PyChrontextError> for PyErr {
             PyChrontextError::ChrontextError(e) => ChrontextError::new_err(format!("{}", e)),
             PyChrontextError::DatatypeIRIParseError(err) => {
                 DatatypeIRIParseError::new_err(format!("{}", err))
-            }
-            PyChrontextError::QueryExecutionError(err) => {
-                QueryExecutionError::new_err(format!("{}", err))
             }
             PyChrontextError::MissingSPARQLDatabaseError => MissingSPARQLDatabaseError::new_err(""),
             PyChrontextError::MultipleSPARQLDatabasesError => {
@@ -53,7 +50,6 @@ impl std::convert::From<PyChrontextError> for PyErr {
 
 create_exception!(exceptions, DatatypeIRIParseError, PyException);
 create_exception!(exceptions, DataProductQueryParseError, PyException);
-create_exception!(exceptions, QueryExecutionError, PyException);
 create_exception!(exceptions, MissingSPARQLDatabaseError, PyException);
 create_exception!(exceptions, MultipleSPARQLDatabasesError, PyException);
 create_exception!(exceptions, MissingVirtualizedDatabaseError, PyException);

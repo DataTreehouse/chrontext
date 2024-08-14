@@ -13,7 +13,6 @@ use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use std::sync::Arc;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
@@ -79,7 +78,7 @@ impl Engine {
     pub async fn query<'py>(
         &self,
         query: &str,
-    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>, Vec<Context>), Box<dyn Error>> {
+    ) -> Result<(DataFrame, HashMap<String, RDFNodeType>, Vec<Context>), ChrontextError> {
         enable_string_cache();
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", parsed_query.to_string());
@@ -115,14 +114,15 @@ impl Engine {
         );
         let solution_mappings = combiner
             .combine_static_and_time_series_results(static_queries_map, &preprocessed_query)
-            .await?;
+            .await
+            .map_err(|x| ChrontextError::CombinerError(x))?;
         let SolutionMappings {
             mappings,
             rdf_node_types,
         } = solution_mappings;
 
         Ok((
-            mappings.collect()?,
+            mappings.collect().unwrap(),
             rdf_node_types,
             combiner.virtualized_contexts,
         ))

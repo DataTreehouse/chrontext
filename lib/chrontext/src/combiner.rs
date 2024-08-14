@@ -8,25 +8,24 @@ pub(crate) mod virtualized_queries;
 use representation::query_context::Context;
 
 use crate::preparing::TimeseriesQueryPrepper;
-use crate::sparql_database::SparqlQueryable;
+use crate::sparql_database::{SparqlQueryError, SparqlQueryable};
 use query_processing::errors::QueryProcessingError;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;
 use spargebra::Query;
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use thiserror::Error;
-use virtualization::errors::VirtualizedDatabaseError;
+use virtualization::errors::ChrontextError;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{BasicVirtualizedQuery, VirtualizedResultValidationError};
 
 #[derive(Debug, Error)]
 pub enum CombinerError {
-    VirtualizedDatabaseError(VirtualizedDatabaseError),
-    StaticQueryExecutionError(Box<dyn Error>),
+    VirtualizedDatabaseError(ChrontextError),
+    StaticQueryExecutionError(SparqlQueryError),
     QueryProcessingError(#[from] QueryProcessingError),
     InconsistentDatatype(String, String, String),
     TimeseriesValidationError(VirtualizedResultValidationError),

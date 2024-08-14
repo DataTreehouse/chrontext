@@ -176,11 +176,13 @@ impl PyEngine {
 
         let mut builder = Builder::new_multi_thread();
         builder.enable_all();
-        let (mut df, mut datatypes, pushdown_contexts) = builder
-            .build()
-            .unwrap()
-            .block_on(self.engine.as_mut().unwrap().query(sparql))
-            .map_err(|err| PyChrontextError::QueryExecutionError(err))?;
+        let (mut df, mut datatypes, pushdown_contexts) = py.allow_threads(move || {
+            builder
+                .build()
+                .unwrap()
+                .block_on(self.engine.as_mut().unwrap().query(sparql))
+                .map_err(|err| PyChrontextError::ChrontextError(err))
+        })?;
 
         (df, datatypes) =
             fix_cats_and_multicolumns(df, datatypes, native_dataframe.unwrap_or(false));

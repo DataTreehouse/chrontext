@@ -5,7 +5,7 @@ pub mod bigquery;
 pub mod opcua;
 
 use crate::bigquery::VirtualizedBigQueryDatabase;
-use crate::errors::VirtualizedDatabaseError;
+use crate::errors::ChrontextError;
 use crate::opcua::VirtualizedOPCUADatabase;
 use crate::python::VirtualizedPythonDatabase;
 use oxrdf::NamedNode;
@@ -102,10 +102,10 @@ impl VirtualizedDatabase {
     pub async fn query(
         &self,
         vq: &VirtualizedQuery,
-    ) -> Result<EagerSolutionMappings, VirtualizedDatabaseError> {
+    ) -> Result<EagerSolutionMappings, ChrontextError> {
         match self {
             VirtualizedDatabase::VirtualizedPythonDatabase(pyvdb) => {
-                let df = pyvdb.query(vq).map_err(VirtualizedDatabaseError::from)?;
+                let df = pyvdb.query(vq).map_err(ChrontextError::from)?;
                 let rdf_node_types = get_datatype_map(&df);
                 Ok(EagerSolutionMappings::new(df, rdf_node_types))
             }

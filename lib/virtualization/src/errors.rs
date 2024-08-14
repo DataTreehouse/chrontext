@@ -6,7 +6,7 @@ use thiserror::*;
 use url::ParseError;
 
 #[derive(Error, Debug)]
-pub enum VirtualizedDatabaseError {
+pub enum ChrontextError {
     #[error(transparent)]
     PyVirtualizedDatabaseError(#[from] PyErr),
     #[error(transparent)]
