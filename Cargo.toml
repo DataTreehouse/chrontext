@@ -29,7 +29,7 @@ oxrdfio = { version= "0.1.0-alpha.6", features = ["rdf-star"] }
 polars = "0.41.3"
 tokio = "1.32.1"
 log = "0.4.21"
-pyo3 = "0.22.1"
+pyo3 = "0.22.2"
 reqwest = "0.12.3"
 env_logger = "0.11.3"
 thiserror = "1.0.58"
