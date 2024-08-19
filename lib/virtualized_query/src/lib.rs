@@ -530,13 +530,13 @@ impl BasicVirtualizedQuery {
 }
 
 impl VirtualizedQuery {
-    pub fn get_groupby_columns(&self) -> Vec<&String> {
+    pub fn get_groupby_columns(&self) -> HashSet<&String> {
         match self {
             VirtualizedQuery::Basic(b) => {
                 if let Some(c) = &b.grouping_col {
-                    vec![c]
+                    HashSet::from([c])
                 } else {
-                    vec![]
+                    HashSet::new()
                 }
             }
             VirtualizedQuery::Filtered(inner, _)
@@ -544,7 +544,7 @@ impl VirtualizedQuery {
             | VirtualizedQuery::Ordered(inner, ..)
             | VirtualizedQuery::ExpressionAs(inner, ..) => inner.get_groupby_columns(),
             VirtualizedQuery::InnerJoin(vqs, _) => {
-                let mut colnames = vec![];
+                let mut colnames = HashSet::new();
                 for vq in vqs {
                     let new_colname = vq.get_groupby_columns();
                     colnames.extend(new_colname);

@@ -20,47 +20,61 @@ The API is documented [HERE](https://datatreehouse.github.io/chrontext/chrontext
 
 ## Example query in Python
 The code assumes that we have a SPARQL-endpoint and BigQuery set up with time-series. 
-The query uses a bit of syntactic sugar, but is converted to pure SPARQL before execution. 
-```python
-... 
 
-df = engine.query("""
-    PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
-    PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
-    PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
-    SELECT ?inv_path WHERE {
-        # We are navigating th Solar PV site "Metropolis", identifying every inverter. 
-        ?site a rds:Site .
-        ?site rdfs:label "Metropolis" .
-        ?site rds:functionalAspect+ ?inv .    
-        ?inv a rds:TBB .                    # RDS code TBB: Inverter
-        ?inv rds:path ?inv_path .
-        
-        # Find the timeseries associated with the inverter
-        ?inv ct:hasTimeseries ?ts_pow .
-        ?ts_pow rdfs:label "InvPDC_kW" .    
-        DT {
-            timestamp = ?t,
-            timeseries = ?ts_pow, 
-            interval = "10m",
-            from = "2018-12-25T00:00:00Z",
-            aggregation = "avg" }
-        }
-    ORDER BY ?inv_path ?t
-""")
+```python
+...
+q = """
+PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+SELECT ?path ?t ?ts_pow_value ?ts_irr_value
+WHERE {
+    ?site a rds:Site;
+    rdfs:label "Jonathanland";
+    rds:functionalAspect ?block.
+    # At the Block level there is an irradiation measurement:
+    ?block a rds:A;
+    ct:hasTimeseries ?ts_irr.
+    ?ts_irr rdfs:label "RefCell1_Wm2".
+    
+    # At the Inverter level, there is a Power measurement
+    ?block rds:functionalAspect+ ?inv.
+    ?inv a rds:TBB;
+    rds:path ?path;
+    ct:hasTimeseries ?ts_pow.
+    ?ts_pow rdfs:label "InvPDC_kW".
+    
+    ?ts_pow ct:hasDataPoint ?ts_pow_datapoint.
+    ?ts_pow_datapoint ct:hasValue ?ts_pow_value;
+        ct:hasTimestamp ?t.
+    ?ts_irr ct:hasDataPoint ?ts_irr_datapoint.
+    ?ts_irr_datapoint ct:hasValue ?ts_irr_value;
+        ct:hasTimestamp ?t.
+    FILTER(
+        ?t >= "2018-08-24T12:00:00+00:00"^^xsd:dateTime && 
+        ?t <= "2018-08-24T13:00:00+00:00"^^xsd:dateTime)
+} ORDER BY ?path ?t 
+"""
+df = engine.query(q)
 ```
 
 This produces the following DataFrame:
 
-| inv_path                    | t                   | ts_pow_value_avg |
-|-----------------------------| ---                 | ---              |
-| str                         | datetime[ns]        | f64              |
-| =\<Metropolis\>.A1.RG1.TBB1 | 2018-12-25 00:00:00 | 0.0              |
-| …                           | …                   | …                |
-| =\<Metropolis\>.A5.RG9.TBB1 | 2019-01-01 04:50:00 | 0.0              |
-
-Not much power being produced at night in the middle of winter :-)
+| path                        | t                       | ts_pow_value | ts_irr_value |
+| ---                         | ---                     | ---          | ---          |
+| str                         | datetime[ns, UTC]       | f64          | f64          |
+| =<Jonathanland>.A1.RG1.TBB1 | 2018-08-24 12:00:00 UTC | 39.74        | 184.0        |
+| =<Jonathanland>.A1.RG1.TBB1 | 2018-08-24 12:00:01 UTC | 39.57        | 184.0        |
+| =<Jonathanland>.A1.RG1.TBB1 | 2018-08-24 12:00:02 UTC | 40.1         | 184.0        |
+| =<Jonathanland>.A1.RG1.TBB1 | 2018-08-24 12:00:03 UTC | 40.05        | 184.0        |
+| =<Jonathanland>.A1.RG1.TBB1 | 2018-08-24 12:00:04 UTC | 40.02        | 184.0        |
+| …                           | …                       | …            | …            |
+| =<Jonathanland>.A5.RG9.TBB1 | 2018-08-24 12:59:56 UTC | 105.5        | 427.5        |
+| =<Jonathanland>.A5.RG9.TBB1 | 2018-08-24 12:59:57 UTC | 104.9        | 427.6        |
+| =<Jonathanland>.A5.RG9.TBB1 | 2018-08-24 12:59:58 UTC | 105.6        | 428.0        |
+| =<Jonathanland>.A5.RG9.TBB1 | 2018-08-24 12:59:59 UTC | 105.9        | 428.0        |
+| =<Jonathanland>.A5.RG9.TBB1 | 2018-08-24 13:00:00 UTC | 105.7        | 428.5        |
 
 ## API
 The API is documented [HERE](https://datatreehouse.github.io/chrontext/chrontext/chrontext.html).

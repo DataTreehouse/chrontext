@@ -83,16 +83,22 @@ impl Combiner {
             .query(&vq)
             .await
             .map_err(|x| CombinerError::VirtualizedDatabaseError(x))?;
-        //debug!("Virtualized query results: \n{}", mappings);
+
+        // We allow empty (no columns & rows) result for compatibility with e.g. Azure Kusto.
+        if mappings.height() == 0 && mappings.get_columns().is_empty() {
+            return Ok(self.attach_expected_empty_results(&vq, solution_mappings));
+        }
+
         vq.validate(&mappings)
             .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
         let mut mappings = mappings.lazy();
         let drop_cols = get_drop_cols(&vq);
-        let groupby_cols: Vec<_> = vq
+        let mut groupby_cols: Vec<_> = vq
             .get_groupby_columns()
             .into_iter()
             .filter(|x| on_cols.contains(x))
             .collect();
+        groupby_cols.sort();
         let id_cols: Vec<_> = vq
             .get_identifier_variables()
             .into_iter()
@@ -256,7 +262,8 @@ pub fn get_join_columns(
 ) -> Vec<String> {
     let mut new_order = vec![];
     let expected = vq.expected_columns();
-    let grouping_cols = vq.get_groupby_columns();
+    let mut grouping_cols: Vec<_> = vq.get_groupby_columns().into_iter().collect();
+    grouping_cols.sort();
     let id_vars = vq.get_identifier_variables();
     let mut expected_group_and_id = HashSet::new();
     for g in grouping_cols {

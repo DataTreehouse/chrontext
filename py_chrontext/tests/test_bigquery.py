@@ -424,3 +424,95 @@ SELECT ?path WHERE {
                           'ts_irr_value_avg',
                           'ts_irr_value_min']
     assert df.height == 51900
+
+
+@pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(8)
+def test_get_inverter_dckw_multi_no_sugar(engine):
+    df = engine.query("""
+PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+SELECT
+    ?path 
+    ?t   
+    (AVG(?ts_pow_value) AS ?ts_pow_value_avg) 
+    (MIN(?ts_pow_value) AS ?ts_pow_value_min) 
+    (AVG(?ts_irr_value) AS ?ts_irr_value_avg) 
+    (MIN(?ts_irr_value) AS ?ts_irr_value_min) 
+WHERE {
+    ?site a rds:Site;
+    rdfs:label "Jonathanland";
+    rds:functionalAspect ?block.
+    ?block a rds:A;
+    ct:hasTimeseries ?ts_irr.
+    ?ts_irr rdfs:label "RefCell1_Wm2".
+    ?block rds:functionalAspect+ ?inv.
+    ?inv a rds:TBB;
+    rds:path ?path;
+    ct:hasTimeseries ?ts_pow.
+    ?ts_pow rdfs:label "InvPDC_kW".
+    
+    ?ts_pow ct:hasDataPoint ?ts_pow_datapoint.
+    ?ts_pow_datapoint ct:hasValue ?ts_pow_value;
+      ct:hasTimestamp ?t_inner.
+    ?ts_irr ct:hasDataPoint ?ts_irr_datapoint.
+    ?ts_irr_datapoint ct:hasValue ?ts_irr_value;
+      ct:hasTimestamp ?t_inner.
+    FILTER(?t_inner >= "2018-12-25T00:00:00+00:00"^^xsd:dateTime)
+    BIND(ct:FloorDateTimeToSecondsInterval(?t_inner, 600 ) AS ?t) 
+} GROUP BY ?t ?path
+""")
+    #print(df)
+    assert df.columns == ['path',
+                          't',
+                          'ts_pow_value_avg',
+                          'ts_pow_value_min',
+                          'ts_irr_value_avg',
+                          'ts_irr_value_min']
+    assert df.height == 51900
+
+
+@pytest.mark.skipif(skip, reason="Environment vars not present")
+@pytest.mark.order(9)
+def test_get_inverter_dckw_multi_no_sugar_no_agg(engine):
+    df = engine.query("""
+PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
+PREFIX ct:<https://github.com/DataTreehouse/chrontext#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+PREFIX rds: <https://github.com/DataTreehouse/solar_demo/rds_power#> 
+SELECT ?path ?t ?ts_pow_value ?ts_irr_value
+WHERE {
+    ?site a rds:Site;
+    rdfs:label "Jonathanland";
+    rds:functionalAspect ?block.
+    # At the Block level there is an irradiation measurement:
+    ?block a rds:A;
+    ct:hasTimeseries ?ts_irr.
+    ?ts_irr rdfs:label "RefCell1_Wm2".
+    
+    # At the Inverter level, there is a Power measurement
+    ?block rds:functionalAspect+ ?inv.
+    ?inv a rds:TBB;
+    rds:path ?path;
+    ct:hasTimeseries ?ts_pow.
+    ?ts_pow rdfs:label "InvPDC_kW".
+    
+    ?ts_pow ct:hasDataPoint ?ts_pow_datapoint.
+    ?ts_pow_datapoint ct:hasValue ?ts_pow_value;
+        ct:hasTimestamp ?t.
+    ?ts_irr ct:hasDataPoint ?ts_irr_datapoint.
+    ?ts_irr_datapoint ct:hasValue ?ts_irr_value;
+        ct:hasTimestamp ?t.
+    FILTER(
+        ?t >= "2018-08-24T12:00:00+00:00"^^xsd:dateTime && 
+        ?t <= "2018-08-24T13:00:00+00:00"^^xsd:dateTime)
+} ORDER BY ?path ?t 
+""")
+    #print(df)
+    assert df.columns == ['path',
+                          't',
+                          'ts_pow_value',
+                          'ts_irr_value']
+    assert df.height == 180050
