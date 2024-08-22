@@ -21,10 +21,13 @@ impl StaticQueryRewriter {
         let mut expression_rewrite = None;
 
         if let Some(expression) = expression_opt {
+            let mut use_variables_in_scope = left_rewrite.variables_in_scope.clone();
+            use_variables_in_scope.extend(right_rewrite.variables_in_scope.clone());
+
             expression_rewrite = Some(self.rewrite_expression(
                 expression,
                 &ChangeType::NoChange,
-                &left_rewrite.variables_in_scope,
+                &use_variables_in_scope,
                 left_rewrite.is_subquery || right_rewrite.is_subquery,
                 &expression_context,
             ));

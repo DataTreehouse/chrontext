@@ -481,7 +481,7 @@ def test_optional_clause_query(engine):
         ?w types:hasSensor/chrontext:hasTimeseries/chrontext:hasDataPoint ?dp .
         ?dp chrontext:hasValue ?v .
         OPTIONAL {
-        BIND(?v>300 as ?greater)
+            BIND(?v>300 as ?greater)
         FILTER(?greater)
         }
     }
