@@ -16,7 +16,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
-use crate::rename_vars::rename_vars;
+use crate::rename_vars::rename_query_vars;
 
 pub struct EngineConfig {
     pub sparql_endpoint: Option<String>,
@@ -84,7 +84,7 @@ impl Engine {
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", parsed_query.to_string());
         debug!("Parsed query algebra: {:?}", &parsed_query);
-        let (parsed_query, rename_map) = rename_vars(parsed_query);
+        let (parsed_query, rename_map) = rename_query_vars(parsed_query);
         let virtualized_iris = self.virtualization.get_virtualized_iris();
         let first_level_virtualized_iris = self.virtualization.get_first_level_virtualized_iris();
 
