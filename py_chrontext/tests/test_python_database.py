@@ -1,5 +1,3 @@
-import time
-
 import pytest
 import polars as pl
 import duckdb
@@ -10,7 +8,6 @@ from sqlalchemy import Column, Table, MetaData, bindparam
 
 from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph, Template, Prefix, Variable, Parameter, \
     RDFType, XSD, Triple
-import rdflib
 
 PATH_HERE = pathlib.Path(__file__).parent
 TESTDATA_PATH = PATH_HERE / "testdata" / "python_based"
@@ -813,4 +810,3 @@ def test_simple_hybrid_limit_filter_expression(engine):
     assert df.columns == ["w", "s", "t", "v", "seconds_5"]
     assert not df.null_count().sum_horizontal().cast(pl.Boolean).any()
     #Todo: check pushdown, does not work currently..
-

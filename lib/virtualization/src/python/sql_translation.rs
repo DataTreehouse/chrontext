@@ -6,6 +6,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.base import ColumnCollection
 from sqlalchemy.sql.functions import GenericFunction
 from sqlalchemy_bigquery.base import BigQueryDialect
+from databricks.sqlalchemy import DatabricksDialect
 
 from chrontext.vq import Expression, VirtualizedQuery, AggregateExpression
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, cast, \
@@ -34,6 +35,8 @@ def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"]
             use_dialect = BigQueryDialect()
         case "postgres":
             use_dialect = postgresql.dialect()
+        case "databricks":
+            use_dialect = DatabricksDialect()
     compiled = q.compile(dialect=use_dialect, compile_kwargs={"literal_binds": True})
     return str(compiled)
 
@@ -97,7 +100,7 @@ class SPARQLMapper:
                         ).select_from(
                             table
                         )
-                    if self.dialect == "postgres":
+                    if self.dialect == "postgres" or self.dialect == "databricks":
                         values_sub = values(
                                 Column("id"), Column(query.grouping_column_name),
                                 name=self.inner_name()
@@ -349,6 +352,12 @@ class SPARQLMapper:
                                     func.extract("EPOCH", sql_args[0]),
                                     sql_args[1])
                                 )
+                    elif self.dialect == "databricks":
+                        return func.TIMESTAMP_SECONDS(
+                            func.UNIX_TIMESTAMP(sql_args[0]) - func.mod(
+                                    func.UNIX_TIMESTAMP(sql_args[0]),
+                                    sql_args[1])
+                        )
                     elif self.dialect == "bigquery":
                         return func.TIMESTAMP_SECONDS(
                             func.UNIX_SECONDS(sql_args[0]) - func.mod(

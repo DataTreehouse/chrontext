@@ -14,11 +14,11 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="3aaabe8bd2326fbf204456f961f972d927afad78" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="3bf75ac20a71c9afeab07a7b4e0196fe51e43c61", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="3bf75ac20a71c9afeab07a7b4e0196fe51e43c61" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="3bf75ac20a71c9afeab07a7b4e0196fe51e43c61" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="3bf75ac20a71c9afeab07a7b4e0196fe51e43c61", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="3bf75ac20a71c9afeab07a7b4e0196fe51e43c61" }
 
 
 sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
@@ -44,6 +44,7 @@ gcp-bigquery-client = "0.20.0"
 rayon = "1.10.0"
 opcua = {version="0.12.0", features = ["vendored-openssl"]}
 url = "2.5.2"
+uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 
 [patch.crates-io]
 oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}

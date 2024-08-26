@@ -87,7 +87,7 @@ pub(crate) fn rewrite_filter_expression(
         context,
         pushdown_settings,
     );
-    return (rewrite.expression.take(), rewrite.lost_value);
+    (rewrite.expression.take(), rewrite.lost_value)
 }
 
 pub(crate) fn try_recursive_rewrite_expression(

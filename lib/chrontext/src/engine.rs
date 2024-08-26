@@ -16,6 +16,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
+use crate::rename_vars::rename_vars;
 
 pub struct EngineConfig {
     pub sparql_endpoint: Option<String>,
@@ -83,6 +84,7 @@ impl Engine {
         let parsed_query = parse_sparql_select_query(query)?;
         debug!("Parsed query: {}", parsed_query.to_string());
         debug!("Parsed query algebra: {:?}", &parsed_query);
+        let (parsed_query, rename_map) = rename_vars(parsed_query);
         let virtualized_iris = self.virtualization.get_virtualized_iris();
         let first_level_virtualized_iris = self.virtualization.get_first_level_virtualized_iris();
 
@@ -112,10 +114,17 @@ impl Engine {
             rewritten_filters,
             self.virtualization.clone(),
         );
-        let solution_mappings = combiner
+        let mut solution_mappings = combiner
             .combine_static_and_time_series_results(static_queries_map, &preprocessed_query)
             .await
             .map_err(|x| ChrontextError::CombinerError(x))?;
+        for (original, renamed) in rename_map {
+            if let Some(dt) = solution_mappings.rdf_node_types.remove(&renamed) {
+                solution_mappings.mappings = solution_mappings.mappings.rename(&[renamed], &[original.clone()]);
+                solution_mappings.rdf_node_types.insert(original, dt);
+            }
+        }
+
         let SolutionMappings {
             mappings,
             rdf_node_types,

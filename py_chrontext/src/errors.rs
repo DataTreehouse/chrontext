@@ -1,6 +1,4 @@
-use chrontext::combiner::CombinerError;
 use chrontext::errors::ChrontextError as RustChrontextError;
-use chrontext::splitter::QueryParseError;
 use oxrdf::IriParseError;
 use pyo3::{create_exception, exceptions::PyException, prelude::*};
 use spargebra::SparqlSyntaxError;

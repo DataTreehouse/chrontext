@@ -13,7 +13,7 @@ use oxrdf::vocab::xsd;
 use oxrdf::{Literal, Variable};
 use polars::export::chrono::{DateTime as ChronoDateTime, Duration, TimeZone, Utc};
 use polars::prelude::{
-    concat, AnyValue, DataFrame, DataType, IntoLazy, IntoVec, NamedFrom, Series, UnionArgs,
+    concat, AnyValue, DataFrame, DataType, IntoLazy, NamedFrom, Series, UnionArgs,
 };
 use query_processing::constants::DATETIME_AS_SECONDS;
 use representation::query_context::Context;
@@ -93,8 +93,7 @@ impl VirtualizedOPCUADatabase {
         let mut grouping_col_lookup = HashMap::new();
         let grouping_columns = vq.get_groupby_columns();
         let grouping_col_name = if let Some(g) = grouping_columns.into_iter().next() {
-            #[allow(suspicious_double_ref_op)]
-            Some(g.deref().clone())
+            Some(g.deref())
         } else {
             None
         };

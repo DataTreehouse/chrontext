@@ -10,3 +10,4 @@ pub mod rewriting;
 pub mod sparql_database;
 mod sparql_result_to_polars;
 pub mod splitter;
+mod rename_vars;

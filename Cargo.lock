@@ -458,6 +458,7 @@ dependencies = [
  "sparesults",
  "spargebra 0.3.0-alpha.5-parparse",
  "thiserror",
+ "uuid",
  "virtualization",
  "virtualized_query",
 ]
@@ -2612,7 +2613,7 @@ dependencies = [
 [[package]]
 name = "pydf_io"
 version = "0.7.6"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3aaabe8bd2326fbf204456f961f972d927afad78#3aaabe8bd2326fbf204456f961f972d927afad78"
+source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
 dependencies = [
  "polars",
  "polars-core",
@@ -2689,7 +2690,7 @@ dependencies = [
 [[package]]
 name = "query_processing"
 version = "0.3.12"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3aaabe8bd2326fbf204456f961f972d927afad78#3aaabe8bd2326fbf204456f961f972d927afad78"
+source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
 dependencies = [
  "log",
  "oxrdf",
@@ -2916,7 +2917,7 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 [[package]]
 name = "representation"
 version = "0.6.10"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3aaabe8bd2326fbf204456f961f972d927afad78#3aaabe8bd2326fbf204456f961f972d927afad78"
+source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
 dependencies = [
  "chrono",
  "chrono-tz 0.9.0",
@@ -3114,6 +3115,15 @@ name = "ryu"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
+
+[[package]]
+name = "same-file"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
+dependencies = [
+ "winapi-util",
+]
 
 [[package]]
 name = "schannel"
@@ -3353,7 +3363,7 @@ dependencies = [
 [[package]]
 name = "spargebra"
 version = "0.3.0-alpha.5-parparse"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3aaabe8bd2326fbf204456f961f972d927afad78#3aaabe8bd2326fbf204456f961f972d927afad78"
+source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
 dependencies = [
  "chrono",
  "fundu",
@@ -3546,7 +3556,7 @@ dependencies = [
 [[package]]
 name = "templates"
 version = "0.1.0"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3aaabe8bd2326fbf204456f961f972d927afad78#3aaabe8bd2326fbf204456f961f972d927afad78"
+source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
 dependencies = [
  "log",
  "nom",
@@ -3555,6 +3565,7 @@ dependencies = [
  "representation",
  "thiserror",
  "unic-char-range",
+ "walkdir",
 ]
 
 [[package]]
@@ -3934,6 +3945,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "walkdir"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29790946404f91d9c5d06f9874efddea1dc06c5efe94541a7d6863108e3a5e4b"
+dependencies = [
+ "same-file",
+ "winapi-util",
+]
+
+[[package]]
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4073,6 +4094,15 @@ name = "winapi-i686-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-util"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
+dependencies = [
+ "windows-sys 0.48.0",
+]
 
 [[package]]
 name = "winapi-x86_64-pc-windows-gnu"

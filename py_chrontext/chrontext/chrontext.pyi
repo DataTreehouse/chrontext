@@ -239,7 +239,7 @@ class VirtualizedPythonDatabase:
     def __init__(self,
                  database: Any,
                  resource_sql_map: Optional[Dict[str, Any]],
-                 sql_dialect: Optional[LiteralType["postgres", "bigquery"]]):
+                 sql_dialect: Optional[LiteralType["postgres", "bigquery", "databricks"]]):
         """
         See the tutorial in README.md for guidance on how to use this class.
         This API is subject to change, it will be possible to specify what parts of the SPARQL query may be pushed down into the database.
