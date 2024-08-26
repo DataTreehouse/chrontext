@@ -136,7 +136,7 @@ my_db = MyDuckDB()
 ```
 
 ### Defining a virtualized SQL
-We first define a sqlalchemy select query involving the two tables. Chrontext will modify this query when executing hybrid queries.
+We first define a sqlalchemy select query involving the two tables. __It is crucial that we have a column labelled "id" here__. Chrontext will modify this query when executing hybrid queries.
 ```python
 from sqlalchemy import MetaData, Table, Column, bindparam
 metadata = MetaData()
@@ -184,7 +184,7 @@ ex:myWidget1 ct:hasIdentifier "ts1" .
 ```
 In any such resource sql, the `id` column is mandatory. 
 ### Relating the Database to RDF Triples
-Next, we want to relate the rows in this sql, each containing id, timestamp, value to RDF triples, using a template.
+Next, we want to relate the rows in this sql, each containing id, timestamp, value to RDF triples, using a template. __It is crucial to have the column id__.
 ```python
 from chrontext import Prefix, Variable, Template, Parameter, RDFType, Triple, XSD
 ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
