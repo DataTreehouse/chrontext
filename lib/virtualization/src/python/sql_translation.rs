@@ -26,7 +26,7 @@ with warnings.catch_warnings():
         package = "bq"
         inherit_cache = True
 
-def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres"],
+def translate_sql(vq: VirtualizedQuery, dialect: Literal["bigquery", "postgres", "databricks"],
                   resource_sql_map: Dict[str, Any]) -> str:
     mapper = SPARQLMapper(dialect, resource_sql_map)
     q = mapper.virtualized_query_to_sql(vq)
