@@ -75,7 +75,7 @@ def opcua_server():
     p = Process(
         target=asyncio.run, args=(start_opcua_server(),), daemon=True)
     p.start()
-    time.sleep(5)
+    time.sleep(10)
 
 
 @pytest.fixture(scope="module")
