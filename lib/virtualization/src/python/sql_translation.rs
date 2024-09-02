@@ -2,20 +2,22 @@ pub const PYTHON_CODE: &str = r#"
 from datetime import datetime
 from typing import Dict, Literal, Any, List, Union
 
+import sqlalchemy.types as types
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.base import ColumnCollection
 from sqlalchemy.sql.functions import GenericFunction
 from sqlalchemy_bigquery.base import BigQueryDialect
 from databricks.sqlalchemy import DatabricksDialect
 
-from chrontext.vq import Expression, VirtualizedQuery, AggregateExpression
+from chrontext.vq import Expression, VirtualizedQuery, AggregateExpression, XSDDuration
 from sqlalchemy import ColumnElement, Column, Table, MetaData, Select, select, literal, DateTime, values, cast, \
-    BigInteger, CompoundSelect, and_, literal_column, case, func, TIMESTAMP
-
+    BigInteger, CompoundSelect, and_, literal_column, case, func, TIMESTAMP, text
 
 XSD = "http://www.w3.org/2001/XMLSchema#"
-XSD_INTEGER = "<http://www.w3.org/2001/XMLSchema#integer>"
-FLOOR_DATE_TIME_TO_SECONDS_INTERVAL = "<https://github.com/DataTreehouse/chrontext#FloorDateTimeToSecondsInterval>"
+XSD_INTEGER = "http://www.w3.org/2001/XMLSchema#integer"
+XSD_DURATION = "http://www.w3.org/2001/XMLSchema#duration"
+FLOOR_DATE_TIME_TO_SECONDS_INTERVAL = "https://github.com/DataTreehouse/chrontext#FloorDateTimeToSecondsInterval"
+DATE_BIN = "https://github.com/DataTreehouse/chrontext#dateBin"
 
 import warnings
 
@@ -102,11 +104,11 @@ class SPARQLMapper:
                         )
                     if self.dialect == "postgres" or self.dialect == "databricks":
                         values_sub = values(
-                                Column("id"), Column(query.grouping_column_name),
-                                name=self.inner_name()
-                            ).data(
-                                query.id_grouping_tuples
-                            )
+                            Column("id"), Column(query.grouping_column_name),
+                            name=self.inner_name()
+                        ).data(
+                            query.id_grouping_tuples
+                        )
                         table = values_sub.join(
                             table,
                             onclause=and_(
@@ -220,6 +222,8 @@ class SPARQLMapper:
                 return func.avg(sql_expression)
             case "SUM":
                 return func.sum(sql_expression)
+            case "COUNT":
+                return func.count(sql_expression)
             case "GROUP_CONCAT":
                 if aggregate_expression.separator is not None:
                     return func.aggregate_strings(sql_expression,
@@ -234,7 +238,7 @@ class SPARQLMapper:
     def expression_to_sql(
             self,
             expression: Expression,
-            columns: ColumnCollection[str, ColumnElement]
+            columns: ColumnCollection[str, ColumnElement],
     ) -> Column | ColumnElement | int | float | bool | str:
         expression_type = expression.expression_type()
         match expression_type:
@@ -299,6 +303,9 @@ class SPARQLMapper:
                 if type(native) == datetime:
                     if native.tzinfo is not None:
                         return literal(native, TIMESTAMP)
+                elif expression.literal.datatype.iri == XSD_DURATION:
+                    if self.dialect == "bigquery":
+                        return bigquery_duration_literal(native)
                 return literal(native)
             case "FunctionCall":
                 sql_args = []
@@ -337,7 +344,7 @@ class SPARQLMapper:
             case "MONTH":
                 return func.extract("MONTH", sql_args[0])
             case "YEAR":
-                 return func.extract("YEAR", sql_args[0])
+                return func.extract("YEAR", sql_args[0])
             case "FLOOR":
                 return func.floor(sql_args[0])
             case "CEILING":
@@ -348,15 +355,15 @@ class SPARQLMapper:
                 elif IRI == FLOOR_DATE_TIME_TO_SECONDS_INTERVAL:
                     if self.dialect == "postgres":
                         return func.to_timestamp(
-                                func.extract("EPOCH", sql_args[0]) - func.mod(
-                                    func.extract("EPOCH", sql_args[0]),
-                                    sql_args[1])
-                                )
+                            func.extract("EPOCH", sql_args[0]) - func.mod(
+                                func.extract("EPOCH", sql_args[0]),
+                                sql_args[1])
+                        )
                     elif self.dialect == "databricks":
                         return func.TIMESTAMP_SECONDS(
                             func.UNIX_TIMESTAMP(sql_args[0]) - func.mod(
-                                    func.UNIX_TIMESTAMP(sql_args[0]),
-                                    sql_args[1])
+                                func.UNIX_TIMESTAMP(sql_args[0]),
+                                sql_args[1])
                         )
                     elif self.dialect == "bigquery":
                         return func.TIMESTAMP_SECONDS(
@@ -364,6 +371,13 @@ class SPARQLMapper:
                                 func.UNIX_SECONDS(sql_args[0]),
                                 sql_args[1])
                         )
+                elif IRI == DATE_BIN:
+                    if self.dialect == "bigquery":
+                        # https://cloud.google.com/bigquery/docs/reference/standard-sql/time-series-functions#timestamp_bucket
+                        # Duration is second arg here
+                        print(sql_args[0])
+                        return func.TIMESTAMP_BUCKET(sql_args[1], sql_args[0], sql_args[2])
+
         print("Unknown function")
         print(function)
         assert False
@@ -372,4 +386,57 @@ class SPARQLMapper:
         name = f"inner_{self.counter}"
         self.counter += 1
         return name
+
+
+def bigquery_duration_literal(native:XSDDuration):
+    f = None
+    s = ""
+
+    last = None
+    if native.years > 0:
+        f = "YEAR"
+        last = "YEAR"
+        s += str(native.years) + "-"
+
+    if native.months > 0 or last is not None:
+        if f is None:
+            f = "MONTH"
+        last = "MONTH"
+        s += str(native.months)
+
+    if native.days > 0 or last is not None:
+        if f is None:
+            f = "DAY"
+        last = "DAY"
+        if len(s) > 0:
+            s += " "
+        s += str(native.days)
+
+    if native.hours > 0 or last is not None:
+        if f is None:
+            f = "HOUR"
+        last = "HOUR"
+        if len(s) > 0:
+            s += " "
+        s += str(native.hours)
+
+    if native.minutes > 0 or last is not None:
+        if f is None:
+            f = "MINUTE"
+        last = "MINUTE"
+        if len(s) > 0:
+            s += ":"
+        s += str(native.minutes)
+
+    whole,decimal = native.seconds
+
+    if whole > 0 or last is not None:
+        if f is None:
+            f = "SECOND"
+        last = "SECOND"
+        if len(s) > 0:
+            s += ":"
+        s += str(whole)
+
+    return text(f"INTERVAL '{s}' {f} TO {last}")
 "#;

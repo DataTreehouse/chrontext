@@ -1835,7 +1835,7 @@ dependencies = [
  "oxrdf",
  "oxrdfio",
  "oxrocksdb-sys",
- "oxsdatatypes",
+ "oxsdatatypes 0.2.0-alpha.2",
  "rand",
  "regex",
  "rustc-hash 2.0.0",
@@ -1870,7 +1870,7 @@ source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac4106
 dependencies = [
  "oxilangtag",
  "oxiri",
- "oxsdatatypes",
+ "oxsdatatypes 0.2.0-alpha.2",
  "rand",
  "thiserror",
 ]
@@ -1912,6 +1912,15 @@ dependencies = [
 name = "oxsdatatypes"
 version = "0.2.0-alpha.2"
 source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "oxsdatatypes"
+version = "0.2.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e271a6a4c3d1976adbb0c4be135fc80d2059f20f8263e22d8330518d794b6390"
 dependencies = [
  "thiserror",
 ]
@@ -2589,7 +2598,7 @@ dependencies = [
 
 [[package]]
 name = "py_chrontext"
-version = "0.9.6"
+version = "0.9.7"
 dependencies = [
  "chrontext",
  "env_logger",
@@ -2613,7 +2622,7 @@ dependencies = [
 [[package]]
 name = "pydf_io"
 version = "0.7.6"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
+source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
 dependencies = [
  "polars",
  "polars-core",
@@ -2690,7 +2699,7 @@ dependencies = [
 [[package]]
 name = "query_processing"
 version = "0.3.12"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
+source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
 dependencies = [
  "log",
  "oxrdf",
@@ -2917,12 +2926,13 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 [[package]]
 name = "representation"
 version = "0.6.10"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
+source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
 dependencies = [
  "chrono",
  "chrono-tz 0.9.0",
  "log",
  "oxrdf",
+ "oxsdatatypes 0.2.0-rc.1",
  "polars",
  "pyo3",
  "serde",
@@ -3363,7 +3373,7 @@ dependencies = [
 [[package]]
 name = "spargebra"
 version = "0.3.0-alpha.5-parparse"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
+source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
 dependencies = [
  "chrono",
  "fundu",
@@ -3556,7 +3566,7 @@ dependencies = [
 [[package]]
 name = "templates"
 version = "0.1.0"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3bf75ac20a71c9afeab07a7b4e0196fe51e43c61#3bf75ac20a71c9afeab07a7b4e0196fe51e43c61"
+source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
 dependencies = [
  "log",
  "nom",

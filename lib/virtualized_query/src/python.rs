@@ -3,7 +3,7 @@ use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
-use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, OrderExpression};
+use spargebra::algebra::{AggregateExpression, AggregateFunction, Expression, Function, OrderExpression};
 use spargebra::term::TermPattern;
 
 #[derive(Clone)]
@@ -605,7 +605,10 @@ impl PyExpression {
                     py_expressions.push(Py::new(py, PyExpression::new(a, py)?)?);
                 }
                 PyExpression::FunctionCall {
-                    function: function.to_string(),
+                    function: match function {
+                        Function::Custom(c) => {c.as_str().to_string()}
+                        n => n.to_string()
+                    },
                     arguments: py_expressions,
                 }
             }

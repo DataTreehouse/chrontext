@@ -323,5 +323,5 @@ fn create_new_variable_name() -> String {
 }
 
 fn should_rename_var(v: &Variable) -> bool {
-    !v.as_str().starts_with(|x:char| x.is_alphabetic())
+    !v.as_str().starts_with(|x: char| x.is_alphabetic())
 }

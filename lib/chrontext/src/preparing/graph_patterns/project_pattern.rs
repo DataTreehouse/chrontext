@@ -15,17 +15,13 @@ impl TimeseriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> GPPrepReturn {
-        if try_groupby_complex_query {
-            debug!("Encountered graph inside project, not supported for complex groupby pushdown");
-            return GPPrepReturn::fail_groupby_complex_query();
-        } else {
-            let inner_rewrite = self.prepare_graph_pattern(
-                inner,
-                try_groupby_complex_query,
-                solution_mappings,
-                &context.extension_with(PathEntry::ProjectInner),
-            );
-            inner_rewrite
-        }
+        let inner_context = context.extension_with(PathEntry::ProjectInner);
+        let mut inner_rewrite = self.prepare_graph_pattern(
+            inner,
+            try_groupby_complex_query,
+            solution_mappings,
+            &inner_context,
+        );
+        inner_rewrite
     }
 }

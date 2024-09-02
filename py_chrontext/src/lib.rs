@@ -45,7 +45,7 @@ use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable};
+use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable, PyXSDDuration};
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
 use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
@@ -397,6 +397,7 @@ fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     child.add_class::<PyExpression>()?;
     child.add_class::<PyOrderExpression>()?;
     child.add_class::<PyAggregateExpression>()?;
+    child.add_class::<PyXSDDuration>()?;
     m.add_submodule(&child)?;
 
     _py.import_bound("sys")?

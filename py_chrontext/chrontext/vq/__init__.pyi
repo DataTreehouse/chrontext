@@ -24,7 +24,16 @@ class Expression:
         :return:
         """
 
+class XSDDuration:
+    years: int
+    months: int
+    days: int
+    hours: int
+    minutes: int
+    seconds: (int,int)
+    """
 
+    """
 
 class PyExpression__And(Expression):
     left:Expression
@@ -53,12 +62,12 @@ class PyExpression__FunctionCall(Expression):
 
 
 class AggregateExpression:
-    """
-
-    """
     name: str
     expression: Expression
     separator: Optional[str]
+    """
+
+    """
 
 
 class VirtualizedQuery:
@@ -87,9 +96,6 @@ class VirtualizedQuery:
 
 
 class PyVirtualizedQuery__Basic:
-    """
-
-    """
     identifier_name: str
     column_mapping: Dict[str, str]
     resource: str
@@ -97,27 +103,31 @@ class PyVirtualizedQuery__Basic:
     grouping_column_name: Optional[str]
     id_grouping_tuples: Optional[List[Tuple[str, int]]]
 
-class PyVirtualizedQuery__Filtered:
+    """
+    Basic Virtualized Query
     """
 
-    """
+class PyVirtualizedQuery__Filtered:
     query: VirtualizedQuery
     filter: Expression
 
+    """
+    Filtered Virtualized Query
+    """
+
 
 class PyVirtualizedQuery__Grouped:
-    """
-
-    """
     by: List[Variable]
     aggregations: List[Tuple[Variable, AggregateExpression]]
+    """
+    Grouped Virtualized Query
+    """
 
 
 class PyVirtualizedQuery__ExpressionAs:
-    """
-
-    """
     query: VirtualizedQuery
     variable: Variable
     expression: Expression
-
+    """
+    ExpressionAs Virtualized Query    
+    """

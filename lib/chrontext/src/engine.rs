@@ -1,6 +1,7 @@
 use crate::combiner::Combiner;
 use crate::errors::ChrontextError;
 use crate::preprocessing::Preprocessor;
+use crate::rename_vars::rename_query_vars;
 use crate::rewriting::StaticQueryRewriter;
 use crate::sparql_database::sparql_embedded_oxigraph::{EmbeddedOxigraph, EmbeddedOxigraphConfig};
 use crate::sparql_database::sparql_endpoint::SparqlEndpoint;
@@ -16,7 +17,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
-use crate::rename_vars::rename_query_vars;
 
 pub struct EngineConfig {
     pub sparql_endpoint: Option<String>,
@@ -120,7 +120,9 @@ impl Engine {
             .map_err(|x| ChrontextError::CombinerError(x))?;
         for (original, renamed) in rename_map {
             if let Some(dt) = solution_mappings.rdf_node_types.remove(&renamed) {
-                solution_mappings.mappings = solution_mappings.mappings.rename(&[renamed], &[original.clone()]);
+                solution_mappings.mappings = solution_mappings
+                    .mappings
+                    .rename(&[renamed], &[original.clone()]);
                 solution_mappings.rdf_node_types.insert(original, dt);
             }
         }
