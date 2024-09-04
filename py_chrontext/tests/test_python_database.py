@@ -348,7 +348,7 @@ def test_pushdown_group_by_concat_agg_hybrid_query(engine):
     df = sm.mappings.sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_concat_agg_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
-    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'GroupInner', 'ProjectInner', 'OrderByInner', 'FilterInner', 'ExtendInner']]
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner']]
 
 
 @pytest.mark.order(8)
