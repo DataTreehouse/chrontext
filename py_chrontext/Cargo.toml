@@ -52,3 +52,6 @@ mimalloc = { version = "0.1.37", default-features = false }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 jemallocator = { version = "0.5.4", features = ["disable_initial_exec_tls"] }
+
+[features]
+opcua = ["chrontext/opcua", "virtualization/opcua"]

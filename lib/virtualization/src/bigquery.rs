@@ -1,6 +1,6 @@
 use crate::errors::ChrontextError;
+use crate::get_datatype_map;
 use crate::python::translate_sql;
-use crate::{get_datatype_map, Dialect};
 use bigquery_polars::{BigQueryExecutor, Client};
 use oxrdf::Variable;
 use pyo3::types::PyDict;
@@ -38,8 +38,7 @@ impl VirtualizedBigQueryDatabase {
     ) -> Result<EagerSolutionMappings, ChrontextError> {
         let mut rename_map = HashMap::new();
         let new_vq = rename_non_alpha_vars(vq.clone(), &mut rename_map);
-        let query_string =
-            translate_sql(&new_vq, &self.resource_sql_map, Dialect::BigQuery.as_str())?;
+        let query_string = translate_sql(&new_vq, &self.resource_sql_map, "bigquery")?;
         // The following code is based on https://github.com/DataTreehouse/connector-x/blob/main/connectorx/src/sources/bigquery/mod.rs
         // Last modified in commit: 8134d42
         // It has been simplified and made async

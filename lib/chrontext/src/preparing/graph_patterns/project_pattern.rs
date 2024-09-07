@@ -1,6 +1,5 @@
 use super::TimeseriesQueryPrepper;
 use crate::preparing::graph_patterns::GPPrepReturn;
-use log::debug;
 use oxrdf::Variable;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
@@ -16,7 +15,7 @@ impl TimeseriesQueryPrepper {
         context: &Context,
     ) -> GPPrepReturn {
         let inner_context = context.extension_with(PathEntry::ProjectInner);
-        let mut inner_rewrite = self.prepare_graph_pattern(
+        let inner_rewrite = self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,
             solution_mappings,

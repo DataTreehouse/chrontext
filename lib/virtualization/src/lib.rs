@@ -2,10 +2,13 @@ pub mod errors;
 pub mod python;
 
 pub mod bigquery;
+
+#[cfg(feature = "opcua")]
 pub mod opcua;
 
 use crate::bigquery::VirtualizedBigQueryDatabase;
 use crate::errors::ChrontextError;
+#[cfg(feature = "opcua")]
 use crate::opcua::VirtualizedOPCUADatabase;
 use crate::python::VirtualizedPythonDatabase;
 use oxrdf::NamedNode;
@@ -18,18 +21,6 @@ use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
 use templates::constants::OTTR_TRIPLE;
 use virtualized_query::pushdown_setting::PushdownSetting;
 use virtualized_query::{VirtualizedQuery, ID_VARIABLE_NAME};
-
-pub enum Dialect {
-    BigQuery,
-}
-
-impl Dialect {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Dialect::BigQuery => "bigquery",
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Virtualization {
@@ -83,6 +74,7 @@ impl Virtualization {
 pub enum VirtualizedDatabase {
     VirtualizedPythonDatabase(VirtualizedPythonDatabase),
     VirtualizedBigQueryDatabase(VirtualizedBigQueryDatabase),
+    #[cfg(feature = "opcua")]
     VirtualizedOPCUADatabase(VirtualizedOPCUADatabase),
 }
 
@@ -93,6 +85,7 @@ impl VirtualizedDatabase {
             VirtualizedDatabase::VirtualizedBigQueryDatabase(_) => {
                 VirtualizedBigQueryDatabase::pushdown_settings()
             }
+            #[cfg(feature = "opcua")]
             VirtualizedDatabase::VirtualizedOPCUADatabase(_) => {
                 VirtualizedOPCUADatabase::pushdown_settings()
             }
@@ -110,6 +103,7 @@ impl VirtualizedDatabase {
                 Ok(EagerSolutionMappings::new(df, rdf_node_types))
             }
             VirtualizedDatabase::VirtualizedBigQueryDatabase(q) => q.query(vq).await,
+            #[cfg(feature = "opcua")]
             VirtualizedDatabase::VirtualizedOPCUADatabase(uadb) => uadb.query(vq).await,
         }
     }

@@ -44,7 +44,7 @@ jobs:
     - name: Build install package
       run: |
         source .venv/bin/activate
-        maturin develop
+        maturin develop --features=opcua
       working-directory: ./py_chrontext
 
     - name: pytest

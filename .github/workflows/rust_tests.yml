@@ -36,6 +36,6 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
 
     - name: Build
-      run: cargo build --verbose --all
+      run: cargo build --features=opcua --verbose --all
     - name: Run rust tests
-      run: cargo test --verbose --all
+      run: cargo test --features=opcua --verbose --all

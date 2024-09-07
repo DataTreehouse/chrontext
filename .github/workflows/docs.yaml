@@ -41,7 +41,7 @@ jobs:
       - name: Build install package and build docs
         run: |
           source .venv/bin/activate
-          maturin develop
+          maturin develop --features=opcua
           pdoc -o docs/ chrontext
         working-directory: ./py_chrontext
 

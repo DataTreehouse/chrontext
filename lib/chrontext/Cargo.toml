@@ -33,3 +33,6 @@ async-trait.workspace = true
 oxigraph.workspace = true
 filesize.workspace = true
 uuid.workspace = true
+
+[features]
+opcua = ["virtualization/opcua"]
