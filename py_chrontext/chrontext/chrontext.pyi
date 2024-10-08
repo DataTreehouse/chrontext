@@ -334,7 +334,7 @@ class Engine:
         :return: The query result.
         """
 
-    def serve_postgres(self, catalog:Catalog):
+    def serve_postgres(self, catalog:"Catalog"):
         """
         Serve the data product catalog as a postgres endpoint.
         Contact DataTreehouse to try.
@@ -371,7 +371,7 @@ class Catalog:
     """
     A Catalog maps SPARQL queries to virtual SQL tables.
     """
-    def __init__(self, data_products:Dict[str, DataProduct]):
+    def __init__(self, data_products:Dict[str, "DataProduct"]):
         """
         Create a new data product catalog, which defines virtual tables.
 
