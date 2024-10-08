@@ -1,0 +1,19 @@
+[package]
+name = "flight"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrontext = {path="../chrontext"}
+
+representation.workspace = true
+query_processing.workspace = true
+
+tonic.workspace = true
+tokio.workspace = true
+arrow-flight.workspace = true
+futures.workspace = true
+bincode.workspace = true
+polars = {workspace = true, features = ["polars-io", "ipc_streaming"]}
+thiserror.workspace = true
+log = "0.4.22"

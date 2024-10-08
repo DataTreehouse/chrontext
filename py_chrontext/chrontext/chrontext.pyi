@@ -343,6 +343,13 @@ class Engine:
         :return:
         """
 
+    def serve_flight(self, address:str):
+        """
+
+        :param address:
+        :return:
+        """
+
 class SparqlEmbeddedOxigraph:
     """
     Embedded oxigraph SPARQL database, stored in a local folder.
@@ -390,4 +397,26 @@ class DataProduct:
 
         :param query: The SPARQL SELECT Query that defines the data product
         :param types: The types of each of the variables in the data product
+        """
+
+
+class FlightClient:
+    def __init__(self, uri:str):
+        """
+
+        :param uri: The URI of the Flight server (see engine.serve_flight())
+        """
+
+    def query(self,
+              query:str,
+              native_dataframe:bool=False,
+              include_datatypes: bool = False,
+              ) -> Union[DataFrame, SolutionMappings]:
+        """
+        Execute a query
+
+        :param query: The SPARQL query.
+        :param native_dataframe: Return columns with chrontext-native formatting. Useful for round-trips into e.g. maplib.
+        :param include_datatypes: Return datatypes of the results DataFrame (returns SolutionMappings instead of DataFrame).
+        :return: The query result.
         """

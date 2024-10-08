@@ -8,6 +8,7 @@ postgres = { path = "../lib/postgres" }
 virtualized_query = {path="../lib/virtualized_query"}
 chrontext = { path = "../lib/chrontext" }
 virtualization = {path="../lib/virtualization"}
+flight = {path="../lib/flight"}
 
 representation.workspace = true
 templates.workspace = true

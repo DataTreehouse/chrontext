@@ -38,7 +38,9 @@ static GLOBAL: MiMalloc = MiMalloc;
 use crate::errors::PyChrontextError;
 use chrontext::engine::{Engine, EngineConfig};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
-use log::debug;
+use flight::client::ChrontextFlightClient;
+use flight::server::ChrontextFlightServer;
+use log::{debug, info};
 use oxrdfio::RdfFormat;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
@@ -46,8 +48,10 @@ use pydf_io::to_python::{df_to_py_df, fix_cats_and_multicolumns};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable, PyXSDDuration};
+use representation::solution_mapping::EagerSolutionMappings;
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
+use std::sync::Arc;
 use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
@@ -266,6 +270,84 @@ impl PyEngine {
             Ok(())
         })
     }
+
+    pub fn serve_flight(&mut self, address: &str, py:Python) -> PyResult<()> {
+        py.allow_threads(move || {
+            if self.engine.is_none() {
+                self.init()?;
+            }
+            let flight_server = ChrontextFlightServer::new(Some(Arc::new(self.engine.take().unwrap())));
+            let mut builder = Builder::new_multi_thread();
+            builder.enable_all();
+            builder
+                .build()
+                .unwrap()
+                .block_on(flight_server.serve(address))
+                .map_err(|x|PyChrontextError::FlightServerError(x))?;
+            Ok(())
+        })
+    }
+}
+
+#[derive(Clone)]
+#[pyclass(name = "FlightClient")]
+pub struct PyFlightClient {
+    uri:String
+}
+
+#[pymethods]
+impl PyFlightClient {
+    #[new]
+    pub fn new(uri:String) -> PyResult<Self> {
+        Ok(Self {uri})
+    }
+
+    pub fn query(
+        &mut self,
+        sparql: &str,
+        native_dataframe: Option<bool>,
+        include_datatypes: Option<bool>,
+        py: Python,
+    ) -> PyResult<PyObject> {
+        let sparql = sparql.to_string();
+        let res = py.allow_threads(move || {
+            let sparql = sparql;
+            let mut builder = Builder::new_multi_thread();
+            builder.enable_all();
+            info!("Connecting to server {}", &self.uri);
+            let mut client = ChrontextFlightClient::new(&self.uri);
+            info!("Connected to server, sending query");
+            let sm = builder
+                .build()
+                .unwrap()
+                .block_on(client.query(&sparql))
+                .map_err(|x|PyChrontextError::FlightClientError(x))?;
+            Ok(sm)
+        });
+        match res  {
+            Ok(sm) => {
+                let EagerSolutionMappings {
+                    mut mappings,
+                    mut rdf_node_types,
+                } = sm.as_eager();
+                (mappings, rdf_node_types) = fix_cats_and_multicolumns(
+                    mappings,
+                    rdf_node_types,
+                    native_dataframe.unwrap_or(false),
+                );
+                let pydf = df_to_py_df(
+                    mappings,
+                    rdf_node_types,
+                    None,
+                    include_datatypes.unwrap_or(false),
+                    py,
+                )?;
+                Ok(pydf)
+            },
+            Err(e) => Err(e)
+        }
+
+    }
 }
 
 #[derive(Clone)]
@@ -446,6 +528,8 @@ fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyXSD>()?;
     m.add_function(wrap_pyfunction!(py_triple, m)?)?;
     m.add_function(wrap_pyfunction!(a, m)?)?;
+
+    m.add_class::<PyFlightClient>()?;
 
     let child = PyModule::new_bound(m.py(), "vq")?;
     child.add_class::<PyVirtualizedQuery>()?;
