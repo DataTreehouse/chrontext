@@ -298,12 +298,12 @@ class Engine:
 
     def __init__(self,
                  resources: Dict[str, Template],
-                 virtualized_python_database: Optional[VirtualizedPythonDatabase]=None,
-                 virtualized_bigquery_database: Optional[VirtualizedBigQueryDatabase]=None,
-                 virtualized_opcua_database: Optional[VirtualizedOPCUADatabase]=None,
+                 virtualized_python_database: Optional["VirtualizedPythonDatabase"]=None,
+                 virtualized_bigquery_database: Optional["VirtualizedBigQueryDatabase"]=None,
+                 virtualized_opcua_database: Optional["VirtualizedOPCUADatabase"]=None,
                  sparql_endpoint: Optional[str]=None,
                  sparql_embedded_oxigraph: Optional["SparqlEmbeddedOxigraph"]=None,
-        ) -> Engine:
+        ) -> "Engine":
         """
         Construct a new hybrid query engine.
         Specify exactly one of `sparql_endpoint` and `sparql_embedded_oxigraph`.
@@ -357,7 +357,7 @@ class SparqlEmbeddedOxigraph:
 
     def __init__(self, rdf_file: str,
                  rdf_format:LiteralType["NTriples", "TTL", "RDF/XML"]=None,
-                 path: str=None) -> SparqlEmbeddedOxigraph:
+                 path: str=None) -> "SparqlEmbeddedOxigraph":
         """
         Initialize from an RDF file (e.g. ttl or ntriples) or open an embedded SPARQL oxigraph from a path.
         If you want to re-initialize the database, simply delete the folder.
@@ -411,7 +411,7 @@ class FlightClient:
               query:str,
               native_dataframe:bool=False,
               include_datatypes: bool = False,
-              ) -> Union[DataFrame, SolutionMappings]:
+              ) -> Union[DataFrame, "SolutionMappings"]:
         """
         Execute a query
 
