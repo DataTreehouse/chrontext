@@ -302,7 +302,7 @@ class Engine:
                  virtualized_bigquery_database: Optional[VirtualizedBigQueryDatabase]=None,
                  virtualized_opcua_database: Optional[VirtualizedOPCUADatabase]=None,
                  sparql_endpoint: Optional[str]=None,
-                 sparql_embedded_oxigraph: Optional[SparqlEmbeddedOxigraph]=None,
+                 sparql_embedded_oxigraph: Optional["SparqlEmbeddedOxigraph"]=None,
         ) -> Engine:
         """
         Construct a new hybrid query engine.
