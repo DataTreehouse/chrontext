@@ -50,6 +50,8 @@ opcua = {version="0.12.0", features = ["vendored-openssl"]}
 url = "2.5.2"
 uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 
+axum = "0.7.7"
+
 [patch.crates-io]
 oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}
 oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}

@@ -11,3 +11,4 @@ pub mod rewriting;
 pub mod sparql_database;
 mod sparql_result_to_polars;
 pub mod splitter;
+pub mod web;

@@ -1,0 +1,24 @@
+<!--
+  From https://github.com/oxigraph/oxigraph/blob/22d956823f6257b7840f2116858e1431393cdf84/cli/templates/query.html
+  Licensed under Apache 2.0 or MIT
+  Vincent Emonet
+  Thomas Tanon
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Chrontext - Query</title>
+    <link href="https://unpkg.com/@zazuko/yasgui@4/build/yasgui.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/@zazuko/yasgui@4/build/yasgui.min.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+</head>
+<body>
+<div id="yasgui"></div>
+<script>
+    const url = new URL(window.location.href.endsWith('/') ? window.location.href.slice(0, -1) : window.location.href);
+    new Yasgui(document.getElementById("yasgui"), {
+        requestConfig: { endpoint: url.origin + "/query" }
+    });
+</script>
+</body>
