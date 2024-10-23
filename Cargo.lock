@@ -3035,7 +3035,7 @@ dependencies = [
 
 [[package]]
 name = "py_chrontext"
-version = "0.9.9"
+version = "0.9.10"
 dependencies = [
  "chrontext",
  "env_logger",
