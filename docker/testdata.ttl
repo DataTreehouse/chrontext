@@ -1,0 +1,18 @@
+PREFIX case: <http://example.org/case#>
+PREFIX types: <http://example.org/types#>
+PREFIX chrontext: <https://github.com/DataTreehouse/chrontext#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+case:myWidget1 types:hasSensor case:mySensor1 .
+case:myWidget1 types:hasSomething case:mySomething1 .
+case:myWidget2 types:hasSensor case:mySensor2 .
+case:myWidget1 a types:BigWidget .
+case:myWidget2 a types:SmallWidget .
+case:mySensor1 chrontext:hasTimeseries case:myTimeseries1 .
+case:mySensor2 chrontext:hasTimeseries case:myTimeseries2 .
+case:mySensor1 a types:ThingCounter .
+case:mySensor2 a types:EventCounter .
+case:myTimeseries1 chrontext:hasResource "my_resource" .
+case:myTimeseries2 chrontext:hasResource "my_resource" .
+case:myTimeseries1 chrontext:hasExternalId "ts1" .
+case:myTimeseries2 chrontext:hasExternalId "ts2" .
