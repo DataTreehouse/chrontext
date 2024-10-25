@@ -1,11 +1,10 @@
 use chrontext::errors::ChrontextError as RustChrontextError;
+use flight::client::ChrontextFlightClientError;
+use flight::server::ChrontextFlightServerError;
 use oxrdf::IriParseError;
 use pyo3::{create_exception, exceptions::PyException, prelude::*};
 use spargebra::SparqlSyntaxError;
 use thiserror::Error;
-use flight::client::ChrontextFlightClientError;
-use flight::server::ChrontextFlightServerError;
-
 
 #[derive(Error, Debug)]
 pub enum PyChrontextError {
@@ -49,12 +48,8 @@ impl std::convert::From<PyChrontextError> for PyErr {
             PyChrontextError::MultipleVirtualizedDatabasesError => {
                 MultipleVirtualizedDatabasesError::new_err("")
             }
-            PyChrontextError::FlightClientError(x) => {
-                FlightClientError::new_err(x.to_string())
-            }
-            PyChrontextError::FlightServerError(x) => {
-                FlightServerError::new_err(x.to_string())
-            }
+            PyChrontextError::FlightClientError(x) => FlightClientError::new_err(x.to_string()),
+            PyChrontextError::FlightServerError(x) => FlightServerError::new_err(x.to_string()),
         }
     }
 }
