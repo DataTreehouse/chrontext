@@ -17,8 +17,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-use std::net::AddrParseError;
 use futures::stream::BoxStream;
+use std::net::AddrParseError;
 use std::pin::Pin;
 use std::sync::Arc;
 use tonic::{Code, Request, Response, Status, Streaming};
@@ -33,11 +33,11 @@ use bincode::deserialize;
 use bincode::serialize;
 use chrontext::engine::Engine;
 use futures::{stream, Stream};
+use log::info;
 use polars::io::SerWriter;
 use polars::prelude::{IpcCompression, IpcStreamWriter};
 use thiserror::*;
 use tonic::transport::Server;
-use log::info;
 
 #[derive(Error, Debug)]
 pub enum ChrontextFlightServerError {
@@ -104,7 +104,9 @@ impl FlightService for ChrontextFlightService {
         info!("Got do_get request: {:?}", request);
         let query_string: String = deserialize(request.get_ref().ticket.as_ref()).unwrap();
         let (mut df, map, _context) = self
-            .engine.as_ref().unwrap()
+            .engine
+            .as_ref()
+            .unwrap()
             .clone()
             .query(&query_string)
             .await
@@ -170,7 +172,9 @@ impl ChrontextFlightServer {
 
     pub async fn serve(self, addr: &str) -> Result<(), ChrontextFlightServerError> {
         info!("Starting server on {}", addr);
-        let addr = addr.parse().map_err(|x|ChrontextFlightServerError::AddrParseError(x))?;
+        let addr = addr
+            .parse()
+            .map_err(|x| ChrontextFlightServerError::AddrParseError(x))?;
         let svc = FlightServiceServer::new(self.chrontext_flight_service.clone());
 
         Server::builder()

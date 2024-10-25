@@ -33,6 +33,9 @@ async-trait.workspace = true
 oxigraph.workspace = true
 filesize.workspace = true
 uuid.workspace = true
+axum.workspace = true
+tokio.workspace = true
+serde.workspace = true
 
 [features]
 opcua = ["virtualization/opcua"]

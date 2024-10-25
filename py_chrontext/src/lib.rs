@@ -35,6 +35,8 @@ static GLOBAL: Jemalloc = Jemalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+use std::thread;
+
 use crate::errors::PyChrontextError;
 use chrontext::engine::{Engine, EngineConfig};
 use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
@@ -271,19 +273,41 @@ impl PyEngine {
         })
     }
 
-    pub fn serve_flight(&mut self, address: &str, py:Python) -> PyResult<()> {
+    pub fn serve_flight(&mut self, address: &str, py: Python) -> PyResult<()> {
         py.allow_threads(move || {
             if self.engine.is_none() {
                 self.init()?;
             }
-            let flight_server = ChrontextFlightServer::new(Some(Arc::new(self.engine.take().unwrap())));
+            let flight_server =
+                ChrontextFlightServer::new(Some(Arc::new(self.engine.take().unwrap())));
             let mut builder = Builder::new_multi_thread();
             builder.enable_all();
             builder
                 .build()
                 .unwrap()
                 .block_on(flight_server.serve(address))
-                .map_err(|x|PyChrontextError::FlightServerError(x))?;
+                .map_err(|x| PyChrontextError::FlightServerError(x))?;
+
+            Ok(())
+        })
+    }
+
+    pub fn serve_web(&mut self, address: &str, py: Python) -> PyResult<()> {
+        let address = address.to_owned();
+        py.allow_threads(move || {
+            if self.engine.is_none() {
+                self.init()?;
+            }
+            let sparql_database = self.engine.as_mut().unwrap().sparql_database.clone();
+            thread::spawn(move || {
+                let mut builder = Builder::new_multi_thread();
+                builder.enable_all();
+                builder
+                    .build()
+                    .unwrap()
+                    .block_on(chrontext::web::launch_web(sparql_database, &address));
+            });
+
             Ok(())
         })
     }
@@ -292,14 +316,14 @@ impl PyEngine {
 #[derive(Clone)]
 #[pyclass(name = "FlightClient")]
 pub struct PyFlightClient {
-    uri:String
+    uri: String,
 }
 
 #[pymethods]
 impl PyFlightClient {
     #[new]
-    pub fn new(uri:String) -> PyResult<Self> {
-        Ok(Self {uri})
+    pub fn new(uri: String) -> PyResult<Self> {
+        Ok(Self { uri })
     }
 
     pub fn query(
@@ -321,10 +345,10 @@ impl PyFlightClient {
                 .build()
                 .unwrap()
                 .block_on(client.query(&sparql))
-                .map_err(|x|PyChrontextError::FlightClientError(x))?;
+                .map_err(|x| PyChrontextError::FlightClientError(x))?;
             Ok(sm)
         });
-        match res  {
+        match res {
             Ok(sm) => {
                 let EagerSolutionMappings {
                     mut mappings,
@@ -343,10 +367,9 @@ impl PyFlightClient {
                     py,
                 )?;
                 Ok(pydf)
-            },
-            Err(e) => Err(e)
+            }
+            Err(e) => Err(e),
         }
-
     }
 }
 
