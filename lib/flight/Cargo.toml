@@ -16,4 +16,5 @@ futures.workspace = true
 bincode.workspace = true
 polars = {workspace = true, features = ["polars-io", "ipc_streaming"]}
 thiserror.workspace = true
-log = "0.4.22"
+secrecy.workspace = true
+log.workspace = true

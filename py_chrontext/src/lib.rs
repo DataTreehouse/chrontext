@@ -52,6 +52,7 @@ use representation::solution_mapping::EagerSolutionMappings;
 use representation::BaseRDFNodeType;
 use std::collections::HashMap;
 use std::sync::Arc;
+use secrecy::SecretString;
 use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
@@ -292,14 +293,21 @@ impl PyEngine {
 #[derive(Clone)]
 #[pyclass(name = "FlightClient")]
 pub struct PyFlightClient {
-    uri:String
+    uri:String,
+    metadata: HashMap<String, SecretString>
 }
 
 #[pymethods]
 impl PyFlightClient {
     #[new]
-    pub fn new(uri:String) -> PyResult<Self> {
-        Ok(Self {uri})
+    pub fn new(uri:String, metadata: Option<HashMap<String, String>>) -> PyResult<Self> {
+        let mut metadata_s = HashMap::new();
+        if let Some(metadata) = metadata {
+            for (k,v) in metadata {
+                metadata_s.insert(k, SecretString::from(v));
+            }
+        }
+        Ok(Self {uri, metadata:metadata_s})
     }
 
     pub fn query(
@@ -311,6 +319,7 @@ impl PyFlightClient {
     ) -> PyResult<PyObject> {
         let sparql = sparql.to_string();
         let res = py.allow_threads(move || {
+
             let sparql = sparql;
             let mut builder = Builder::new_multi_thread();
             builder.enable_all();
@@ -320,7 +329,7 @@ impl PyFlightClient {
             let sm = builder
                 .build()
                 .unwrap()
-                .block_on(client.query(&sparql))
+                .block_on(client.query(&sparql, &self.metadata))
                 .map_err(|x|PyChrontextError::FlightClientError(x))?;
             Ok(sm)
         });

@@ -401,10 +401,11 @@ class DataProduct:
 
 
 class FlightClient:
-    def __init__(self, uri:str):
+    def __init__(self, uri:str, metadata:Dict[str, str]=None):
         """
 
         :param uri: The URI of the Flight server (see engine.serve_flight())
+        :param metadata: gRPC metadata to add to each request
         """
 
     def query(self,
