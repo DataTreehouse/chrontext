@@ -9,11 +9,11 @@ use query_processing::errors::QueryProcessingError;
 use query_processing::graph_patterns::union;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
+use secrecy::{ExposeSecret, SecretString};
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::time::Duration;
-use secrecy::{ExposeSecret, SecretString};
 use thiserror::*;
+use tonic::metadata::MetadataKey;
 use tonic::transport::{Channel, Endpoint};
 use tonic::{Request, Status};
 
@@ -63,8 +63,11 @@ impl ChrontextFlightClient {
         };
         info!("Building request");
         let mut request = Request::new(Ticket::new(serialize(query).unwrap()));
-        for (k,v) in metadata {
-            request.metadata_mut().insert(k, v.expose_secret().parse().unwrap());
+        for (k, v) in metadata {
+            request.metadata_mut().insert(
+                MetadataKey::from_str(k).unwrap().to_owned(),
+                v.expose_secret().parse().unwrap(),
+            );
         }
         info!("Sending request");
         let mut flight_data = client
