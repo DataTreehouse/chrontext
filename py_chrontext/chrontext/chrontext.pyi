@@ -2,6 +2,7 @@ from datetime import datetime, date
 from typing import List, Dict, Callable, Literal as LiteralType, Union, Optional, Any
 from polars import DataFrame
 from sqlalchemy import Select, Table
+from pyoxigraph import Store
 
 class RDFType:
     """
@@ -302,7 +303,7 @@ class Engine:
                  virtualized_bigquery_database: Optional["VirtualizedBigQueryDatabase"]=None,
                  virtualized_opcua_database: Optional["VirtualizedOPCUADatabase"]=None,
                  sparql_endpoint: Optional[str]=None,
-                 sparql_embedded_oxigraph: Optional["SparqlEmbeddedOxigraph"]=None,
+                 sparql_embedded_oxigraph: Optional["Store"]=None,
         ) -> "Engine":
         """
         Construct a new hybrid query engine.
@@ -310,7 +311,7 @@ class Engine:
 
         :param resources: The templates associated with each
         :param sparql_endpoint: A SPARQL endpoint (a URL)
-        :param sparql_embedded_oxigraph: An embedded oxigraph SPARQL database, see `SparqlEmbeddedOxigraph`.
+        :param sparql_embedded_oxigraph: An embedded oxigraph SPARQL database, a Store-object.
         """
 
     def init(self) -> None:
@@ -348,23 +349,6 @@ class Engine:
 
         :param address:
         :return:
-        """
-
-class SparqlEmbeddedOxigraph:
-    """
-    Embedded oxigraph SPARQL database, stored in a local folder.
-    """
-
-    def __init__(self, rdf_file: str,
-                 rdf_format:LiteralType["NTriples", "TTL", "RDF/XML"]=None,
-                 path: str=None) -> "SparqlEmbeddedOxigraph":
-        """
-        Initialize from an RDF file (e.g. ttl or ntriples) or open an embedded SPARQL oxigraph from a path.
-        If you want to re-initialize the database, simply delete the folder.
-
-        :param rdf_file: The path of the RDF file that should be loaded into the embedded database.
-        :param rdf_format: The format of the RDF file.
-        :param path: The path (a folder) where the embedded oxigraph should be stored.
         """
 
 class Catalog:

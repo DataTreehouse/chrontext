@@ -6,7 +6,9 @@ members = [
     "lib/postgres",
     "lib/virtualized_query",
     "py_chrontext",
-    "lib/flight"]
+    "lib/flight",
+    "lib/sparql_database"
+]
 
 [workspace.dependencies]
 #spargebra = { path = "../maplib/lib/spargebra", features = ["rdf-star"]}
@@ -14,17 +16,16 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="07dbea46a9fed5db3eb71475996e5e1fcfec3247", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="07dbea46a9fed5db3eb71475996e5e1fcfec3247" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="07dbea46a9fed5db3eb71475996e5e1fcfec3247" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="07dbea46a9fed5db3eb71475996e5e1fcfec3247", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="07dbea46a9fed5db3eb71475996e5e1fcfec3247" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d" }
 
 
-sparesults = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
-oxrdf = { version = "0.2.0-alpha.5", features = ["rdf-star"] }
-oxigraph = "0.4.0-alpha.7"
-oxrdfio = { version= "0.1.0-alpha.6", features = ["rdf-star"] }
+sparesults = { version = "0.2.2", features = ["rdf-star"] }
+oxrdf = { version = "0.2.2", features = ["rdf-star"] }
+oxrdfio = { version= "0.1.2", features = ["rdf-star"] }
 
 polars = "0.41.3"
 tonic = "0.12.3"
@@ -34,7 +35,7 @@ futures = "0.3.31"
 bincode = "1.3.3"
 log = "0.4.21"
 pyo3 = "0.22.5"
-reqwest = "0.12.3"
+reqwest = "0.12.5"
 env_logger = "0.11.3"
 thiserror = "1.0.58"
 async-recursion = "1.1.0"
@@ -52,10 +53,5 @@ url = "2.5.2"
 uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 
 [patch.crates-io]
-oxrdf = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}
-oxttl = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}
-oxrdfio = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}
-oxigraph = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}
-sparesults = { git = 'https://github.com/magbak/oxigraph.git', rev = "b13df973ed2785de2ac41066ca4b62d88d3f5d40"}
 #polars = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
 #polars-core = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}

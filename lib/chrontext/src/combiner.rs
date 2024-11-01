@@ -8,7 +8,7 @@ pub(crate) mod virtualized_queries;
 use representation::query_context::Context;
 
 use crate::preparing::TimeseriesQueryPrepper;
-use crate::sparql_database::{SparqlQueryError, SparqlQueryable};
+use sparql_database::{SparqlQueryError, SparqlQueryable};
 use query_processing::errors::QueryProcessingError;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::Expression;

@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 virtualization = {path = "../virtualization"}
 virtualized_query = { path = "../virtualized_query" }
+sparql_database = { path = "../sparql_database" }
+
 
 polars = { workspace = true, features = [
     "lazy",
@@ -30,7 +32,6 @@ reqwest = { workspace = true, features = ["stream"] }
 thiserror.workspace = true
 async-recursion.workspace = true
 async-trait.workspace = true
-oxigraph.workspace = true
 filesize.workspace = true
 uuid.workspace = true
 

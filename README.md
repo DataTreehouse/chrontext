@@ -218,10 +218,12 @@ _:b1 ct:hasValue 1 .
 Chrontext is created for those cases when this is infeasibly many triples, so we do not want to materialize them, but query them.
 ### Creating the engine and querying:
 The context for our analytical data (e.g. a model of an industrial asset) has to be stored in a SPARQL endpoint.
-In this case, we use an embedded Oxigraph engine that comes with chrontext. Now we assemble the pieces and create the engine.
+In this case, we use the embedded Oxigraph engine from pyoxigraph. Now we assemble the pieces and create the engine.
 ```python
-from chrontext import Engine, SparqlEmbeddedOxigraph
-oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="my_graph.ttl", path="oxigraph_db_tutorial")
+from chrontext import Engine
+from pyoxigraph import Store
+oxigraph_store = Store()
+oxigraph_store.bulk_load(path="my_graph.ttl")
 engine = Engine(
     resources,
     virtualized_python_database=vdb,

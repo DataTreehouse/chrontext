@@ -9,6 +9,7 @@ virtualized_query = {path="../lib/virtualized_query"}
 chrontext = { path = "../lib/chrontext" }
 virtualization = {path="../lib/virtualization"}
 flight = {path="../lib/flight"}
+sparql_database = {path="../lib/sparql_database"}
 
 representation.workspace = true
 templates.workspace = true

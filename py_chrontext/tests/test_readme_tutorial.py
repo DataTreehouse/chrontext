@@ -2,6 +2,7 @@ def test_tutorial():
     #First part:
     import duckdb
     import polars as pl
+    from pyoxigraph import Store
 
     class MyDuckDB():
         def __init__(self):
@@ -79,8 +80,9 @@ def test_tutorial():
         )}
 
     #Fifth part
-    from chrontext import Engine, SparqlEmbeddedOxigraph
-    oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="my_graph.ttl", path="oxigraph_db_tutorial")
+    from chrontext import Engine
+    oxigraph_store = Store()
+    oxigraph_store.bulk_load(path="my_graph.ttl")
     engine = Engine(
         resources,
         virtualized_python_database=vdb,

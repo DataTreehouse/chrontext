@@ -1,12 +1,12 @@
 import pytest
 import polars as pl
-import duckdb
 import pathlib
 
-from polars.testing import assert_frame_equal
-from sqlalchemy import Column, Table, MetaData, bindparam
+from pyoxigraph import Store
 
-from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph, Template, Prefix, Variable, Parameter, \
+from sqlalchemy import Column, Table, MetaData
+
+from chrontext import VirtualizedPythonDatabase, Engine, Template, Prefix, Variable, Parameter, \
     RDFType, XSD, Triple
 
 PATH_HERE = pathlib.Path(__file__).parent
@@ -76,7 +76,8 @@ def engine() -> Engine:
             ]
         )
     }
-    oxigraph_store = SparqlEmbeddedOxigraph(rdf_file=str(TESTDATA_PATH / "testdata.ttl"), path="oxigraph_db")
+    oxigraph_store = Store()
+    oxigraph_store.bulk_load(path=TESTDATA_PATH / "testdata.ttl")
     engine = Engine(
         resources,
         virtualized_python_database=vdb,

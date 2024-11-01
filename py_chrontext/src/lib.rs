@@ -37,7 +37,6 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::errors::PyChrontextError;
 use chrontext::engine::{Engine, EngineConfig};
-use chrontext::sparql_database::sparql_embedded_oxigraph::EmbeddedOxigraphConfig;
 use flight::client::ChrontextFlightClient;
 use flight::server::ChrontextFlightServer;
 use log::{debug, info};
@@ -55,6 +54,7 @@ use std::sync::Arc;
 use secrecy::SecretString;
 use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
 use tokio::runtime::Builder;
+use sparql_database::embedded_oxigraph::EmbeddedOxigraph;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
 #[cfg(feature = "opcua")]
 use virtualization::opcua::VirtualizedOPCUADatabase;
@@ -68,7 +68,7 @@ use virtualized_query::python::{
 pub struct PyEngine {
     engine: Option<Engine>,
     sparql_endpoint: Option<String>,
-    sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
+    sparql_embedded_oxigraph: Option<Py<PyAny>>,
     virtualized_python_database: Option<VirtualizedPythonDatabase>,
     virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
     #[cfg(feature = "opcua")]
@@ -83,7 +83,7 @@ impl PyEngine {
         virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
         #[cfg(feature = "opcua")] virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
         sparql_endpoint: Option<String>,
-        sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
+        sparql_embedded_oxigraph: Option<Py<PyAny>>,
     ) -> PyResult<PyEngine> {
         let num_sparql =
             sparql_endpoint.is_some() as usize + sparql_embedded_oxigraph.is_some() as usize;
@@ -135,7 +135,7 @@ impl PyEngine {
         virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
         virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
         sparql_endpoint: Option<String>,
-        sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
+        sparql_embedded_oxigraph: Option<Py<PyAny>>,
     ) -> PyResult<PyEngine> {
         Self::new_impl(
             resources,
@@ -154,7 +154,7 @@ impl PyEngine {
         virtualized_python_database: Option<VirtualizedPythonDatabase>,
         virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
         sparql_endpoint: Option<String>,
-        sparql_embedded_oxigraph: Option<PySparqlEmbeddedOxigraph>,
+        sparql_embedded_oxigraph: Option<Py<PyAny>>,
     ) -> PyResult<PyEngine> {
         Self::new_impl(
             resources,
@@ -193,8 +193,8 @@ impl PyEngine {
                 None
             };
 
-            let sparql_oxigraph_config = if let Some(oxi) = &self.sparql_embedded_oxigraph {
-                Some(oxi.as_config())
+            let sparql_oxigraph_config = if let Some(store) = &self.sparql_embedded_oxigraph {
+                Some(EmbeddedOxigraph{store:store.clone()})
             } else {
                 None
             };
@@ -359,45 +359,6 @@ impl PyFlightClient {
     }
 }
 
-#[derive(Clone)]
-#[pyclass(name = "SparqlEmbeddedOxigraph")]
-pub struct PySparqlEmbeddedOxigraph {
-    path: Option<String>,
-    rdf_file: String,
-    rdf_format: Option<RdfFormat>,
-}
-
-impl PySparqlEmbeddedOxigraph {
-    pub fn as_config(&self) -> EmbeddedOxigraphConfig {
-        EmbeddedOxigraphConfig {
-            path: self.path.clone(),
-            rdf_file: self.rdf_file.clone(),
-            rdf_format: self.rdf_format.clone(),
-        }
-    }
-}
-
-#[pymethods]
-impl PySparqlEmbeddedOxigraph {
-    #[new]
-    pub fn new(
-        rdf_file: String,
-        rdf_format: Option<String>,
-        path: Option<String>,
-    ) -> PySparqlEmbeddedOxigraph {
-        let rdf_format = if let Some(format) = rdf_format {
-            Some(resolve_format(&format))
-        } else {
-            None
-        };
-        PySparqlEmbeddedOxigraph {
-            path,
-            rdf_file,
-            rdf_format,
-        }
-    }
-}
-
 fn resolve_format(format: &str) -> RdfFormat {
     match format.to_lowercase().as_str() {
         "ntriples" => RdfFormat::NTriples,
@@ -518,7 +479,6 @@ fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     }
 
     m.add_class::<PyEngine>()?;
-    m.add_class::<PySparqlEmbeddedOxigraph>()?;
     m.add_class::<VirtualizedPythonDatabase>()?;
     m.add_class::<PyVirtualizedBigQueryDatabase>()?;
     #[cfg(feature = "opcua")]

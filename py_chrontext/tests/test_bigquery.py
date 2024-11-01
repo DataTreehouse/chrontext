@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import Column, MetaData, select, Select
 from sqlalchemy_bigquery.base import Table
 from chrontext import *
+from pyoxigraph import Store
 
 dotenv.load_dotenv("bq.env")
 SCHEMA = os.getenv("SCHEMA")
@@ -48,7 +49,8 @@ def sql_resources() -> Dict[str, Select]:
 @pytest.fixture(scope="function")
 def engine(sql_resources):
     bq_db = VirtualizedBigQueryDatabase(key_json_path=BIGQUERY_CONN, resource_sql_map=sql_resources)
-    oxigraph_store = SparqlEmbeddedOxigraph(rdf_file="solar.nt", path="oxigraph_db_bq")
+    oxigraph_store = Store()
+    oxigraph_store.bulk_load(path="solar.nt")
     ct = Prefix("ct", "https://github.com/DataTreehouse/chrontext#")
     xsd = XSD()
     id = Variable("id")

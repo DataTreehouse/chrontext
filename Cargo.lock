@@ -426,29 +426,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bindgen"
-version = "0.69.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a00dc851838a2120612785d195287475a3ac45514741da670b735818822129a0"
-dependencies = [
- "bitflags 2.6.0",
- "cexpr",
- "clang-sys",
- "itertools",
- "lazy_static",
- "lazycell",
- "log",
- "prettyplease",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash 1.1.0",
- "shlex",
- "syn 2.0.72",
- "which",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -459,15 +436,6 @@ name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
-
-[[package]]
-name = "block-buffer"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
-dependencies = [
- "generic-array",
-]
 
 [[package]]
 name = "brotli"
@@ -536,15 +504,6 @@ checksum = "504bdec147f2cc13c8b57ed9401fd8a147cc66b67ad5cb241394244f2c947549"
 dependencies = [
  "jobserver",
  "libc",
-]
-
-[[package]]
-name = "cexpr"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
-dependencies = [
- "nom",
 ]
 
 [[package]]
@@ -620,29 +579,18 @@ dependencies = [
  "async-trait",
  "filesize",
  "log",
- "oxigraph",
  "oxrdf",
  "polars",
  "query_processing",
  "representation",
  "reqwest",
  "sparesults",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
+ "sparql_database",
  "thiserror",
  "uuid",
  "virtualization",
  "virtualized_query",
-]
-
-[[package]]
-name = "clang-sys"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b023947811758c97c59bf9d1c188fd619ad4718dcaa767947df1cadb14f39f4"
-dependencies = [
- "glob",
- "libc",
- "libloading",
 ]
 
 [[package]]
@@ -698,15 +646,6 @@ name = "core-foundation-sys"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
-
-[[package]]
-name = "cpufeatures"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53fe5e26ff1b7aef8bca9c6080520cfb8d9333c7568e1829cef191a9723e5504"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "crc32fast"
@@ -789,30 +728,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
-name = "crypto-common"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
-dependencies = [
- "generic-array",
- "typenum",
-]
-
-[[package]]
-name = "dashmap"
-version = "6.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "804c8821570c3f8b70230c2ba75ffa5c0f9a4189b9a432b6656c536712acae28"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
- "hashbrown 0.14.5",
- "lock_api",
- "once_cell",
- "parking_lot_core",
-]
-
-[[package]]
 name = "deranged"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -831,16 +746,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "digest"
-version = "0.10.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
-dependencies = [
- "block-buffer",
- "crypto-common",
 ]
 
 [[package]]
@@ -1170,16 +1075,6 @@ dependencies = [
  "tonic-build",
  "url 2.5.2",
  "yup-oauth2",
-]
-
-[[package]]
-name = "generic-array"
-version = "0.14.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
-dependencies = [
- "typenum",
- "version_check",
 ]
 
 [[package]]
@@ -1597,12 +1492,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
-name = "lazycell"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
-
-[[package]]
 name = "lexical-core"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1737,16 +1626,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
-name = "libloading"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
-dependencies = [
- "cfg-if",
- "windows-targets 0.52.6",
-]
-
-[[package]]
 name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1815,16 +1694,6 @@ name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
-
-[[package]]
-name = "md-5"
-version = "0.10.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
-dependencies = [
- "cfg-if",
- "digest",
-]
 
 [[package]]
 name = "memchr"
@@ -2156,36 +2025,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oxigraph"
-version = "0.4.0-alpha.7"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
-dependencies = [
- "dashmap",
- "digest",
- "getrandom",
- "hex",
- "json-event-parser",
- "libc",
- "md-5",
- "oxilangtag",
- "oxiri",
- "oxrdf",
- "oxrdfio",
- "oxrocksdb-sys",
- "oxsdatatypes 0.2.0-alpha.2",
- "rand",
- "regex",
- "rustc-hash 2.0.0",
- "sha1",
- "sha2",
- "siphasher",
- "sparesults",
- "spargebra 0.3.0-alpha.5",
- "sparopt",
- "thiserror",
-]
-
-[[package]]
 name = "oxilangtag"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2196,26 +2035,28 @@ dependencies = [
 
 [[package]]
 name = "oxiri"
-version = "0.2.3"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d05417ee46e2eb40dd9d590b4d67fc2408208b3a48a6b7f71d2bc1d7ce12a3e0"
+checksum = "3038e706f26b00e3981cd08bfd300dbe82f635ea95a263d492c6ccaeb3d1c582"
 
 [[package]]
 name = "oxrdf"
-version = "0.2.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "275571a8f33e8171d44fe65155c896d140393cb71e93b52577ec5af34714d30a"
 dependencies = [
  "oxilangtag",
  "oxiri",
- "oxsdatatypes 0.2.0-alpha.2",
+ "oxsdatatypes",
  "rand",
  "thiserror",
 ]
 
 [[package]]
 name = "oxrdfio"
-version = "0.1.0-alpha.6"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c49cc9dcdfcb1485c5d3ad2505987ed4974b3e6067e8af511a9999c10872a74"
 dependencies = [
  "oxrdf",
  "oxrdfxml",
@@ -2225,8 +2066,9 @@ dependencies = [
 
 [[package]]
 name = "oxrdfxml"
-version = "0.1.0-alpha.6"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c06c1a570bce615a1aa8cb513e9f4e54f285068ad6432da0cb224748ea18edc"
 dependencies = [
  "oxilangtag",
  "oxiri",
@@ -2236,36 +2078,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "oxrocksdb-sys"
-version = "0.4.0-alpha.7"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
-dependencies = [
- "bindgen",
- "cc",
- "libc",
-]
-
-[[package]]
 name = "oxsdatatypes"
-version = "0.2.0-alpha.2"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
-dependencies = [
- "thiserror",
-]
-
-[[package]]
-name = "oxsdatatypes"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e271a6a4c3d1976adbb0c4be135fc80d2059f20f8263e22d8330518d794b6390"
+checksum = "2aded4e13b58cbac3d7541ddd42b2b583323d2fcf4f9b2250394c6a07a39d51f"
 dependencies = [
  "thiserror",
 ]
 
 [[package]]
 name = "oxttl"
-version = "0.1.0-alpha.6"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d44925196e3529d7da7f5989c6481e3ea80539b7dcec51bec708a3d160a6b3b"
 dependencies = [
  "memchr",
  "oxilangtag",
@@ -2902,7 +2727,7 @@ version = "0.1.0"
 dependencies = [
  "chrontext",
  "representation",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
  "thiserror",
 ]
 
@@ -3041,7 +2866,8 @@ dependencies = [
  "pyo3",
  "representation",
  "secrecy",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
+ "sparql_database",
  "templates",
  "thiserror",
  "tokio",
@@ -3052,7 +2878,7 @@ dependencies = [
 [[package]]
 name = "pydf_io"
 version = "0.7.6"
-source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
+source = "git+https://github.com/DataTreehouse/maplib?rev=fb49d7fff2e065baea3952762849a2f83db5ab3d#fb49d7fff2e065baea3952762849a2f83db5ab3d"
 dependencies = [
  "polars",
  "polars-core",
@@ -3129,22 +2955,22 @@ dependencies = [
 [[package]]
 name = "query_processing"
 version = "0.3.12"
-source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
+source = "git+https://github.com/DataTreehouse/maplib?rev=fb49d7fff2e065baea3952762849a2f83db5ab3d#fb49d7fff2e065baea3952762849a2f83db5ab3d"
 dependencies = [
  "log",
  "oxrdf",
  "polars",
  "representation",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
  "thiserror",
  "uuid",
 ]
 
 [[package]]
 name = "quick-xml"
-version = "0.36.1"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96a05e2e8efddfa51a84ca47cec303fac86c8541b686d37cac5efc0e094417bc"
+checksum = "ffbfb3ddf5364c9cfcd65549a1e7b801d0e8d1b14c1a1590a6408aa93cfbfa84"
 dependencies = [
  "memchr",
 ]
@@ -3159,7 +2985,7 @@ dependencies = [
  "pin-project-lite",
  "quinn-proto",
  "quinn-udp",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "rustls",
  "socket2",
  "thiserror",
@@ -3176,7 +3002,7 @@ dependencies = [
  "bytes",
  "rand",
  "ring",
- "rustc-hash 2.0.0",
+ "rustc-hash",
  "rustls",
  "slab",
  "thiserror",
@@ -3356,17 +3182,17 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 [[package]]
 name = "representation"
 version = "0.6.10"
-source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
+source = "git+https://github.com/DataTreehouse/maplib?rev=fb49d7fff2e065baea3952762849a2f83db5ab3d#fb49d7fff2e065baea3952762849a2f83db5ab3d"
 dependencies = [
  "chrono",
  "chrono-tz 0.9.0",
  "log",
  "oxrdf",
- "oxsdatatypes 0.2.0-rc.1",
+ "oxsdatatypes",
  "polars",
  "pyo3",
  "serde",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
  "thiserror",
  "uuid",
 ]
@@ -3441,12 +3267,6 @@ name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
-
-[[package]]
-name = "rustc-hash"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc-hash"
@@ -3682,34 +3502,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha1"
-version = "0.10.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest",
-]
-
-[[package]]
-name = "sha2"
-version = "0.10.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest",
-]
-
-[[package]]
-name = "shlex"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
 name = "signal-hook-registry"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3792,8 +3584,9 @@ dependencies = [
 
 [[package]]
 name = "sparesults"
-version = "0.2.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32836cc368e308083ffbef7c9fe3344ffb9bd51f21d4293f4923df89ac4b5cd8"
 dependencies = [
  "json-event-parser",
  "memchr",
@@ -3804,21 +3597,8 @@ dependencies = [
 
 [[package]]
 name = "spargebra"
-version = "0.3.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
-dependencies = [
- "oxilangtag",
- "oxiri",
- "oxrdf",
- "peg",
- "rand",
- "thiserror",
-]
-
-[[package]]
-name = "spargebra"
 version = "0.3.0-alpha.5-parparse"
-source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
+source = "git+https://github.com/DataTreehouse/maplib?rev=fb49d7fff2e065baea3952762849a2f83db5ab3d#fb49d7fff2e065baea3952762849a2f83db5ab3d"
 dependencies = [
  "chrono",
  "fundu",
@@ -3831,13 +3611,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "sparopt"
-version = "0.1.0-alpha.5"
-source = "git+https://github.com/magbak/oxigraph.git?rev=b13df973ed2785de2ac41066ca4b62d88d3f5d40#b13df973ed2785de2ac41066ca4b62d88d3f5d40"
+name = "sparql_database"
+version = "0.1.0"
 dependencies = [
- "oxrdf",
- "rand",
- "spargebra 0.3.0-alpha.5",
+ "async-trait",
+ "pyo3",
+ "representation",
+ "reqwest",
+ "sparesults",
+ "spargebra",
+ "thiserror",
 ]
 
 [[package]]
@@ -4011,7 +3794,7 @@ dependencies = [
 [[package]]
 name = "templates"
 version = "0.1.0"
-source = "git+https://github.com/DataTreehouse/maplib?rev=07dbea46a9fed5db3eb71475996e5e1fcfec3247#07dbea46a9fed5db3eb71475996e5e1fcfec3247"
+source = "git+https://github.com/DataTreehouse/maplib?rev=fb49d7fff2e065baea3952762849a2f83db5ab3d#fb49d7fff2e065baea3952762849a2f83db5ab3d"
 dependencies = [
  "log",
  "nom",
@@ -4291,12 +4074,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
-name = "typenum"
-version = "1.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
-
-[[package]]
 name = "unic-char-range"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4447,7 +4224,7 @@ dependencies = [
  "representation",
  "reqwest",
  "serde_json",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
  "templates",
  "thiserror",
  "url 2.5.2",
@@ -4463,7 +4240,7 @@ dependencies = [
  "query_processing",
  "representation",
  "serde",
- "spargebra 0.3.0-alpha.5-parparse",
+ "spargebra",
  "templates",
 ]
 
@@ -4588,18 +4365,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd7c23921eeb1713a4e851530e9b9756e4fb0e89978582942612524cf09f01cd"
 dependencies = [
  "rustls-pki-types",
-]
-
-[[package]]
-name = "which"
-version = "4.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
-dependencies = [
- "either",
- "home",
- "once_cell",
- "rustix",
 ]
 
 [[package]]

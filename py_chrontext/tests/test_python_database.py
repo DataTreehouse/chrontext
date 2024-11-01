@@ -5,8 +5,9 @@ import pathlib
 
 from polars.testing import assert_frame_equal
 from sqlalchemy import Column, Table, MetaData, bindparam
+from pyoxigraph import Store
 
-from chrontext import VirtualizedPythonDatabase, Engine, SparqlEmbeddedOxigraph, Template, Prefix, Variable, Parameter, \
+from chrontext import VirtualizedPythonDatabase, Engine, Template, Prefix, Variable, Parameter, \
     RDFType, XSD, Triple
 
 PATH_HERE = pathlib.Path(__file__).parent
@@ -84,7 +85,8 @@ def engine() -> Engine:
             ]
         )
     }
-    oxigraph_store = SparqlEmbeddedOxigraph(rdf_file=str(TESTDATA_PATH / "testdata.ttl"), path="oxigraph_db")
+    oxigraph_store = Store()
+    oxigraph_store.bulk_load(path=TESTDATA_PATH / "testdata.ttl")
     engine = Engine(
         resources,
         virtualized_python_database=vdb,
@@ -93,7 +95,6 @@ def engine() -> Engine:
     return engine
 
 
-@pytest.mark.order(1)
 def test_simple_hybrid(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -122,7 +123,6 @@ def test_simple_hybrid(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner']]
 
-@pytest.mark.order(2)
 def test_simple_hybrid_no_vq_matches_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -143,7 +143,6 @@ def test_simple_hybrid_no_vq_matches_query(engine):
     assert df.height == 0
     assert sm.pushdown_paths == [['ProjectInner']]
 
-@pytest.mark.order(3)
 def test_complex_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -175,7 +174,6 @@ def test_complex_hybrid_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner']]
 
-@pytest.mark.order(4)
 def test_pushdown_group_by_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -198,7 +196,6 @@ def test_pushdown_group_by_hybrid_query(engine):
     assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner']]
 
 
-@pytest.mark.order(5)
 def test_pushdown_group_by_second_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -226,7 +223,6 @@ def test_pushdown_group_by_second_hybrid_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner']]
 
-@pytest.mark.order(5)
 def test_pushdown_group_by_second_having_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -256,7 +252,6 @@ def test_pushdown_group_by_second_having_hybrid_query(engine):
     assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'ExtendInner', 'FilterInner']]
 
 
-@pytest.mark.order(6)
 def test_union_of_two_groupby_queries(engine):
     q = """
 PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -323,7 +318,6 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
                                   'ExtendInner',
                                   'ExtendInner']]
 
-@pytest.mark.order(7)
 def test_pushdown_group_by_concat_agg_hybrid_query(engine):
     #TODO: Pushdown order by..
     q = """
@@ -351,7 +345,6 @@ def test_pushdown_group_by_concat_agg_hybrid_query(engine):
     assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner']]
 
 
-@pytest.mark.order(8)
 def test_pushdown_groupby_exists_something_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -375,7 +368,6 @@ def test_pushdown_groupby_exists_something_hybrid_query(engine):
     #TODO: This one should really be able to push down group inner.
     assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'GroupInner', 'FilterInner', 'ExtendInner']]
 
-@pytest.mark.order(9)
 def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -398,7 +390,6 @@ def test_pushdown_groupby_exists_timeseries_value_hybrid_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'FilterExpression', 'Exists', 'ProjectInner']]
 
-@pytest.mark.order(10)
 def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -424,7 +415,6 @@ def test_pushdown_groupby_exists_aggregated_timeseries_value_hybrid_query(engine
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'FilterExpression', 'Exists', 'ProjectInner', 'FilterInner', 'GroupInner']]
 
-@pytest.mark.order(11)
 def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -450,7 +440,6 @@ def test_pushdown_groupby_not_exists_aggregated_timeseries_value_hybrid_query(en
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'FilterExpression', 'Not', 'Exists', 'ProjectInner', 'FilterInner', 'GroupInner']]
 
-@pytest.mark.order(12)
 def test_path_group_by_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -468,7 +457,6 @@ def test_path_group_by_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'OrderByInner', 'ExtendInner']]
 
-@pytest.mark.order(13)
 def test_optional_clause_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -490,7 +478,6 @@ def test_optional_clause_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'LeftJoinLeftSide']]
 
-@pytest.mark.order(14)
 def test_minus_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -514,7 +501,6 @@ def test_minus_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'MinusLeftSide'], ['ProjectInner', 'MinusRightSide']]
 
-@pytest.mark.order(15)
 def test_in_expression_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -533,7 +519,6 @@ def test_in_expression_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner']]
 
-@pytest.mark.order(16)
 def test_values_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -553,7 +538,6 @@ def test_values_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'FilterInner', 'JoinLeftSide']]
 
-@pytest.mark.order(17)
 def test_distinct_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -571,7 +555,6 @@ def test_distinct_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['DistinctInner', 'ProjectInner', 'ExtendInner']]
 
-@pytest.mark.order(18)
 def test_union_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -597,8 +580,6 @@ def test_union_query(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'UnionLeftSide'], ['ProjectInner', 'UnionRightSide']]
 
-@pytest.mark.order(19)
-@pytest.mark.skip()
 def test_coalesce_query(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -623,7 +604,6 @@ def test_coalesce_query(engine):
     assert_frame_equal(df, expected)
     print(sm.pushdown_paths)
 
-@pytest.mark.order(20)
 def test_simple_hybrid_query_sugar(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -645,7 +625,6 @@ def test_simple_hybrid_query_sugar(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'JoinRightSide']]
 
-@pytest.mark.order(21)
 def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -668,7 +647,6 @@ def test_simple_hybrid_query_sugar_timeseries_explicit_link(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner', 'JoinRightSide']]
 
-@pytest.mark.order(22)
 def test_simple_hybrid_query_sugar_agg_avg(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
@@ -692,7 +670,6 @@ def test_simple_hybrid_query_sugar_agg_avg(engine):
     assert_frame_equal(df, expected)
     assert sm.pushdown_paths == [['ProjectInner']]
 
-@pytest.mark.order(23)
 def test_no_pushdown_group_by_concat_agg_hybrid_query(engine):
     #TODO: Pushdown order by..
     q = """
@@ -721,8 +698,6 @@ def test_no_pushdown_group_by_concat_agg_hybrid_query(engine):
     assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'GroupInner', 'ProjectInner', 'OrderByInner', 'FilterInner', 'ExtendInner']]
 
 
-
-@pytest.mark.order(24)
 def test_simple_hybrid_limit(engine):
     q = """
     PREFIX xsd:<http://www.w3.org/2001/XMLSchema#>
