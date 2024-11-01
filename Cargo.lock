@@ -585,6 +585,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "filesize",
+ "hashbrown 0.14.5",
  "log",
  "oxrdf",
  "polars",
