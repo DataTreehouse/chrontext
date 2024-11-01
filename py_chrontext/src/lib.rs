@@ -49,12 +49,12 @@ use pyo3::types::PyDict;
 use representation::python::{PyIRI, PyLiteral, PyPrefix, PyRDFType, PyVariable, PyXSDDuration};
 use representation::solution_mapping::EagerSolutionMappings;
 use representation::BaseRDFNodeType;
+use secrecy::SecretString;
+use sparql_database::embedded_oxigraph::EmbeddedOxigraph;
 use std::collections::HashMap;
 use std::sync::Arc;
-use secrecy::SecretString;
 use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
 use tokio::runtime::Builder;
-use sparql_database::embedded_oxigraph::EmbeddedOxigraph;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
 #[cfg(feature = "opcua")]
 use virtualization::opcua::VirtualizedOPCUADatabase;
@@ -194,7 +194,9 @@ impl PyEngine {
             };
 
             let sparql_oxigraph_config = if let Some(store) = &self.sparql_embedded_oxigraph {
-                Some(EmbeddedOxigraph{store:store.clone()})
+                Some(EmbeddedOxigraph {
+                    store: store.clone(),
+                })
             } else {
                 None
             };
@@ -272,19 +274,20 @@ impl PyEngine {
         })
     }
 
-    pub fn serve_flight(&mut self, address: &str, py:Python) -> PyResult<()> {
+    pub fn serve_flight(&mut self, address: &str, py: Python) -> PyResult<()> {
         py.allow_threads(move || {
             if self.engine.is_none() {
                 self.init()?;
             }
-            let flight_server = ChrontextFlightServer::new(Some(Arc::new(self.engine.take().unwrap())));
+            let flight_server =
+                ChrontextFlightServer::new(Some(Arc::new(self.engine.take().unwrap())));
             let mut builder = Builder::new_multi_thread();
             builder.enable_all();
             builder
                 .build()
                 .unwrap()
                 .block_on(flight_server.serve(address))
-                .map_err(|x|PyChrontextError::FlightServerError(x))?;
+                .map_err(|x| PyChrontextError::FlightServerError(x))?;
             Ok(())
         })
     }
@@ -293,21 +296,24 @@ impl PyEngine {
 #[derive(Clone)]
 #[pyclass(name = "FlightClient")]
 pub struct PyFlightClient {
-    uri:String,
-    metadata: HashMap<String, SecretString>
+    uri: String,
+    metadata: HashMap<String, SecretString>,
 }
 
 #[pymethods]
 impl PyFlightClient {
     #[new]
-    pub fn new(uri:String, metadata: Option<HashMap<String, String>>) -> PyResult<Self> {
+    pub fn new(uri: String, metadata: Option<HashMap<String, String>>) -> PyResult<Self> {
         let mut metadata_s = HashMap::new();
         if let Some(metadata) = metadata {
-            for (k,v) in metadata {
+            for (k, v) in metadata {
                 metadata_s.insert(k, SecretString::from(v));
             }
         }
-        Ok(Self {uri, metadata:metadata_s})
+        Ok(Self {
+            uri,
+            metadata: metadata_s,
+        })
     }
 
     pub fn query(
@@ -319,7 +325,6 @@ impl PyFlightClient {
     ) -> PyResult<PyObject> {
         let sparql = sparql.to_string();
         let res = py.allow_threads(move || {
-
             let sparql = sparql;
             let mut builder = Builder::new_multi_thread();
             builder.enable_all();
@@ -330,10 +335,10 @@ impl PyFlightClient {
                 .build()
                 .unwrap()
                 .block_on(client.query(&sparql, &self.metadata))
-                .map_err(|x|PyChrontextError::FlightClientError(x))?;
+                .map_err(|x| PyChrontextError::FlightClientError(x))?;
             Ok(sm)
         });
-        match res  {
+        match res {
             Ok(sm) => {
                 let EagerSolutionMappings {
                     mut mappings,
@@ -352,10 +357,9 @@ impl PyFlightClient {
                     py,
                 )?;
                 Ok(pydf)
-            },
-            Err(e) => Err(e)
+            }
+            Err(e) => Err(e),
         }
-
     }
 }
 

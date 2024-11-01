@@ -1,10 +1,10 @@
-use polars::prelude::{PolarsError};
+use polars::prelude::PolarsError;
 use query_processing::errors::QueryProcessingError;
 use representation::solution_mapping::SolutionMappings;
-use secrecy::{SecretString};
+use secrecy::SecretString;
 use std::collections::HashMap;
 use thiserror::*;
-use tonic::{Status};
+use tonic::Status;
 
 #[derive(Error, Debug)]
 pub enum ChrontextFlightClientError {

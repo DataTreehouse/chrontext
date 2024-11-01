@@ -3,9 +3,6 @@ use crate::errors::ChrontextError;
 use crate::preprocessing::Preprocessor;
 use crate::rename_vars::rename_query_vars;
 use crate::rewriting::StaticQueryRewriter;
-use sparql_database::embedded_oxigraph::{EmbeddedOxigraph};
-use sparql_database::endpoint::SparqlEndpoint;
-use sparql_database::SparqlQueryable;
 use crate::splitter::parse_sparql_select_query;
 use log::debug;
 use polars::enable_string_cache;
@@ -13,6 +10,9 @@ use polars::frame::DataFrame;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
+use sparql_database::embedded_oxigraph::EmbeddedOxigraph;
+use sparql_database::endpoint::SparqlEndpoint;
+use sparql_database::SparqlQueryable;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use virtualization::{Virtualization, VirtualizedDatabase};
@@ -58,9 +58,7 @@ impl Engine {
         let sparql_queryable: Arc<dyn SparqlQueryable> = if let Some(endpoint) = sparql_endpoint {
             Arc::new(SparqlEndpoint { endpoint })
         } else if let Some(config) = sparql_oxigraph_config {
-            Arc::new(
-                config
-            )
+            Arc::new(config)
         } else {
             return Err(ChrontextError::NoSPARQLDatabaseDefined);
         };

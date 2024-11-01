@@ -54,6 +54,7 @@ uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 # Workaround for problem compiling polars
 # https://github.com/pola-rs/polars/issues/19063
 hashbrown = { version = "0.14.5", features = ["raw"] }
+rustls = "0.23.16"
 
 [patch.crates-io]
 #polars = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}

@@ -1,10 +1,12 @@
 pub mod embedded_oxigraph;
 pub mod endpoint;
 
+use async_trait::async_trait;
 use embedded_oxigraph::EmbeddedOxigraphError;
 use endpoint::SparqlEndpointQueryExecutionError;
-use async_trait::async_trait;
-use sparesults::{QueryResultsFormat, QueryResultsParser, QuerySolution, SliceQueryResultsParserOutput};
+use sparesults::{
+    QueryResultsFormat, QueryResultsParser, QuerySolution, SliceQueryResultsParserOutput,
+};
 use spargebra::Query;
 use thiserror::Error;
 #[derive(Debug, Error)]
@@ -20,7 +22,7 @@ pub trait SparqlQueryable: Send + Sync {
     async fn execute(&self, query: &Query) -> Result<Vec<QuerySolution>, SparqlQueryError>;
 }
 
-fn parse_json_text(text:&str) -> Result<Vec<QuerySolution>, SparqlQueryError> {
+fn parse_json_text(text: &str) -> Result<Vec<QuerySolution>, SparqlQueryError> {
     let json_parser = QueryResultsParser::from_format(QueryResultsFormat::Json);
     let parsed_results = json_parser.for_slice(text.as_bytes());
     match parsed_results {
@@ -30,12 +32,12 @@ fn parse_json_text(text:&str) -> Result<Vec<QuerySolution>, SparqlQueryError> {
                 for s in solutions {
                     match s {
                         Ok(query_solution) => solns.push(query_solution),
-                        Err(syntax_error) => return Err(
-                            SparqlEndpointQueryExecutionError::SolutionParseError(
+                        Err(syntax_error) => {
+                            return Err(SparqlEndpointQueryExecutionError::SolutionParseError(
                                 syntax_error,
                             )
-                                .into(),
-                        ),
+                            .into())
+                        }
                     }
                 }
                 Ok(solns)
@@ -43,9 +45,8 @@ fn parse_json_text(text:&str) -> Result<Vec<QuerySolution>, SparqlQueryError> {
                 Err(SparqlEndpointQueryExecutionError::WrongResultType.into())
             }
         }
-        Err(parse_error) => Err(
-            SparqlEndpointQueryExecutionError::ResultsParseError(parse_error)
-                .into(),
-        ),
+        Err(parse_error) => {
+            Err(SparqlEndpointQueryExecutionError::ResultsParseError(parse_error).into())
+        }
     }
 }

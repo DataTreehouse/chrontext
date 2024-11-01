@@ -1,7 +1,7 @@
 use super::{parse_json_text, SparqlQueryError, SparqlQueryable};
 use async_trait::async_trait;
 use reqwest::header::{ACCEPT, USER_AGENT};
-use sparesults::{QueryResultsFormat, QueryResultsParser, QueryResultsSyntaxError, QuerySolution, SliceQueryResultsParserOutput};
+use sparesults::{QueryResultsSyntaxError, QuerySolution};
 use spargebra::Query;
 use thiserror::Error;
 
