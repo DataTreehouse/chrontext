@@ -27,14 +27,6 @@ jobs:
         
         docker pull oxigraph/oxigraph:v0.3.8
 
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
-
     - name: Build
       run: cargo build --features=opcua --verbose --all
     - name: Run rust tests
