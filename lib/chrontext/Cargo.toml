@@ -34,8 +34,6 @@ async-recursion.workspace = true
 async-trait.workspace = true
 filesize.workspace = true
 uuid.workspace = true
-# Workaround for problem compiling polars
-hashbrown.workspace = true
 
 [features]
 opcua = ["virtualization/opcua"]

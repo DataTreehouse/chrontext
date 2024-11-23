@@ -51,9 +51,6 @@ rayon = "1.10.0"
 opcua = {version="0.12.0", features = ["vendored-openssl"]}
 url = "2.5.2"
 uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
-# Workaround for problem compiling polars
-# https://github.com/pola-rs/polars/issues/19063
-hashbrown = { version = "0.14.5", features = ["raw"] }
 rustls = "0.23.16"
 
 [patch.crates-io]

@@ -12,9 +12,7 @@ use opcua::sync::RwLock;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, Variable};
 use polars::export::chrono::{DateTime as ChronoDateTime, Duration, TimeZone, Utc};
-use polars::prelude::{
-    concat, AnyValue, DataFrame, DataType, IntoLazy, NamedFrom, Series, UnionArgs,
-};
+use polars::prelude::{concat, AnyValue, Column, DataFrame, DataType, IntoColumn, IntoLazy, NamedFrom, Series, UnionArgs};
 use query_processing::constants::DATETIME_AS_SECONDS;
 use representation::query_context::Context;
 use representation::solution_mapping::EagerSolutionMappings;
@@ -114,10 +112,10 @@ impl VirtualizedOPCUADatabase {
                 .get(0)
                 .unwrap()
                 .as_str();
-            let mut id_iter = mapping_df.column(identifier_var).unwrap().iter();
+            let mut id_iter = mapping_df.column(identifier_var).unwrap().as_materialized_series().iter();
             let mut grouping_col_iter = mapping_df
                 .column(grouping_col_name.as_ref().unwrap())
-                .unwrap()
+                .unwrap().as_materialized_series()
                 .iter();
             for _ in 0..mapping_df.height() {
                 let id_value = match id_iter.next().unwrap() {
@@ -205,11 +203,11 @@ impl VirtualizedOPCUADatabase {
                 );
                 let (colname, id) = colnames_identifiers.get(i).unwrap();
                 if let Some(grvar) = &timestamp_grouping_colname {
-                    ts.rename(grvar);
+                    ts.rename(grvar.into());
                 } else {
-                    ts.rename(vq.get_timestamp_variables().get(0).unwrap().as_str());
+                    ts.rename(vq.get_timestamp_variables().get(0).unwrap().as_str().into());
                 }
-                val.rename(colname);
+                val.rename(colname.into());
                 if let Some(v) = series_map.get_mut(id) {
                     v.push((ts, val));
                 } else {
@@ -227,13 +225,13 @@ impl VirtualizedOPCUADatabase {
                     } else {
                         first_ts = Some(ts);
                     }
-                    value_vec.push(val);
+                    value_vec.push(val.into_column());
                 }
                 let mut identifier_series = if let Some(grouping_col) = &grouping_col_name {
-                    Series::new_empty(grouping_col, &DataType::Int64)
+                    Column::new_empty((*grouping_col).into(), &DataType::Int64)
                 } else {
-                    Series::new_empty(
-                        vq.get_identifier_variables().get(0).unwrap().as_str(),
+                    Column::new_empty(
+                        vq.get_identifier_variables().get(0).unwrap().as_str().into(),
                         &DataType::String,
                     )
                 };
@@ -249,8 +247,8 @@ impl VirtualizedOPCUADatabase {
                         .extend_constant(AnyValue::String(&k), first_ts.as_ref().unwrap().len())
                         .unwrap()
                 };
-                value_vec.push(identifier_series);
-                value_vec.push(first_ts.unwrap());
+                value_vec.push(identifier_series.into_column());
+                value_vec.push(first_ts.unwrap().into_column());
                 value_vec.sort_by_key(|x| x.name().to_string());
                 dfs.push(DataFrame::new(value_vec).unwrap().lazy())
             }
@@ -352,8 +350,8 @@ fn history_data_to_series_tuple(hd: HistoryData) -> (Series, Series) {
             any_value_vec.push(any_value);
         }
     }
-    let timestamps = Series::new("timestamp", ts_value_vec.as_slice());
-    let values = Series::from_any_values("value", any_value_vec.as_slice(), false).unwrap();
+    let timestamps = Series::new("timestamp".into(), ts_value_vec.as_slice());
+    let values = Series::from_any_values("value".into(), any_value_vec.as_slice(), false).unwrap();
     (timestamps, values)
 }
 
