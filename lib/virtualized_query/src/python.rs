@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use crate::VirtualizedQuery;
-use polars::export::ahash::{HashMap, HashMapExt};
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
 use representation::python::{PyIRI, PyLiteral, PyVariable};
@@ -227,12 +227,12 @@ impl PyVirtualizedQuery {
                     let mut id_grouping_tuples = vec![];
                     let id_iter = df
                         .column(basic.identifier_variable.as_str())
-                        .unwrap()
+                        .unwrap().as_materialized_series()
                         .iter();
                     let group_iter = df
                         .column(basic.grouping_col.as_ref().unwrap())
                         .unwrap()
-                        .iter();
+                        .as_materialized_series().iter();
                     for (id, group) in id_iter.zip(group_iter) {
                         if let (AnyValue::String(id), AnyValue::Int64(group)) = (id, group) {
                             id_grouping_tuples.push((id.to_string(), group));

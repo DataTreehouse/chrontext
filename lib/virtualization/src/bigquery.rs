@@ -10,6 +10,7 @@ use reqwest::Url;
 use spargebra::algebra::{AggregateExpression, Expression, OrderExpression};
 use spargebra::term::TermPattern;
 use std::collections::{HashMap, HashSet};
+use polars::prelude::PlSmallStr;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::{GroupedVirtualizedQuery, VirtualizedQuery};
 
@@ -83,8 +84,9 @@ impl VirtualizedBigQueryDatabase {
         let lf = ex.execute_query().await?;
         let mut df = lf.collect().unwrap();
         for (k, v) in rename_map {
-            if df.get_column_names().contains(&v.as_str()) {
-                df.rename(v.as_str(), k.as_str()).unwrap();
+            let v_smallstr = PlSmallStr::from_str(v.as_str());
+            if df.get_column_names().contains(&&v_smallstr) {
+                df.rename(v.as_str(), k.as_str().into()).unwrap();
             }
         }
         let datatypes = get_datatype_map(&df);

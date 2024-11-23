@@ -1,5 +1,5 @@
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{as_struct, col, lit, DataFrame, Expr, IntoLazy, LiteralValue};
+use polars::prelude::{as_struct, col, lit, DataFrame, Expr, IntoColumn, IntoLazy, LiteralValue};
 use representation::multitype::{
     all_multi_cols, multi_has_this_type_column, non_multi_type_string, MULTI_BLANK_DT,
     MULTI_IRI_DT, MULTI_NONE_DT,
@@ -87,10 +87,10 @@ pub(crate) fn create_static_query_dataframe(
         var_col_map.insert(v.as_str().to_string(), new_col_map);
     }
     let mut rdf_node_types = HashMap::new();
-    let mut all_series: Vec<_> = vec![];
+    let mut all_columns: Vec<_> = vec![];
     for (c, m) in var_col_map {
         let mlen = m.len();
-        let mut series = vec![];
+        let mut columns = vec![];
         let mut types = vec![];
         for (t, v) in m {
             let name = if mlen > 1 {
@@ -101,30 +101,30 @@ pub(crate) fn create_static_query_dataframe(
 
             let ser = polars_literal_values_to_series(v, &name);
             if mlen > 1 && t.is_lang_string() {
-                series.push(
+                columns.push(
                     ser.struct_()
                         .unwrap()
                         .field_by_name(LANG_STRING_VALUE_FIELD)
-                        .unwrap(),
+                        .unwrap().into_column()
                 );
-                series.push(
+                columns.push(
                     ser.struct_()
                         .unwrap()
                         .field_by_name(LANG_STRING_LANG_FIELD)
-                        .unwrap(),
+                        .unwrap().into_column()
                 );
             } else if matches!(t, BaseRDFNodeType::None) {
-                series.push(ser.cast(&t.polars_data_type()).unwrap());
+                columns.push(ser.cast(&t.polars_data_type()).unwrap().into_column());
             } else {
-                series.push(ser);
+                columns.push(ser.into_column());
             }
             types.push(t);
         }
-        if series.len() == 1 {
-            all_series.push(series.pop().unwrap());
+        if columns.len() == 1 {
+            all_columns.push(columns.pop().unwrap().into_column());
             rdf_node_types.insert(c.to_string(), types.pop().unwrap().as_rdf_node_type());
         } else {
-            let mut lf = DataFrame::new(series).unwrap().lazy();
+            let mut lf = DataFrame::new(columns).unwrap().lazy();
             let mut struct_exprs = vec![];
             for c in all_multi_cols(&types) {
                 struct_exprs.push(col(&c));
@@ -163,10 +163,10 @@ pub(crate) fn create_static_query_dataframe(
 
             types.sort();
             rdf_node_types.insert(c.to_string(), RDFNodeType::MultiType(types));
-            all_series.push(df.drop_in_place(&c).unwrap());
+            all_columns.push(df.drop_in_place(&c).unwrap());
         }
     }
-    let mut df = DataFrame::new(all_series).expect("Create df problem");
+    let mut df = DataFrame::new(all_columns).expect("Create df problem");
     df = df
         .select(column_variables.iter().map(|x| x.as_str()))
         .unwrap();

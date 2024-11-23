@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::sync::Arc;
 use crate::errors::BigQueryExecutorError;
 use gcp_bigquery_client::error::BQError;
 use gcp_bigquery_client::job::JobApi;
@@ -33,7 +34,7 @@ use gcp_bigquery_client::model::get_query_results_response::GetQueryResultsRespo
 use gcp_bigquery_client::model::query_request::QueryRequest;
 use gcp_bigquery_client::model::table_cell::TableCell;
 use gcp_bigquery_client::Client;
-use polars::prelude::{concat, AnyValue, DataFrame, DataType, IntoLazy, LazyFrame, TimeUnit};
+use polars::prelude::{concat, AnyValue, Column, DataFrame, DataType, IntoColumn, IntoLazy, LazyFrame, PlSmallStr, TimeUnit};
 use polars::series::Series;
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
@@ -134,14 +135,14 @@ impl BigQueryExecutor {
                     .collect();
                 rows_processed += rows.len();
 
-                let series_vec: Vec<_> = any_value_vecs
+                let columns_vec: Vec<_> = any_value_vecs
                     .into_par_iter()
                     .zip(names.par_iter())
                     .map(|(any_value_vec, name)| {
-                        Series::from_any_values(name, any_value_vec.as_slice(), false).unwrap()
+                        Series::from_any_values(name.into(), any_value_vec.as_slice(), false).unwrap().into_column()
                     })
                     .collect();
-                all_lfs.push(DataFrame::new(series_vec).unwrap().lazy())
+                all_lfs.push(DataFrame::new(columns_vec).unwrap().lazy())
             }
             if let Some(total_rows) = rs.total_rows {
                 let total_rows = total_rows.parse::<usize>().unwrap();
@@ -157,11 +158,11 @@ impl BigQueryExecutor {
         if !all_lfs.is_empty() {
             Ok(concat(all_lfs, Default::default()).unwrap())
         } else {
-            let mut series = vec![];
+            let mut columns = vec![];
             for n in &names {
-                series.push(Series::new_empty(n, &DataType::Null))
+                columns.push(Column::new_empty(n.into(), &DataType::Null))
             }
-            Ok(DataFrame::new(series).unwrap().lazy())
+            Ok(DataFrame::new(columns).unwrap().lazy())
         }
     }
 
@@ -214,9 +215,13 @@ fn table_cell_to_any<'a>(
             AnyValue::Boolean(value_as_ref.as_str().unwrap().parse::<bool>().unwrap())
         }
         FieldType::Timestamp => {
+            let some_utc = match some_utc {
+                None => {None}
+                Some(tz) => {Some(Arc::new(PlSmallStr::from_str(tz)))}
+            };
             let ts_str = value_as_ref.as_str().unwrap();
             let timestamp_ns = (ts_str.parse::<f64>().unwrap() * (1e9f64)) as i64;
-            AnyValue::Datetime(timestamp_ns, TimeUnit::Nanoseconds, some_utc)
+            AnyValue::DatetimeOwned(timestamp_ns, TimeUnit::Nanoseconds, some_utc)
         }
         FieldType::Date => {
             todo!()

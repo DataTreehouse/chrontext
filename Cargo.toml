@@ -16,25 +16,25 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="fb49d7fff2e065baea3952762849a2f83db5ab3d" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3" }
 
 
-sparesults = { version = "0.2.2", features = ["rdf-star"] }
+sparesults = { version = "0.2.3", features = ["rdf-star"] }
 oxrdf = { version = "0.2.2", features = ["rdf-star"] }
 oxrdfio = { version= "0.1.2", features = ["rdf-star"] }
 
-polars = "0.41.3"
+polars = "0.44.2"
 tonic = "0.12.3"
 tokio = "1.32.1"
 arrow-flight = "53.1.0"
 futures = "0.3.31"
 bincode = "1.3.3"
 log = "0.4.21"
-pyo3 = "0.22.5"
+pyo3 = "0.22.6"
 reqwest = "0.12.5"
 env_logger = "0.11.3"
 thiserror = "1.0.58"
@@ -57,5 +57,6 @@ hashbrown = { version = "0.14.5", features = ["raw"] }
 rustls = "0.23.16"
 
 [patch.crates-io]
-#polars = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
-#polars-core = { git = "https://github.com/pola-rs/polars.git",  rev = "0c2b5d82fd2726df7d7b318e5c21581a27fffdba"}
+polars = { git = "https://github.com/pola-rs/polars.git",  rev = "5515b2c2e5dec59671eeff4821738234ee2892e4"}
+polars-core = { git = "https://github.com/pola-rs/polars.git",  rev = "5515b2c2e5dec59671eeff4821738234ee2892e4"}
+

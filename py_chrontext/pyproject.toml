@@ -32,5 +32,5 @@ Repository = "https://github.com/DataTreehouse/chrontext"
 Changelog = "https://github.com/DataTreehouse/chrontext/releases"
 
 [build-system]
-requires = ["maturin==1.7.1"]
+requires = ["maturin==1.7.4"]
 build-backend = "maturin"

@@ -1,14 +1,13 @@
 pub mod pushdown_setting;
 pub mod python;
 
-use polars::export::ahash::HashMap;
 use polars::frame::DataFrame;
 use query_processing::find_query_variables::find_all_used_variables_in_expression;
 use representation::query_context::{Context, VariableInContext};
 use spargebra::algebra::{AggregateExpression, Expression, OrderExpression};
 use spargebra::remove_sugar::{HAS_TIMESTAMP, HAS_VALUE};
 use spargebra::term::{NamedNodePattern, TermPattern, TriplePattern, Variable};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use templates::ast::{ConstantTerm, ConstantTermOrList, StottrTerm, Template};
@@ -292,7 +291,7 @@ impl VirtualizedQuery {
 
     pub fn validate(&self, df: &DataFrame) -> Result<(), VirtualizedResultValidationError> {
         let expected_columns = self.expected_columns();
-        let df_columns: HashSet<&str> = df.get_column_names().into_iter().collect();
+        let df_columns: HashSet<&str> = df.get_column_names().into_iter().map(|x|x.as_str()).collect();
         if expected_columns != df_columns {
             let err = VirtualizedResultValidationError {
                 missing_columns: expected_columns

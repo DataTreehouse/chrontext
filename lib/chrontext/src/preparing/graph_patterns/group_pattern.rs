@@ -7,7 +7,7 @@ use crate::constants::GROUPING_COL;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::grouping_col_type;
 use oxrdf::Variable;
-use polars::prelude::{DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, Series, UniqueKeepStrategy};
+use polars::prelude::{col, DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, PlSmallStr, Series, UniqueKeepStrategy};
 use query_processing::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
@@ -92,14 +92,11 @@ impl TimeseriesQueryPrepper {
         let mut df = solution_mappings
             .mappings
             .clone()
-            .collect()
-            .unwrap()
-            .select(by_names.as_slice())
-            .unwrap()
-            .unique(Some(by_names.as_slice()), UniqueKeepStrategy::First, None)
+            .select(by_names.iter().map(|x|col(x)).collect::<Vec<_>>())
+            .unique(None, UniqueKeepStrategy::First).collect()
             .unwrap();
         let mut series = Series::from_iter(0..(df.height() as i64));
-        series.rename(&grouping_col);
+        series.rename(PlSmallStr::from_str(&grouping_col));
         assert_eq!(series.dtype(), &grouping_col_type());
         df.with_column(series).unwrap();
         solution_mappings.mappings = solution_mappings

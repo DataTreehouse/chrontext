@@ -15,6 +15,7 @@ use sparql_database::endpoint::SparqlEndpoint;
 use sparql_database::SparqlQueryable;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use polars::prelude::PlSmallStr;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
 
@@ -119,7 +120,7 @@ impl Engine {
             if let Some(dt) = solution_mappings.rdf_node_types.remove(&renamed) {
                 solution_mappings.mappings = solution_mappings
                     .mappings
-                    .rename(&[renamed], &[original.clone()]);
+                    .rename(&[PlSmallStr::from_string(renamed)], &[PlSmallStr::from_str(&original)], true);
                 solution_mappings.rdf_node_types.insert(original, dt);
             }
         }

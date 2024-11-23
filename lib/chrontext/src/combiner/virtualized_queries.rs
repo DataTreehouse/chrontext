@@ -4,10 +4,7 @@ use crate::preparing::grouping_col_type;
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
-use polars::prelude::{
-    col, CategoricalOrdering, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType, Series,
-    SortMultipleOptions,
-};
+use polars::prelude::{col, CategoricalOrdering, Column, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType, Series, SortMultipleOptions};
 use representation::polars_to_rdf::polars_type_to_literal_type;
 use representation::query_context::Context;
 use representation::solution_mapping::{EagerSolutionMappings, SolutionMappings};
@@ -26,11 +23,11 @@ impl Combiner {
         let mut expected_cols: Vec<_> = vq.expected_columns().into_iter().collect();
         expected_cols.sort();
         let drop_cols = get_drop_cols(vq);
-        let mut series_vec = vec![];
+        let mut columns_vec = vec![];
         for e in expected_cols {
             if !drop_cols.contains(e) {
-                series_vec.push(Series::new_empty(
-                    e,
+                columns_vec.push(Column::new_empty(
+                    e.into(),
                     &BaseRDFNodeType::None.polars_data_type(),
                 ));
                 solution_mappings
@@ -38,7 +35,7 @@ impl Combiner {
                     .insert(e.to_string(), RDFNodeType::None);
             }
         }
-        let df = DataFrame::new(series_vec).unwrap();
+        let df = DataFrame::new(columns_vec).unwrap();
         for d in drop_cols {
             if solution_mappings.rdf_node_types.contains_key(&d) {
                 solution_mappings.rdf_node_types.remove(&d);
@@ -163,7 +160,7 @@ impl Combiner {
                 on_cols.as_slice(),
                 JoinArgs::new(JoinType::Inner),
             )
-            .drop(drop_cols.iter());
+            .drop(drop_cols.iter().map(|x|col(x)));
         for c in &drop_cols {
             solution_mappings.rdf_node_types.remove(c);
         }

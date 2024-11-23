@@ -32,7 +32,6 @@ class CSVDB():
 
     def query(self, sql: str):
         df = self.con.execute(sql).pl()
-        print(df)
         return df
 
 
@@ -602,7 +601,6 @@ def test_coalesce_query(engine):
     df = sm.mappings.cast({"v1":pl.Int64, "v2":pl.Int64, "c":pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_coalesce_query.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
-    print(sm.pushdown_paths)
 
 def test_simple_hybrid_query_sugar(engine):
     q = """

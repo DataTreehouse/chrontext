@@ -538,12 +538,12 @@ impl Combiner {
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
-                        Expr::Literal(LiteralValue::Int64(1)).alias(&exists_context.as_str()),
+                        Expr::Literal(LiteralValue::Int64(1)).alias(exists_context.as_str()),
                     )
                     .with_column(
-                        col(&exists_context.as_str())
+                        col(exists_context.as_str())
                             .cum_sum(false)
-                            .alias(&exists_context.as_str()),
+                            .alias(exists_context.as_str()),
                     );
 
                 let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());

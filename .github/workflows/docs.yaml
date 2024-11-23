@@ -14,8 +14,8 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_LOG: debug
-  MATURIN_VERSION: '1.7.1'
-  RUST_TOOLCHAIN: nightly-2024-06-23
+  MATURIN_VERSION: '1.7.4'
+  RUST_TOOLCHAIN: nightly-2024-10-28
 
 jobs:
   # Build the documentation and upload the static HTML files as an artifact.
