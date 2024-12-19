@@ -8,7 +8,7 @@ impl StaticQueryRewriter {
     pub fn rewrite_order_by(
         &mut self,
         inner: &GraphPattern,
-        order_expressions: &Vec<OrderExpression>,
+        order_expressions: &[OrderExpression],
 
         context: &Context,
     ) -> GPReturn {
@@ -48,6 +48,6 @@ impl StaticQueryRewriter {
         } else {
             inner_rewrite.with_graph_pattern(inner_graph_pattern);
         }
-        return inner_rewrite;
+        inner_rewrite
     }
 }

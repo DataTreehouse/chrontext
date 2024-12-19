@@ -29,7 +29,7 @@ impl TimeseriesQueryPrepper {
         if args_prepared.iter().any(|x| x.fail_groupby_complex_query) {
             return EXPrepReturn::fail_groupby_complex_query();
         }
-        if args_prepared.len() > 0 {
+        if !args_prepared.is_empty() {
             let mut first_prepared = args_prepared.remove(0);
             for p in args_prepared {
                 first_prepared.with_virtualized_queries_from(p)

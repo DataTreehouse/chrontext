@@ -62,6 +62,6 @@ impl StaticQueryRewriter {
                 right: Box::new(right_graph_pattern),
                 expression,
             });
-        return left_rewrite;
+        left_rewrite
     }
 }

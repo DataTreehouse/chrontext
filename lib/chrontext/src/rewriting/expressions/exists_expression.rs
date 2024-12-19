@@ -21,13 +21,13 @@ impl StaticQueryRewriter {
                     wrapped_rewrite.graph_pattern.take().unwrap(),
                 )))
                 .with_change_type(ChangeType::NoChange);
-                return exr;
+                exr
             } else {
                 self.create_add_subquery(wrapped_rewrite, &exists_context);
-                return ExReturn::subquery();
+                ExReturn::subquery()
             }
         } else {
-            return ExReturn::subquery();
+            ExReturn::subquery()
         }
     }
 }

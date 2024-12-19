@@ -18,7 +18,7 @@ impl TimeseriesQueryPrepper {
             debug!(
                 "Encountered union inside left join, not supported for complex groupby pushdown"
             );
-            return GPPrepReturn::fail_groupby_complex_query();
+            GPPrepReturn::fail_groupby_complex_query()
         } else {
             let mut left_prepare = self.prepare_graph_pattern(
                 left,

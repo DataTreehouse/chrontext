@@ -33,7 +33,7 @@ impl StaticQueryRewriter {
                 left: Box::new(left_graph_pattern),
                 right: Box::new(right_graph_pattern),
             });
-            return left_rewrite;
+            left_rewrite
         } else if left_rewrite.rewritten && !right_rewrite.rewritten {
             let left_graph_pattern = left_rewrite.graph_pattern.take().unwrap();
             let right_graph_pattern = right_rewrite.graph_pattern.take().unwrap();

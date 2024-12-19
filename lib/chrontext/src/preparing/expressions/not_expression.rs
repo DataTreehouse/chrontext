@@ -12,12 +12,12 @@ impl TimeseriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
-        let wrapped_prepare = self.prepare_expression(
+        
+        self.prepare_expression(
             wrapped,
             try_groupby_complex_query,
             solution_mappings,
             &context.extension_with(PathEntry::Not),
-        );
-        wrapped_prepare
+        )
     }
 }

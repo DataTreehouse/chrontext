@@ -46,12 +46,10 @@ impl TimeseriesQueryPrepper {
                 );
                 if try_groupby_complex_query && lost_value {
                     return GPPrepReturn::fail_groupby_complex_query();
+                } else if let Some(ordering) = rewritten {
+                    out_vq_vec.push(VirtualizedQuery::Ordered(Box::new(vq), ordering));
                 } else {
-                    if let Some(ordering) = rewritten {
-                        out_vq_vec.push(VirtualizedQuery::Ordered(Box::new(vq), ordering));
-                    } else {
-                        out_vq_vec.push(vq);
-                    }
+                    out_vq_vec.push(vq);
                 }
             }
             out_vqs.insert(inner_context, out_vq_vec);

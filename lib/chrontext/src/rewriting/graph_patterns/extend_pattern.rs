@@ -42,10 +42,10 @@ impl StaticQueryRewriter {
             inner_rewrite.with_rewritten(
                 inner_rewrite.rewritten || expr_rewrite.change_type != Some(ChangeType::NoChange),
             );
-            return inner_rewrite;
+            inner_rewrite
         } else {
             inner_rewrite.with_rewritten(true);
-            return inner_rewrite;
+            inner_rewrite
         }
     }
 }

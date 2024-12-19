@@ -68,7 +68,7 @@ pub(crate) fn rewrite_order_expressions(
     if rewritten_order_expressions.is_empty() {
         return (None, lost_value);
     }
-    return (Some(rewritten_order_expressions), lost_value);
+    (Some(rewritten_order_expressions), lost_value)
 }
 
 pub(crate) fn rewrite_filter_expression(
@@ -113,24 +113,23 @@ pub(crate) fn try_recursive_rewrite_expression(
 
     match &expression {
         Expression::Literal(lit) => {
-            return RecursiveRewriteReturn::new(
+            RecursiveRewriteReturn::new(
                 Some(Expression::Literal(lit.clone())),
                 Some(ChangeType::NoChange),
                 false,
-            );
+            )
         }
         Expression::Variable(v) => {
             if vq.has_equivalent_variable(v, context) {
-                return RecursiveRewriteReturn::new(
+                RecursiveRewriteReturn::new(
                     Some(Expression::Variable(v.clone())),
                     Some(ChangeType::NoChange),
                     false,
-                );
+                )
             } else if vq
                 .get_virtualized_variables()
                 .into_iter()
-                .find(|x| &x.variable == v)
-                .is_some()
+                .any(|x| &x.variable == v)
             {
                 if pushdown_settings.contains(&PushdownSetting::ValueConditions) {
                     return RecursiveRewriteReturn::new(
@@ -240,19 +239,13 @@ pub(crate) fn try_recursive_rewrite_expression(
                                 use_lost_value,
                             );
                         }
-                    } else if left_rewrite.expression.is_some()
-                        && right_rewrite.expression.is_none()
-                    {
-                        if left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                            || left_rewrite.change_type.as_ref().unwrap()
-                                == &ChangeType::Constrained
-                        {
-                            return RecursiveRewriteReturn::new(
-                                Some(left_rewrite.expression.as_ref().unwrap().clone()),
-                                Some(ChangeType::Constrained),
-                                use_lost_value,
-                            );
-                        }
+                    } else if left_rewrite.expression.is_some() && right_rewrite.expression.is_none() && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange || left_rewrite.change_type.as_ref().unwrap()
+                                == &ChangeType::Constrained) {
+                        return RecursiveRewriteReturn::new(
+                            Some(left_rewrite.expression.as_ref().unwrap().clone()),
+                            Some(ChangeType::Constrained),
+                            use_lost_value,
+                        );
                     }
                 }
                 ChangeType::NoChange => {
@@ -369,18 +362,12 @@ pub(crate) fn try_recursive_rewrite_expression(
                                 use_lost_value,
                             );
                         }
-                    } else if left_rewrite.expression.is_some()
-                        && right_rewrite.expression.is_none()
-                    {
-                        if left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                            || left_rewrite.change_type.as_ref().unwrap() == &ChangeType::Relaxed
-                        {
-                            return RecursiveRewriteReturn::new(
-                                Some(left_rewrite.expression.as_ref().unwrap().clone()),
-                                Some(ChangeType::Relaxed),
-                                use_lost_value,
-                            );
-                        }
+                    } else if left_rewrite.expression.is_some() && right_rewrite.expression.is_none() && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange || left_rewrite.change_type.as_ref().unwrap() == &ChangeType::Relaxed) {
+                        return RecursiveRewriteReturn::new(
+                            Some(left_rewrite.expression.as_ref().unwrap().clone()),
+                            Some(ChangeType::Relaxed),
+                            use_lost_value,
+                        );
                     }
                 }
                 ChangeType::NoChange => {
@@ -946,22 +933,19 @@ pub(crate) fn try_recursive_rewrite_expression(
                 })
                 .collect::<Vec<RecursiveRewriteReturn>>();
             let use_lost_value = or_lost_value(inner_rewrites.iter().collect());
-            if inner_rewrites.iter().all(|x| x.expression.is_some()) {
-                if inner_rewrites
+            if inner_rewrites.iter().all(|x| x.expression.is_some()) && inner_rewrites
                     .iter()
-                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange)
-                {
-                    return RecursiveRewriteReturn::new(
-                        Some(Expression::Coalesce(
-                            inner_rewrites
-                                .into_iter()
-                                .map(|mut x| x.expression.take().unwrap())
-                                .collect(),
-                        )),
-                        Some(ChangeType::NoChange),
-                        use_lost_value,
-                    );
-                }
+                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange) {
+                return RecursiveRewriteReturn::new(
+                    Some(Expression::Coalesce(
+                        inner_rewrites
+                            .into_iter()
+                            .map(|mut x| x.expression.take().unwrap())
+                            .collect(),
+                    )),
+                    Some(ChangeType::NoChange),
+                    use_lost_value,
+                );
             }
             RecursiveRewriteReturn::none(use_lost_value)
         }
@@ -981,25 +965,22 @@ pub(crate) fn try_recursive_rewrite_expression(
                 })
                 .collect::<Vec<RecursiveRewriteReturn>>();
             let use_lost_value = or_lost_value(right_rewrites.iter().collect());
-            if right_rewrites.iter().all(|x| x.expression.is_some()) {
-                if right_rewrites
+            if right_rewrites.iter().all(|x| x.expression.is_some()) && right_rewrites
                     .iter()
-                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange)
-                {
-                    let use_lost_value =
-                        right_rewrites.iter().fold(false, |b, x| b || x.lost_value);
-                    return RecursiveRewriteReturn::new(
-                        Some(Expression::FunctionCall(
-                            left.clone(),
-                            right_rewrites
-                                .into_iter()
-                                .map(|mut x| x.expression.take().unwrap())
-                                .collect(),
-                        )),
-                        Some(ChangeType::NoChange),
-                        use_lost_value,
-                    );
-                }
+                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange) {
+                let use_lost_value =
+                    right_rewrites.iter().any(|x| x.lost_value);
+                return RecursiveRewriteReturn::new(
+                    Some(Expression::FunctionCall(
+                        left.clone(),
+                        right_rewrites
+                            .into_iter()
+                            .map(|mut x| x.expression.take().unwrap())
+                            .collect(),
+                    )),
+                    Some(ChangeType::NoChange),
+                    use_lost_value,
+                );
             }
             RecursiveRewriteReturn::none(use_lost_value)
         }
@@ -1008,5 +989,5 @@ pub(crate) fn try_recursive_rewrite_expression(
 }
 
 fn or_lost_value(rewrites: Vec<&RecursiveRewriteReturn>) -> bool {
-    rewrites.iter().fold(false, |a, b| a || b.lost_value)
+    rewrites.iter().any(|b| b.lost_value)
 }

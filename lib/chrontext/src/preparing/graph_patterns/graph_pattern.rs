@@ -16,15 +16,15 @@ impl TimeseriesQueryPrepper {
     ) -> GPPrepReturn {
         if try_groupby_complex_query {
             debug!("Encountered graph inside groupby, not supported for complex groupby pushdown");
-            return GPPrepReturn::fail_groupby_complex_query();
+            GPPrepReturn::fail_groupby_complex_query()
         } else {
-            let inner_gpr = self.prepare_graph_pattern(
+            
+            self.prepare_graph_pattern(
                 inner,
                 try_groupby_complex_query,
                 solution_mappings,
                 &context.extension_with(PathEntry::GraphInner),
-            );
-            inner_gpr
+            )
         }
     }
 }

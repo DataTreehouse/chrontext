@@ -121,7 +121,7 @@ impl Combiner {
                 let mut new_solution_mappings =
                     self.execute_static_query(&static_query, None).await?;
                 let new_virtualized_queries =
-                    self.prepper.prepare(&query, &mut new_solution_mappings);
+                    self.prepper.prepare(query, &mut new_solution_mappings);
                 // Combination assumes there is something to combine!
                 // If there are no time series queries, we are done.
                 if new_virtualized_queries.is_empty() {

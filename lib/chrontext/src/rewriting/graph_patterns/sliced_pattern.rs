@@ -18,8 +18,8 @@ impl StaticQueryRewriter {
             let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
             inner_rewrite.with_graph_pattern(GraphPattern::Slice {
                 inner: Box::new(inner_graph_pattern),
-                start: start.clone(),
-                length: length.clone(),
+                start: *start,
+                length: *length,
             });
             return inner_rewrite;
         }

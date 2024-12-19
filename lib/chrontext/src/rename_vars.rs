@@ -47,11 +47,7 @@ fn rename_gp_vars(gp: GraphPattern, rename_map: &mut HashMap<String, String>) ->
         } => GraphPattern::LeftJoin {
             left: Box::new(rename_gp_vars(*left, rename_map)),
             right: Box::new(rename_gp_vars(*right, rename_map)),
-            expression: if let Some(expression) = expression {
-                Some(rename_expression_vars(expression, rename_map))
-            } else {
-                None
-            },
+            expression: expression.map(|expression| rename_expression_vars(expression, rename_map)),
         },
         GraphPattern::Filter { expr, inner } => GraphPattern::Filter {
             expr: rename_expression_vars(expr, rename_map),

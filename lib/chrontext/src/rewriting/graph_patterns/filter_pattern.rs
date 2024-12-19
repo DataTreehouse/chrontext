@@ -44,13 +44,13 @@ impl StaticQueryRewriter {
                     inner: Box::new(inner_graph_pattern),
                 })
                 .with_rewritten(rewritten);
-            return inner_rewrite;
+            inner_rewrite
         } else {
             let inner_graph_pattern = inner_rewrite.graph_pattern.take().unwrap();
             inner_rewrite
                 .with_graph_pattern(inner_graph_pattern)
                 .with_rewritten(true);
-            return inner_rewrite;
+            inner_rewrite
         }
     }
 }

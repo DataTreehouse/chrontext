@@ -27,7 +27,7 @@ impl TimeseriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
-        let (left_path_entry, right_path_entry) = match { operation } {
+        let (left_path_entry, right_path_entry) = match operation {
             BinaryOrdinaryOperator::Add => (PathEntry::AddLeft, PathEntry::AddRight),
             BinaryOrdinaryOperator::Subtract => (PathEntry::SubtractLeft, PathEntry::SubtractRight),
             BinaryOrdinaryOperator::Multiply => (PathEntry::MultiplyLeft, PathEntry::MultiplyRight),

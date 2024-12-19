@@ -48,7 +48,7 @@ impl TimeseriesQueryPrepper {
                 } else {
                     ChangeType::Relaxed
                 };
-                let conj_vec = conjunction_to_vec(self.rewritten_filters.get(&context));
+                let conj_vec = conjunction_to_vec(self.rewritten_filters.get(context));
                 let (virtualized_condition, lost_value) = rewrite_filter_expression(
                     &t,
                     expression,
@@ -98,7 +98,7 @@ fn conjunction_to_vec(expr_opt: Option<&Expression>) -> Option<Vec<&Expression>>
             }
         }
     }
-    if out.len() > 0 {
+    if !out.is_empty() {
         Some(out)
     } else {
         None

@@ -322,9 +322,9 @@ impl Combiner {
                     let expr = right.get(i).unwrap();
                     let expr_context = right_contexts.get(i).unwrap();
                     let expr_prepared_virtualized_queries =
-                        split_virtualized_queries(&mut prepared_virtualized_queries, &expr_context);
+                        split_virtualized_queries(&mut prepared_virtualized_queries, expr_context);
                     let expr_static_query_map =
-                        split_static_queries_opt(&mut static_query_map, &expr_context);
+                        split_static_queries_opt(&mut static_query_map, expr_context);
                     output_solution_mappings = self
                         .lazy_expression(
                             expr,
@@ -339,7 +339,7 @@ impl Combiner {
                     output_solution_mappings,
                     &left_context,
                     &right_contexts,
-                    &context,
+                    context,
                 )?
             }
             Expression::Add(left, right) => {
@@ -546,7 +546,7 @@ impl Combiner {
                             .alias(exists_context.as_str()),
                     );
 
-                let new_inner = rewrite_exists_graph_pattern(inner, &exists_context.as_str());
+                let new_inner = rewrite_exists_graph_pattern(inner, exists_context.as_str());
                 output_solution_mappings.rdf_node_types.insert(
                     exists_context.as_str().to_string(),
                     RDFNodeType::Literal(xsd::BOOLEAN.into_owned()),
@@ -620,7 +620,7 @@ impl Combiner {
                     &left_context,
                     &middle_context,
                     &right_context,
-                    &context,
+                    context,
                 )?
             }
             Expression::Coalesce(inner) => {
@@ -632,10 +632,10 @@ impl Combiner {
                     let inner_context = inner_contexts.get(i).unwrap();
                     let inner_prepared_virtualized_queries = split_virtualized_queries(
                         &mut prepared_virtualized_queries,
-                        &inner_context,
+                        inner_context,
                     );
                     let inner_static_query_map =
-                        split_static_queries_opt(&mut static_query_map, &inner_context);
+                        split_static_queries_opt(&mut static_query_map, inner_context);
                     output_solution_mappings = self
                         .lazy_expression(
                             inner.get(i).unwrap(),
@@ -647,7 +647,7 @@ impl Combiner {
                         .await?;
                 }
 
-                coalesce_expression(output_solution_mappings, inner_contexts, &context)?
+                coalesce_expression(output_solution_mappings, inner_contexts, context)?
             }
             Expression::FunctionCall(func, args) => {
                 let mut args_contexts: HashMap<usize, Context> = HashMap::new();
@@ -674,7 +674,7 @@ impl Combiner {
                     func,
                     args,
                     args_contexts,
-                    &context,
+                    context,
                 )?
             }
         };

@@ -27,7 +27,7 @@ pub fn parse_sparql_select_query(query_str: &str) -> Result<Query, QueryParseErr
                 if base_iri.is_some() {
                     unsupported_constructs.push("BaseIri")
                 }
-                if unsupported_constructs.len() > 0 {
+                if !unsupported_constructs.is_empty() {
                     Err(QueryParseError::Unsupported(
                         unsupported_constructs.join(","),
                     ))

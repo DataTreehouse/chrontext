@@ -16,7 +16,7 @@ impl TimeseriesQueryPrepper {
         let mut local_vqs = vec![];
         let bgp_context = context.extension_with(PathEntry::BGP);
         for vq in &mut self.basic_virtualized_queries {
-            if &vq.query_source_context == &bgp_context {
+            if vq.query_source_context == bgp_context {
                 if let Some(resource) = &vq.resource {
                     let template = self.virtualization.resources.get(resource).unwrap();
                     vq.finish_column_mapping(patterns, template);

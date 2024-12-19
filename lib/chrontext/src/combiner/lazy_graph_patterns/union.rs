@@ -40,7 +40,7 @@ impl Combiner {
         });
         let left_solution_mappings = self
             .lazy_graph_pattern(
-                &left,
+                left,
                 solution_mappings.clone(),
                 left_static_query_map,
                 left_prepared_virtualized_queries,

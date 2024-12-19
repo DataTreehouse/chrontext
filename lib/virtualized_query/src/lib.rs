@@ -107,8 +107,8 @@ impl BasicVirtualizedQuery {
         let mut visited_query_vars = HashSet::new();
         let id_var = Variable::new_unchecked(ID_VARIABLE_NAME);
         let mut queue = vec![(&self.query_source_variable, &id_var)];
-        while !queue.is_empty() {
-            let (current_query_var, current_template_var) = queue.pop().unwrap();
+        while let Some((current_query_var, current_template_var)) = queue.pop() {
+            
             if !visited_query_vars.contains(&current_query_var) {
                 visited_query_vars.insert(current_query_var);
                 for p in patterns {
@@ -124,7 +124,7 @@ impl BasicVirtualizedQuery {
                                         ) = &tp.argument_list.get(1).unwrap().term
                                         {
                                             if nn == template_nn {
-                                                match &tp.argument_list.get(0).unwrap().term {
+                                                match &tp.argument_list.first().unwrap().term {
                                                     StottrTerm::Variable(tv) => {
                                                         if tv == current_template_var {
                                                             match &tp

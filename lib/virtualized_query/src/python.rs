@@ -105,11 +105,7 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::Basic {
                 id_grouping_tuples, ..
             } => {
-                if let Some(id_grouping_tuples) = id_grouping_tuples {
-                    Some(id_grouping_tuples.clone())
-                } else {
-                    None
-                }
+                id_grouping_tuples.clone()
             }
             _ => None,
         }
@@ -121,11 +117,7 @@ impl PyVirtualizedQuery {
                 grouping_column_name,
                 ..
             } => {
-                if let Some(grouping_column_name) = grouping_column_name {
-                    Some(grouping_column_name.clone())
-                } else {
-                    None
-                }
+                grouping_column_name.clone()
             }
             _ => None,
         }
@@ -194,11 +186,7 @@ impl PyVirtualizedQuery {
     fn limit(&self) -> Option<usize> {
         match self {
             PyVirtualizedQuery::Sliced { limit, .. } => {
-                if let Some(limit) = limit {
-                    Some(*limit)
-                } else {
-                    None
-                }
+                limit.as_ref().map(|limit| *limit)
             }
             _ => None,
         }

@@ -33,47 +33,43 @@ impl TimeseriesQueryPrepper {
         }
         let inner_context = &context.extension_with(PathEntry::GroupInner);
         let mut try_graph_pattern_prepare =
-            self.prepare_graph_pattern(graph_pattern, true, solution_mappings, &inner_context);
-        if !try_graph_pattern_prepare.fail_groupby_complex_query
-            && self.pushdown_settings.contains(&PushdownSetting::GroupBy)
-        {
-            if try_graph_pattern_prepare.virtualized_queries.len() == 1 {
-                let (_c, mut vqs) = try_graph_pattern_prepare
-                    .virtualized_queries
-                    .drain()
-                    .next()
-                    .unwrap();
-                if vqs.len() == 1 {
-                    let mut vq = vqs.remove(0);
-                    let in_scope =
-                        check_aggregations_are_in_scope(&vq, inner_context, aggregations);
+            self.prepare_graph_pattern(graph_pattern, true, solution_mappings, inner_context);
+        if !try_graph_pattern_prepare.fail_groupby_complex_query && self.pushdown_settings.contains(&PushdownSetting::GroupBy) && try_graph_pattern_prepare.virtualized_queries.len() == 1 {
+            let (_c, mut vqs) = try_graph_pattern_prepare
+                .virtualized_queries
+                .drain()
+                .next()
+                .unwrap();
+            if vqs.len() == 1 {
+                let mut vq = vqs.remove(0);
+                let in_scope =
+                    check_aggregations_are_in_scope(&vq, inner_context, aggregations);
 
-                    if in_scope {
-                        let grouping_col = self.add_grouping_col(solution_mappings, by);
-                        vq = add_basic_groupby_mapping_values(vq, solution_mappings, &grouping_col);
-                        let tsfuncs = vq.get_virtualized_functions(context);
-                        let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
-                        for v in by {
-                            for (v2, _) in &tsfuncs {
-                                if v2.as_str() == v.as_str() {
-                                    keep_by.push(v.clone())
-                                }
+                if in_scope {
+                    let grouping_col = self.add_grouping_col(solution_mappings, by);
+                    vq = add_basic_groupby_mapping_values(vq, solution_mappings, &grouping_col);
+                    let tsfuncs = vq.get_virtualized_functions(context);
+                    let mut keep_by = vec![Variable::new_unchecked(&grouping_col)];
+                    for v in by {
+                        for (v2, _) in &tsfuncs {
+                            if v2.as_str() == v.as_str() {
+                                keep_by.push(v.clone())
                             }
                         }
-                        //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
-                        vq = VirtualizedQuery::Grouped(GroupedVirtualizedQuery {
-                            context: context.clone(),
-                            vq: Box::new(vq),
-                            by: keep_by,
-                            aggregations: aggregations.clone(),
-                        });
-                        return GPPrepReturn::new(HashMap::from([(context.clone(), vec![vq])]));
                     }
+                    //TODO: For OPC UA we must ensure that mapping df is 1:1 with identities, or alternatively group on these
+                    vq = VirtualizedQuery::Grouped(GroupedVirtualizedQuery {
+                        context: context.clone(),
+                        vq: Box::new(vq),
+                        by: keep_by,
+                        aggregations: aggregations.clone(),
+                    });
+                    return GPPrepReturn::new(HashMap::from([(context.clone(), vec![vq])]));
                 }
             }
         }
         debug!("Group by pushdown failed at context {:?}", context);
-        self.prepare_graph_pattern(graph_pattern, false, solution_mappings, &inner_context)
+        self.prepare_graph_pattern(graph_pattern, false, solution_mappings, inner_context)
     }
 
     fn add_grouping_col(
@@ -92,7 +88,7 @@ impl TimeseriesQueryPrepper {
         let mut df = solution_mappings
             .mappings
             .clone()
-            .select(by_names.iter().map(|x|col(x)).collect::<Vec<_>>())
+            .select(by_names.iter().map(col).collect::<Vec<_>>())
             .unique(None, UniqueKeepStrategy::First).collect()
             .unwrap();
         let mut series = Series::from_iter(0..(df.height() as i64));

@@ -64,7 +64,7 @@ pub(crate) fn create_static_query_dataframe(
             push_none_all_others(k, &mut col_map);
             i += 1;
         }
-        if col_map.len() == 0 {
+        if col_map.is_empty() {
             col_map.insert(
                 MULTI_NONE_DT.to_string(),
                 (0..i).map(|_| LiteralValue::Null).collect(),
@@ -136,9 +136,9 @@ pub(crate) fn create_static_query_dataframe(
                     need_none = true;
                 } else {
                     is_exprs.push(
-                        col(&non_multi_type_string(t))
+                        col(non_multi_type_string(t))
                             .is_null()
-                            .alias(&multi_has_this_type_column(t)),
+                            .alias(multi_has_this_type_column(t)),
                     );
                 }
             }
@@ -152,7 +152,7 @@ pub(crate) fn create_static_query_dataframe(
                 for other_e in is_iter {
                     e = e.and(other_e.clone().not())
                 }
-                e = e.alias(&multi_has_this_type_column(&BaseRDFNodeType::None));
+                e = e.alias(multi_has_this_type_column(&BaseRDFNodeType::None));
                 is_exprs.push(e);
             }
             struct_exprs.extend(is_exprs);
@@ -179,8 +179,8 @@ fn get_projected_variables(g: &GraphPattern) -> Vec<Variable> {
             let left_vars = get_projected_variables(left);
             let right_vars = get_projected_variables(right);
             let mut all_vars = HashSet::new();
-            all_vars.extend(left_vars.into_iter());
-            all_vars.extend(right_vars.into_iter());
+            all_vars.extend(left_vars);
+            all_vars.extend(right_vars);
             all_vars.into_iter().collect()
         }
         GraphPattern::Project { variables, .. } => variables.clone(),

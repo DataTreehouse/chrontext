@@ -20,12 +20,12 @@ impl TimeseriesQueryPrepper {
             );
             return GPPrepReturn::fail_groupby_complex_query();
         }
-        let gpr_inner = self.prepare_graph_pattern(
+        
+        self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,
             solution_mappings,
             &context.extension_with(PathEntry::DistinctInner),
-        );
-        gpr_inner
+        )
     }
 }

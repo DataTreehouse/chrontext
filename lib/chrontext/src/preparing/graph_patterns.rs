@@ -163,8 +163,8 @@ impl TimeseriesQueryPrepper {
                 start,
                 length,
             } => self.prepare_slice(
-                start.clone(),
-                length.clone(),
+                *start,
+                *length,
                 inner,
                 try_groupby_complex_query,
                 solution_mappings,

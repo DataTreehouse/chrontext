@@ -51,7 +51,7 @@ impl Virtualization {
         for t in self.resources.values() {
             for i in &t.pattern_list {
                 assert_eq!(i.template_name.as_str(), OTTR_TRIPLE);
-                let subj = i.argument_list.get(0).unwrap();
+                let subj = i.argument_list.first().unwrap();
                 if let StottrTerm::Variable(v) = &subj.term {
                     if v.as_str() == ID_VARIABLE_NAME {
                         let a = i.argument_list.get(1).unwrap();

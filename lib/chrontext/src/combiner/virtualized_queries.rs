@@ -79,7 +79,7 @@ impl Combiner {
             .virtualized_database
             .query(&vq)
             .await
-            .map_err(|x| CombinerError::VirtualizedDatabaseError(x))?;
+            .map_err(CombinerError::VirtualizedDatabaseError)?;
 
         // We allow empty (no columns & rows) result for compatibility with e.g. Azure Kusto.
         if mappings.height() == 0 && mappings.get_columns().is_empty() {
@@ -87,7 +87,7 @@ impl Combiner {
         }
 
         vq.validate(&mappings)
-            .map_err(|x| CombinerError::TimeseriesValidationError(x))?;
+            .map_err(CombinerError::TimeseriesValidationError)?;
         let mut mappings = mappings.lazy();
         let drop_cols = get_drop_cols(&vq);
         let mut groupby_cols: Vec<_> = vq
@@ -160,11 +160,11 @@ impl Combiner {
                 on_cols.as_slice(),
                 JoinArgs::new(JoinType::Inner),
             )
-            .drop(drop_cols.iter().map(|x|col(x)));
+            .drop(drop_cols.iter().map(col));
         for c in &drop_cols {
             solution_mappings.rdf_node_types.remove(c);
         }
-        return Ok(solution_mappings);
+        Ok(solution_mappings)
     }
 }
 

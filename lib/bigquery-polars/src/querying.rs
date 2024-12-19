@@ -71,25 +71,25 @@ impl BigQueryExecutor {
             .query_response()
             .job_reference
             .as_ref()
-            .ok_or_else(|| return BigQueryExecutorError::JobReferenceMissingError)?;
+            .ok_or_else(|| BigQueryExecutorError::JobReferenceMissingError)?;
 
         let job_id = job_info
             .job_id
             .as_ref()
-            .ok_or_else(|| return BigQueryExecutorError::JobIdNoneError)?
+            .ok_or_else(|| BigQueryExecutorError::JobIdNoneError)?
             .clone();
         let location = &job_info.location;
 
         let mut rs = loop {
             let rs = self
-                .get_query_results(&job, &job_id, location.clone(), None)
+                .get_query_results(job, &job_id, location.clone(), None)
                 .await?;
 
             if let Some(complete) = &rs.job_complete {
                 if *complete {
                     break rs;
                 }
-            } else if let Some(_) = &rs.schema {
+            } else if rs.schema.is_some() {
                 break rs;
             }
             sleep(Duration::from_millis(500)).await;
@@ -130,7 +130,7 @@ impl BigQueryExecutor {
                                 ));
                             }
                         }
-                        return any_values;
+                        any_values
                     })
                     .collect();
                 rows_processed += rows.len();
@@ -152,7 +152,7 @@ impl BigQueryExecutor {
             }
             let page_token = rs.page_token.clone();
             rs = self
-                .get_query_results(&job, &job_id, location.clone(), page_token)
+                .get_query_results(job, &job_id, location.clone(), page_token)
                 .await?;
         }
         if !all_lfs.is_empty() {
@@ -181,10 +181,10 @@ impl BigQueryExecutor {
             start_index: None,
             timeout_ms: None,
         };
-        Ok(job
+        job
             .get_query_results(self.project_id.as_str(), job_id, params.clone())
             .await
-            .map_err(map_bqerr)?)
+            .map_err(map_bqerr)
     }
 }
 
@@ -215,10 +215,7 @@ fn table_cell_to_any<'a>(
             AnyValue::Boolean(value_as_ref.as_str().unwrap().parse::<bool>().unwrap())
         }
         FieldType::Timestamp => {
-            let some_utc = match some_utc {
-                None => {None}
-                Some(tz) => {Some(Arc::new(PlSmallStr::from_str(tz)))}
-            };
+            let some_utc = some_utc.as_ref().map(|tz| Arc::new(PlSmallStr::from_str(tz)));
             let ts_str = value_as_ref.as_str().unwrap();
             let timestamp_ns = (ts_str.parse::<f64>().unwrap() * (1e9f64)) as i64;
             AnyValue::DatetimeOwned(timestamp_ns, TimeUnit::Nanoseconds, some_utc)

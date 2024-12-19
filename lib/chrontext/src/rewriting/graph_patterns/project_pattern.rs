@@ -26,13 +26,11 @@ impl StaticQueryRewriter {
         &self,
         gpreturn: &GPReturn,
         context: &Context,
-        variables: &Vec<Variable>,
+        variables: &[Variable],
     ) -> GraphPattern {
         let mut variables_rewrite = variables
             .iter()
-            .map(|v| self.rewrite_variable(v, context))
-            .filter(|x| x.is_some())
-            .map(|x| x.unwrap())
+            .filter_map(|v| self.rewrite_variable(v, context))
             .collect::<Vec<Variable>>();
 
         let mut resource_keys_sorted = gpreturn

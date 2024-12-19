@@ -22,12 +22,12 @@ impl TimeseriesQueryPrepper {
             UnaryOrdinaryOperator::UnaryPlus => PathEntry::UnaryPlus,
             UnaryOrdinaryOperator::UnaryMinus => PathEntry::UnaryMinus,
         };
-        let wrapped_prepare = self.prepare_expression(
+        
+        self.prepare_expression(
             wrapped,
             try_groupby_complex_query,
             solution_mappings,
             &context.extension_with(path_entry),
-        );
-        wrapped_prepare
+        )
     }
 }

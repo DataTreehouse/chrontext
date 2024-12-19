@@ -19,7 +19,7 @@ impl TimeseriesQueryPrepper {
         let inner_context = context.extension_with(PathEntry::SliceInner);
         if try_groupby_complex_query {
             debug!("Encountered graph inside slice, not supported for complex groupby pushdown");
-            return GPPrepReturn::fail_groupby_complex_query();
+            GPPrepReturn::fail_groupby_complex_query()
         } else {
             let mut inner_prepare = self.prepare_graph_pattern(
                 inner,
@@ -36,12 +36,10 @@ impl TimeseriesQueryPrepper {
                             break;
                         }
                     }
-                    if !found_noncompatible {
-                        if vqs.len() == 1 {
-                            let vq =
-                                VirtualizedQuery::Sliced(Box::new(vqs.remove(0)), start, length);
-                            *vqs = vec![vq];
-                        }
+                    if !found_noncompatible && vqs.len() == 1 {
+                        let vq =
+                            VirtualizedQuery::Sliced(Box::new(vqs.remove(0)), start, length);
+                        *vqs = vec![vq];
                     }
                 }
             }

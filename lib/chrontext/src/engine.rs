@@ -42,8 +42,8 @@ impl Engine {
     ) -> Engine {
         Engine {
             pushdown_settings,
-            virtualized_database: virtualized_database,
-            sparql_database: sparql_database,
+            virtualized_database,
+            sparql_database,
             virtualization,
         }
     }
@@ -115,7 +115,7 @@ impl Engine {
         let mut solution_mappings = combiner
             .combine_static_and_time_series_results(static_queries_map, &preprocessed_query)
             .await
-            .map_err(|x| ChrontextError::CombinerError(x))?;
+            .map_err(ChrontextError::CombinerError)?;
         for (original, renamed) in rename_map {
             if let Some(dt) = solution_mappings.rdf_node_types.remove(&renamed) {
                 solution_mappings.mappings = solution_mappings

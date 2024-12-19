@@ -8,19 +8,19 @@ use std::collections::HashMap;
 impl StaticQueryRewriter {
     pub fn rewrite_values(
         &mut self,
-        variables: &Vec<Variable>,
+        variables: &[Variable],
         bindings: &Vec<Vec<Option<GroundTerm>>>,
     ) -> GPReturn {
-        return GPReturn::new(
+        GPReturn::new(
             GraphPattern::Values {
-                variables: variables.iter().map(|v| v.clone()).collect(),
-                bindings: bindings.iter().map(|b| b.clone()).collect(),
+                variables: variables.to_vec(),
+                bindings: bindings.to_vec(),
             },
             false,
-            variables.iter().map(|v| v.clone()).collect(),
+            variables.iter().cloned().collect(),
             HashMap::new(),
             HashMap::new(),
             false,
-        );
+        )
     }
 }

@@ -36,7 +36,7 @@ impl Combiner {
             .sparql_database
             .execute(&use_query)
             .await
-            .map_err(|x| CombinerError::StaticQueryExecutionError(x))?;
+            .map_err(CombinerError::StaticQueryExecutionError)?;
         complete_basic_virtualized_queries(
             &solutions,
             &mut self.prepper.basic_virtualized_queries,
@@ -77,11 +77,7 @@ pub(crate) fn split_static_queries_opt(
     static_queries: &mut Option<HashMap<Context, Query>>,
     context: &Context,
 ) -> Option<HashMap<Context, Query>> {
-    if let Some(static_queries) = static_queries {
-        Some(split_static_queries(static_queries, context))
-    } else {
-        None
-    }
+    static_queries.as_mut().map(|static_queries| split_static_queries(static_queries, context))
 }
 
 fn constrain_query(
@@ -122,8 +118,7 @@ fn constrain_query(
         .map(|x| {
             x.into_iter()
                 .map(|y: Option<Term>| {
-                    if let Some(y) = y {
-                        Some(match y {
+                    y.map(|y| match y {
                             Term::NamedNode(nn) => GroundTerm::NamedNode(nn),
                             Term::BlankNode(_) => {
                                 panic!()
@@ -133,9 +128,6 @@ fn constrain_query(
                                 todo!()
                             }
                         })
-                    } else {
-                        None
-                    }
                 })
                 .collect()
         })
@@ -192,7 +184,7 @@ fn constrain_pattern_with_values(
 fn get_variable_set(query: &Query) -> Vec<&Variable> {
     if let Query::Select { pattern, .. } = query {
         if let GraphPattern::Project { variables, .. } = pattern {
-            return variables.iter().collect();
+            variables.iter().collect()
         } else {
             panic!("Non project graph pattern in query")
         }

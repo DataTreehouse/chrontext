@@ -12,6 +12,12 @@ pub struct VariableConstraints {
     variable_constraints: Vec<(VariableInContext, Constraint)>,
 }
 
+impl Default for VariableConstraints {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VariableConstraints {
     pub fn get_constraint(&self, variable: &Variable, context: &Context) -> Option<&Constraint> {
         let mut constraint = None;
@@ -40,8 +46,8 @@ impl VariableConstraints {
     }
 
     pub fn new() -> VariableConstraints {
-        return VariableConstraints {
+        VariableConstraints {
             variable_constraints: vec![],
-        };
+        }
     }
 }

@@ -19,7 +19,7 @@ impl StaticQueryRewriter {
             inner_rewrite.with_graph_pattern(GraphPattern::Service {
                 name: name.clone(),
                 inner: Box::new(inner_graph_pattern),
-                silent: silent.clone(),
+                silent: *silent,
             });
             return inner_rewrite;
         }

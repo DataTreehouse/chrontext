@@ -16,7 +16,7 @@ impl TimeseriesQueryPrepper {
     ) -> GPPrepReturn {
         if try_groupby_complex_query {
             debug!("Encountered minus inside groupby, not supported for complex groupby pushdown");
-            return GPPrepReturn::fail_groupby_complex_query();
+            GPPrepReturn::fail_groupby_complex_query()
         } else {
             let mut left_prepare = self.prepare_graph_pattern(
                 left,

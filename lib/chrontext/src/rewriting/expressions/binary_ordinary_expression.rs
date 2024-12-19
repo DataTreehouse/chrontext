@@ -33,7 +33,7 @@ impl StaticQueryRewriter {
             _,
             _,
             fn(Box<_>, Box<_>) -> Expression,
-        ) = match { operation } {
+        ) = match operation {
             BinaryOrdinaryOperator::Add => {
                 (PathEntry::AddLeft, PathEntry::AddRight, Expression::Add)
             }

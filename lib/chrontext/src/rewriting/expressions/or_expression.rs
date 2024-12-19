@@ -49,23 +49,19 @@ impl StaticQueryRewriter {
         } else {
             match required_change_direction {
                 ChangeType::Relaxed => {
-                    if left_rewrite.expression.is_some() && right_rewrite.expression.is_some() {
-                        if (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                            || left_rewrite.change_type.as_ref().unwrap() == &ChangeType::Relaxed)
-                            && (right_rewrite.change_type.as_ref().unwrap()
+                    if left_rewrite.expression.is_some() && right_rewrite.expression.is_some() && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
+                            || left_rewrite.change_type.as_ref().unwrap() == &ChangeType::Relaxed) && (right_rewrite.change_type.as_ref().unwrap()
                                 == &ChangeType::NoChange
                                 || right_rewrite.change_type.as_ref().unwrap()
-                                    == &ChangeType::Relaxed)
-                        {
-                            let left_expression_rewrite = left_rewrite.expression.take().unwrap();
-                            let right_expression_rewrite = right_rewrite.expression.take().unwrap();
-                            exr.with_expression(Expression::Or(
-                                Box::new(left_expression_rewrite),
-                                Box::new(right_expression_rewrite),
-                            ))
-                            .with_change_type(ChangeType::Relaxed);
-                            return exr;
-                        }
+                                    == &ChangeType::Relaxed) {
+                        let left_expression_rewrite = left_rewrite.expression.take().unwrap();
+                        let right_expression_rewrite = right_rewrite.expression.take().unwrap();
+                        exr.with_expression(Expression::Or(
+                            Box::new(left_expression_rewrite),
+                            Box::new(right_expression_rewrite),
+                        ))
+                        .with_change_type(ChangeType::Relaxed);
+                        return exr;
                     }
                 }
                 ChangeType::Constrained => {
@@ -104,15 +100,11 @@ impl StaticQueryRewriter {
                                 return exr;
                             }
                         }
-                    } else if right_rewrite.expression.is_some() {
-                        if right_rewrite.change_type.as_ref().unwrap() == &ChangeType::Constrained
-                            || right_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
-                        {
-                            let right_expression_rewrite = right_rewrite.expression.take().unwrap();
-                            exr.with_expression(right_expression_rewrite)
-                                .with_change_type(ChangeType::Constrained);
-                            return exr;
-                        }
+                    } else if right_rewrite.expression.is_some() && (right_rewrite.change_type.as_ref().unwrap() == &ChangeType::Constrained || right_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange) {
+                        let right_expression_rewrite = right_rewrite.expression.take().unwrap();
+                        exr.with_expression(right_expression_rewrite)
+                            .with_change_type(ChangeType::Constrained);
+                        return exr;
                     }
                 }
                 ChangeType::NoChange => {}

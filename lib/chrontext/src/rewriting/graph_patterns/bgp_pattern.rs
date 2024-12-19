@@ -80,12 +80,8 @@ impl StaticQueryRewriter {
             }
         }
 
-        let rewritten;
-        if dynamic_triples.len() > 0 {
-            rewritten = true;
-        } else {
-            rewritten = false;
-        }
+        
+        let rewritten = !dynamic_triples.is_empty();
         self.basic_virtualized_queries.extend(new_basic_vqs);
 
         if new_triples.is_empty() {
@@ -108,7 +104,8 @@ impl StaticQueryRewriter {
                 }
             }
 
-            let gpr = GPReturn::new(
+            
+            GPReturn::new(
                 GraphPattern::Bgp {
                     patterns: new_triples,
                 },
@@ -117,8 +114,7 @@ impl StaticQueryRewriter {
                 resources_in_scope,
                 external_ids_in_scope,
                 false,
-            );
-            gpr
+            )
         }
     }
 }

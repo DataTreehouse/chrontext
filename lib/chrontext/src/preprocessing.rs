@@ -40,7 +40,7 @@ impl Preprocessor {
             base_iri,
         } = &select_query
         {
-            let gp = self.preprocess_graph_pattern(&pattern, &Context::new());
+            let gp = self.preprocess_graph_pattern(pattern, &Context::new());
             let map = self.variable_constraints.clone();
             let new_query = Query::Select {
                 dataset: dataset.clone(),
@@ -101,14 +101,10 @@ impl Preprocessor {
                     right,
                     &context.extension_with(PathEntry::LeftJoinRightSide),
                 );
-                let preprocessed_expression = if let Some(e) = expression {
-                    Some(self.preprocess_expression(
+                let preprocessed_expression = expression.as_ref().map(|e| self.preprocess_expression(
                         e,
                         &context.extension_with(PathEntry::LeftJoinExpression),
-                    ))
-                } else {
-                    None
-                };
+                    ));
                 GraphPattern::LeftJoin {
                     left: Box::new(left),
                     right: Box::new(right),
@@ -165,14 +161,12 @@ impl Preprocessor {
                 find_all_used_variables_in_expression(expression, &mut used_vars, true, true);
                 for v in used_vars.drain() {
                     if let Some(ctr) = self.variable_constraints.get_constraint(&v, context) {
-                        if ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived {
-                            if !self.variable_constraints.contains(variable, context) {
-                                self.variable_constraints.insert(
-                                    variable.clone(),
-                                    context.clone(),
-                                    Constraint::ExternallyDerived,
-                                );
-                            }
+                        if (ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived) && !self.variable_constraints.contains(variable, context) {
+                            self.variable_constraints.insert(
+                                variable.clone(),
+                                context.clone(),
+                                Constraint::ExternallyDerived,
+                            );
                         }
                     }
                 }
@@ -265,8 +259,8 @@ impl Preprocessor {
                 );
                 GraphPattern::Slice {
                     inner: Box::new(inner),
-                    start: start.clone(),
-                    length: length.clone(),
+                    start: *start,
+                    length: *length,
                 }
             }
             GraphPattern::Group {
@@ -327,7 +321,7 @@ impl Preprocessor {
                 GraphPattern::Service {
                     inner: Box::new(inner),
                     name: name.clone(),
-                    silent: silent.clone(),
+                    silent: *silent,
                 }
             }
             GraphPattern::DT { .. } => {
@@ -371,11 +365,11 @@ impl Preprocessor {
                 }
             }
         }
-        return TriplePattern {
+        TriplePattern {
             subject: new_subject,
             predicate: triple_pattern.predicate.clone(),
             object: new_object,
-        };
+        }
     }
 
     fn rename_if_blank(&mut self, term_pattern: &TermPattern) -> TermPattern {
@@ -463,7 +457,7 @@ impl Preprocessor {
         match aggregate_expression {
             AggregateExpression::CountSolutions { distinct } => {
                 AggregateExpression::CountSolutions {
-                    distinct: distinct.clone(),
+                    distinct: *distinct,
                 }
             }
             AggregateExpression::FunctionCall {

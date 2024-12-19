@@ -38,7 +38,7 @@ impl Combiner {
 
         //We have to eagerly evaluate static queries contained in the group by pattern since otherwise we are unable to push down the group by into the time series database.
         let mut found_group_by_pushdown = false;
-        let mut static_query_opt = static_query_map.remove(&context);
+        let mut static_query_opt = static_query_map.remove(context);
         if static_query_opt.is_none() {
             debug!("No static query found");
             let groupby_inner_context = context.extension_with(PathEntry::GroupInner);
@@ -65,7 +65,7 @@ impl Combiner {
                 graph_pattern,
                 false,
                 &mut new_solution_mappings,
-                &context,
+                context,
             );
             debug!(
                 "Finshed preparing time series queries, {} were created",
@@ -151,7 +151,7 @@ impl Combiner {
                     updated_solution_mappings,
                     static_query_map,
                     new_prepared_virtualized_queries,
-                    &context,
+                    context,
                 )
                 .await
             }
