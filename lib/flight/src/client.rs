@@ -23,6 +23,7 @@ pub enum ChrontextFlightClientError {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ChrontextFlightClient {
     uri: String,
 }

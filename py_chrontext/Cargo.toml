@@ -22,7 +22,6 @@ tokio.workspace = true
 log.workspace = true
 env_logger.workspace = true
 spargebra.workspace = true
-oxrdfio.workspace = true
 secrecy.workspace = true
 
 [lib]

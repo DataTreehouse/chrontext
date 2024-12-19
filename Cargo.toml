@@ -16,18 +16,17 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="b61981e9f1a537192ea85f45437c88423fc025d3" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="d262865ba5bcd3f3612a1ae0709999f6ce002d62", features = ["rdf-star"]}
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="d262865ba5bcd3f3612a1ae0709999f6ce002d62" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="d262865ba5bcd3f3612a1ae0709999f6ce002d62" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="d262865ba5bcd3f3612a1ae0709999f6ce002d62", features = ["rdf-star"] }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="d262865ba5bcd3f3612a1ae0709999f6ce002d62" }
 
 
 sparesults = { version = "0.2.3", features = ["rdf-star"] }
 oxrdf = { version = "0.2.2", features = ["rdf-star"] }
-oxrdfio = { version= "0.1.2", features = ["rdf-star"] }
 
-polars = "0.44.2"
+polars = "0.45.1"
 tonic = "0.12.3"
 tokio = "1.32.1"
 arrow-flight = "53.1.0"
@@ -52,8 +51,4 @@ opcua = {version="0.12.0", features = ["vendored-openssl"]}
 url = "2.5.2"
 uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 rustls = "0.23.16"
-
-[patch.crates-io]
-polars = { git = "https://github.com/pola-rs/polars.git",  rev = "5515b2c2e5dec59671eeff4821738234ee2892e4"}
-polars-core = { git = "https://github.com/pola-rs/polars.git",  rev = "5515b2c2e5dec59671eeff4821738234ee2892e4"}
 

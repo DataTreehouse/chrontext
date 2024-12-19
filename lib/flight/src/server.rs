@@ -12,10 +12,12 @@ pub enum ChrontextFlightServerError {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ChrontextFlightService {
     engine: Option<Arc<Engine>>,
 }
 
+#[allow(dead_code)]
 pub struct ChrontextFlightServer {
     chrontext_flight_service: ChrontextFlightService,
 }

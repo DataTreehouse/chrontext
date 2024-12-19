@@ -40,7 +40,6 @@ use chrontext::engine::{Engine, EngineConfig};
 use flight::client::ChrontextFlightClient;
 use flight::server::ChrontextFlightServer;
 use log::{debug, info};
-use oxrdfio::RdfFormat;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, fix_cats_and_multicolumns};
@@ -149,6 +148,7 @@ impl PyEngine {
 
     #[cfg(not(feature = "opcua"))]
     #[new]
+    #[pyo3(signature = (resources, virtualized_python_database=None, virtualized_bigquery_database=None, sparql_endpoint=None, sparql_embedded_oxigraph=None))]
     pub fn new<'py>(
         resources: HashMap<String, PyTemplate>,
         virtualized_python_database: Option<VirtualizedPythonDatabase>,
@@ -222,6 +222,7 @@ impl PyEngine {
         Ok(())
     }
 
+    #[pyo3(signature = (sparql, native_dataframe=None, include_datatypes=None))]
     pub fn query(
         &mut self,
         sparql: &str,
@@ -303,6 +304,7 @@ pub struct PyFlightClient {
 #[pymethods]
 impl PyFlightClient {
     #[new]
+    #[pyo3(signature = (uri, metadata=None))]
     pub fn new(uri: String, metadata: Option<HashMap<String, String>>) -> PyResult<Self> {
         let mut metadata_s = HashMap::new();
         if let Some(metadata) = metadata {
@@ -316,6 +318,7 @@ impl PyFlightClient {
         })
     }
 
+    #[pyo3(signature = (sparql, native_dataframe=None, include_datatypes=None))]
     pub fn query(
         &mut self,
         sparql: &str,
@@ -360,15 +363,6 @@ impl PyFlightClient {
             }
             Err(e) => Err(e),
         }
-    }
-}
-
-fn resolve_format(format: &str) -> RdfFormat {
-    match format.to_lowercase().as_str() {
-        "ntriples" => RdfFormat::NTriples,
-        "turtle" => RdfFormat::Turtle,
-        "rdf/xml" | "xml" | "rdfxml" => RdfFormat::RdfXml,
-        _ => unimplemented!("Unknown format {}", format),
     }
 }
 

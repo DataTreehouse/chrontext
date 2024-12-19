@@ -21,6 +21,7 @@ pub struct VirtualizedPythonDatabase {
 #[pymethods]
 impl VirtualizedPythonDatabase {
     #[new]
+    #[pyo3(signature = (database, resource_sql_map=None, sql_dialect=None))]
     pub fn new(
         database: Py<PyAny>,
         resource_sql_map: Option<Py<PyDict>>,

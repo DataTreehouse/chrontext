@@ -56,10 +56,13 @@ impl Combiner {
             inner_contexts.push(inner_context);
             asc_ordering.push(reverse);
         }
-        Ok(order_by(
-            output_solution_mappings,
-            &inner_contexts,
-            asc_ordering,
-        )?)
+        let context_strings: Vec<_> = inner_contexts
+            .iter()
+            .map(|x| x.as_str().to_string())
+            .collect();
+        output_solution_mappings =
+            order_by(output_solution_mappings, &context_strings, asc_ordering)?;
+        output_solution_mappings.mappings = output_solution_mappings.mappings.drop(context_strings);
+        Ok(output_solution_mappings)
     }
 }
