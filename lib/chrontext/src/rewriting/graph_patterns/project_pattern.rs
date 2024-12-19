@@ -8,7 +8,7 @@ impl StaticQueryRewriter {
     pub fn rewrite_project(
         &mut self,
         inner: &GraphPattern,
-        variables: &Vec<Variable>,
+        variables: &[Variable],
         context: &Context,
     ) -> GPReturn {
         let mut inner_rewrite =

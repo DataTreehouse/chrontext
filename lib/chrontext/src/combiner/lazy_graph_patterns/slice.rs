@@ -13,6 +13,7 @@ use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
     #[async_recursion]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn lazy_slice(
         &mut self,
         inner: &GraphPattern,

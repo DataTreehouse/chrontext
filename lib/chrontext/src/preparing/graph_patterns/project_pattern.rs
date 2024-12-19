@@ -9,7 +9,7 @@ impl TimeseriesQueryPrepper {
     pub fn prepare_project(
         &mut self,
         inner: &GraphPattern,
-        _variables: &Vec<Variable>,
+        _variables: &[Variable],
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,

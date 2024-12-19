@@ -9,7 +9,7 @@ impl TimeseriesQueryPrepper {
     pub fn prepare_function_call_expression(
         &mut self,
         _fun: &Function,
-        args: &Vec<Expression>,
+        args: &[Expression],
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,

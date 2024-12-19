@@ -15,11 +15,12 @@ use std::collections::HashMap;
 use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn lazy_group(
         &mut self,
         inner: &GraphPattern,
-        variables: &Vec<Variable>,
-        aggregates: &Vec<(Variable, AggregateExpression)>,
+        variables: &[Variable],
+        aggregates: &[(Variable, AggregateExpression)],
         solution_mapping: Option<SolutionMappings>,
         mut static_query_map: HashMap<Context, Query>,
         mut prepared_virtualized_queries: Option<HashMap<Context, Vec<VirtualizedQuery>>>,

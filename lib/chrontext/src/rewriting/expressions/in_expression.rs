@@ -10,7 +10,7 @@ impl StaticQueryRewriter {
     pub fn rewrite_in_expression(
         &mut self,
         left: &Expression,
-        expressions: &Vec<Expression>,
+        expressions: &[Expression],
         required_change_direction: &ChangeType,
         variables_in_scope: &HashSet<Variable>,
         create_subquery: bool,
@@ -37,7 +37,7 @@ impl StaticQueryRewriter {
             })
             .collect::<Vec<ExReturn>>();
         let mut exr = ExReturn::new();
-        exr.with_is_subquery(&mut left_rewrite);
+        exr.with_is_subquery(&left_rewrite);
         for rw_exr in expressions_rewritten.iter_mut() {
             exr.with_is_subquery(rw_exr);
         }

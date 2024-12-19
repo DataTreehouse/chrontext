@@ -9,7 +9,7 @@ impl StaticQueryRewriter {
     pub fn rewrite_values(
         &mut self,
         variables: &[Variable],
-        bindings: &Vec<Vec<Option<GroundTerm>>>,
+        bindings: &[Vec<Option<GroundTerm>>],
     ) -> GPReturn {
         GPReturn::new(
             GraphPattern::Values {

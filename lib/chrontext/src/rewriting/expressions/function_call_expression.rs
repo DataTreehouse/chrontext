@@ -10,7 +10,7 @@ impl StaticQueryRewriter {
     pub fn rewrite_function_call_expression(
         &mut self,
         fun: &Function,
-        args: &Vec<Expression>,
+        args: &[Expression],
         variables_in_scope: &HashSet<Variable>,
         create_subquery: bool,
         context: &Context,

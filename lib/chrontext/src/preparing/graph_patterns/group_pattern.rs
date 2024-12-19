@@ -75,7 +75,7 @@ impl TimeseriesQueryPrepper {
     fn add_grouping_col(
         &mut self,
         solution_mappings: &mut SolutionMappings,
-        by: &Vec<Variable>,
+        by: &[Variable],
     ) -> String {
         let grouping_col = format!("{}_{}", GROUPING_COL, self.grouping_counter);
         self.grouping_counter += 1;

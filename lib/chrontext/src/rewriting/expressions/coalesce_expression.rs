@@ -9,7 +9,7 @@ use std::collections::HashSet;
 impl StaticQueryRewriter {
     pub fn rewrite_coalesce_expression(
         &mut self,
-        wrapped: &Vec<Expression>,
+        wrapped: &[Expression],
         variables_in_scope: &HashSet<Variable>,
         create_subquery: bool,
         context: &Context,

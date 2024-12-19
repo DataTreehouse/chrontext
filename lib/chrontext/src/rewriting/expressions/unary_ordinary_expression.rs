@@ -32,7 +32,7 @@ impl StaticQueryRewriter {
             &context.extension_with(path_entry),
         );
         let mut exr = ExReturn::new();
-        exr.with_is_subquery(&mut wrapped_rewrite);
+        exr.with_is_subquery(&wrapped_rewrite);
         if wrapped_rewrite.expression.is_some()
             && wrapped_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
         {

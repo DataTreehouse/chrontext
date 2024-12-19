@@ -8,7 +8,7 @@ use std::collections::HashMap;
 impl TimeseriesQueryPrepper {
     pub fn prepare_coalesce_expression(
         &mut self,
-        wrapped: &Vec<Expression>,
+        wrapped: &[Expression],
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,

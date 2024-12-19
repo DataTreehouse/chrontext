@@ -17,6 +17,7 @@ use virtualized_query::VirtualizedQuery;
 
 impl Combiner {
     #[async_recursion]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn lazy_left_join(
         &mut self,
         left: &GraphPattern,

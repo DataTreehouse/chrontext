@@ -80,7 +80,7 @@ pub struct Combiner {
 }
 
 impl Combiner {
-    pub fn new<'py>(
+    pub fn new(
         sparql_database: Arc<dyn SparqlQueryable>,
         pushdown_settings: HashSet<PushdownSetting>,
         virtualized_database: Arc<VirtualizedDatabase>,

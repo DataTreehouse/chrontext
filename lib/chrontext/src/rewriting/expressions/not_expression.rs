@@ -23,7 +23,7 @@ impl StaticQueryRewriter {
             &context.extension_with(PathEntry::Not),
         );
         let mut exr = ExReturn::new();
-        exr.with_is_subquery(&mut wrapped_rewrite);
+        exr.with_is_subquery(&wrapped_rewrite);
         if wrapped_rewrite.expression.is_some() {
             let wrapped_change = wrapped_rewrite.change_type.take().unwrap();
             let use_change_type = match wrapped_change {

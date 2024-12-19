@@ -9,8 +9,8 @@ impl StaticQueryRewriter {
     pub fn rewrite_group(
         &mut self,
         graph_pattern: &GraphPattern,
-        variables: &Vec<Variable>,
-        aggregates: &Vec<(Variable, AggregateExpression)>,
+        variables: &[Variable],
+        aggregates: &[(Variable, AggregateExpression)],
         context: &Context,
     ) -> GPReturn {
         let inner_context = context.extension_with(PathEntry::GroupInner);
