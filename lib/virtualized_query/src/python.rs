@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::VirtualizedQuery;
 use polars::prelude::AnyValue;
 use pyo3::prelude::*;
@@ -7,6 +6,7 @@ use spargebra::algebra::{
     AggregateExpression, AggregateFunction, Expression, Function, OrderExpression,
 };
 use spargebra::term::TermPattern;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 #[pyclass(name = "VirtualizedQuery")]
@@ -104,9 +104,7 @@ impl PyVirtualizedQuery {
         match self {
             PyVirtualizedQuery::Basic {
                 id_grouping_tuples, ..
-            } => {
-                id_grouping_tuples.clone()
-            }
+            } => id_grouping_tuples.clone(),
             _ => None,
         }
     }
@@ -116,9 +114,7 @@ impl PyVirtualizedQuery {
             PyVirtualizedQuery::Basic {
                 grouping_column_name,
                 ..
-            } => {
-                grouping_column_name.clone()
-            }
+            } => grouping_column_name.clone(),
             _ => None,
         }
     }
@@ -185,9 +181,7 @@ impl PyVirtualizedQuery {
     #[getter]
     fn limit(&self) -> Option<usize> {
         match self {
-            PyVirtualizedQuery::Sliced { limit, .. } => {
-                limit.as_ref().map(|limit| *limit)
-            }
+            PyVirtualizedQuery::Sliced { limit, .. } => limit.as_ref().map(|limit| *limit),
             _ => None,
         }
     }
@@ -215,12 +209,14 @@ impl PyVirtualizedQuery {
                     let mut id_grouping_tuples = vec![];
                     let id_iter = df
                         .column(basic.identifier_variable.as_str())
-                        .unwrap().as_materialized_series()
+                        .unwrap()
+                        .as_materialized_series()
                         .iter();
                     let group_iter = df
                         .column(basic.grouping_col.as_ref().unwrap())
                         .unwrap()
-                        .as_materialized_series().iter();
+                        .as_materialized_series()
+                        .iter();
                     for (id, group) in id_iter.zip(group_iter) {
                         if let (AnyValue::String(id), AnyValue::Int64(group)) = (id, group) {
                             id_grouping_tuples.push((id.to_string(), group));

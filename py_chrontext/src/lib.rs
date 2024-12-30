@@ -189,9 +189,12 @@ impl PyEngine {
             };
             let sparql_endpoint = self.sparql_endpoint.clone();
 
-            let sparql_oxigraph_config = self.sparql_embedded_oxigraph.as_ref().map(|store| EmbeddedOxigraph {
-                    store: store.clone(),
-                });
+            let sparql_oxigraph_config =
+                self.sparql_embedded_oxigraph
+                    .as_ref()
+                    .map(|store| EmbeddedOxigraph {
+                        store: store.clone(),
+                    });
 
             let mut virtualization_map = HashMap::new();
             for (k, v) in &self.resources {

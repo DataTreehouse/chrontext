@@ -80,7 +80,6 @@ impl StaticQueryRewriter {
             }
         }
 
-        
         let rewritten = !dynamic_triples.is_empty();
         self.basic_virtualized_queries.extend(new_basic_vqs);
 
@@ -104,7 +103,6 @@ impl StaticQueryRewriter {
                 }
             }
 
-            
             GPReturn::new(
                 GraphPattern::Bgp {
                     patterns: new_triples,

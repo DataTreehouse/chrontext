@@ -7,6 +7,7 @@ use crate::splitter::parse_sparql_select_query;
 use log::debug;
 use polars::enable_string_cache;
 use polars::frame::DataFrame;
+use polars::prelude::PlSmallStr;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
 use representation::RDFNodeType;
@@ -15,7 +16,6 @@ use sparql_database::endpoint::SparqlEndpoint;
 use sparql_database::SparqlQueryable;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use polars::prelude::PlSmallStr;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::pushdown_setting::PushdownSetting;
 
@@ -118,9 +118,11 @@ impl Engine {
             .map_err(ChrontextError::CombinerError)?;
         for (original, renamed) in rename_map {
             if let Some(dt) = solution_mappings.rdf_node_types.remove(&renamed) {
-                solution_mappings.mappings = solution_mappings
-                    .mappings
-                    .rename(&[PlSmallStr::from_string(renamed)], &[PlSmallStr::from_str(&original)], true);
+                solution_mappings.mappings = solution_mappings.mappings.rename(
+                    &[PlSmallStr::from_string(renamed)],
+                    &[PlSmallStr::from_str(&original)],
+                    true,
+                );
                 solution_mappings.rdf_node_types.insert(original, dt);
             }
         }
@@ -128,6 +130,7 @@ impl Engine {
         let SolutionMappings {
             mappings,
             rdf_node_types,
+            ..
         } = solution_mappings;
 
         Ok((

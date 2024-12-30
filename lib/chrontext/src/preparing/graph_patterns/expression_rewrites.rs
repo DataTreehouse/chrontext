@@ -112,13 +112,11 @@ pub(crate) fn try_recursive_rewrite_expression(
     }
 
     match &expression {
-        Expression::Literal(lit) => {
-            RecursiveRewriteReturn::new(
-                Some(Expression::Literal(lit.clone())),
-                Some(ChangeType::NoChange),
-                false,
-            )
-        }
+        Expression::Literal(lit) => RecursiveRewriteReturn::new(
+            Some(Expression::Literal(lit.clone())),
+            Some(ChangeType::NoChange),
+            false,
+        ),
         Expression::Variable(v) => {
             if vq.has_equivalent_variable(v, context) {
                 RecursiveRewriteReturn::new(
@@ -239,8 +237,12 @@ pub(crate) fn try_recursive_rewrite_expression(
                                 use_lost_value,
                             );
                         }
-                    } else if left_rewrite.expression.is_some() && right_rewrite.expression.is_none() && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange || left_rewrite.change_type.as_ref().unwrap()
-                                == &ChangeType::Constrained) {
+                    } else if left_rewrite.expression.is_some()
+                        && right_rewrite.expression.is_none()
+                        && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
+                            || left_rewrite.change_type.as_ref().unwrap()
+                                == &ChangeType::Constrained)
+                    {
                         return RecursiveRewriteReturn::new(
                             Some(left_rewrite.expression.as_ref().unwrap().clone()),
                             Some(ChangeType::Constrained),
@@ -362,7 +364,11 @@ pub(crate) fn try_recursive_rewrite_expression(
                                 use_lost_value,
                             );
                         }
-                    } else if left_rewrite.expression.is_some() && right_rewrite.expression.is_none() && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange || left_rewrite.change_type.as_ref().unwrap() == &ChangeType::Relaxed) {
+                    } else if left_rewrite.expression.is_some()
+                        && right_rewrite.expression.is_none()
+                        && (left_rewrite.change_type.as_ref().unwrap() == &ChangeType::NoChange
+                            || left_rewrite.change_type.as_ref().unwrap() == &ChangeType::Relaxed)
+                    {
                         return RecursiveRewriteReturn::new(
                             Some(left_rewrite.expression.as_ref().unwrap().clone()),
                             Some(ChangeType::Relaxed),
@@ -933,9 +939,11 @@ pub(crate) fn try_recursive_rewrite_expression(
                 })
                 .collect::<Vec<RecursiveRewriteReturn>>();
             let use_lost_value = or_lost_value(inner_rewrites.iter().collect());
-            if inner_rewrites.iter().all(|x| x.expression.is_some()) && inner_rewrites
+            if inner_rewrites.iter().all(|x| x.expression.is_some())
+                && inner_rewrites
                     .iter()
-                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange) {
+                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange)
+            {
                 return RecursiveRewriteReturn::new(
                     Some(Expression::Coalesce(
                         inner_rewrites
@@ -965,11 +973,12 @@ pub(crate) fn try_recursive_rewrite_expression(
                 })
                 .collect::<Vec<RecursiveRewriteReturn>>();
             let use_lost_value = or_lost_value(right_rewrites.iter().collect());
-            if right_rewrites.iter().all(|x| x.expression.is_some()) && right_rewrites
+            if right_rewrites.iter().all(|x| x.expression.is_some())
+                && right_rewrites
                     .iter()
-                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange) {
-                let use_lost_value =
-                    right_rewrites.iter().any(|x| x.lost_value);
+                    .all(|x| x.change_type.as_ref().unwrap() == &ChangeType::NoChange)
+            {
+                let use_lost_value = right_rewrites.iter().any(|x| x.lost_value);
                 return RecursiveRewriteReturn::new(
                     Some(Expression::FunctionCall(
                         left.clone(),

@@ -7,7 +7,9 @@ use crate::constants::GROUPING_COL;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::grouping_col_type;
 use oxrdf::Variable;
-use polars::prelude::{col, DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, PlSmallStr, Series, UniqueKeepStrategy};
+use polars::prelude::{
+    col, DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, PlSmallStr, Series, UniqueKeepStrategy,
+};
 use query_processing::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
@@ -34,7 +36,10 @@ impl TimeseriesQueryPrepper {
         let inner_context = &context.extension_with(PathEntry::GroupInner);
         let mut try_graph_pattern_prepare =
             self.prepare_graph_pattern(graph_pattern, true, solution_mappings, inner_context);
-        if !try_graph_pattern_prepare.fail_groupby_complex_query && self.pushdown_settings.contains(&PushdownSetting::GroupBy) && try_graph_pattern_prepare.virtualized_queries.len() == 1 {
+        if !try_graph_pattern_prepare.fail_groupby_complex_query
+            && self.pushdown_settings.contains(&PushdownSetting::GroupBy)
+            && try_graph_pattern_prepare.virtualized_queries.len() == 1
+        {
             let (_c, mut vqs) = try_graph_pattern_prepare
                 .virtualized_queries
                 .drain()
@@ -42,8 +47,7 @@ impl TimeseriesQueryPrepper {
                 .unwrap();
             if vqs.len() == 1 {
                 let mut vq = vqs.remove(0);
-                let in_scope =
-                    check_aggregations_are_in_scope(&vq, inner_context, aggregations);
+                let in_scope = check_aggregations_are_in_scope(&vq, inner_context, aggregations);
 
                 if in_scope {
                     let grouping_col = self.add_grouping_col(solution_mappings, by);
@@ -89,7 +93,8 @@ impl TimeseriesQueryPrepper {
             .mappings
             .clone()
             .select(by_names.iter().map(col).collect::<Vec<_>>())
-            .unique(None, UniqueKeepStrategy::First).collect()
+            .unique(None, UniqueKeepStrategy::First)
+            .collect()
             .unwrap();
         let mut series = Series::from_iter(0..(df.height() as i64));
         series.rename(PlSmallStr::from_str(&grouping_col));

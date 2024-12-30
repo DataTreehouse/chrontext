@@ -1,8 +1,7 @@
 use oxrdf::{NamedNode, Term, Variable};
-use polars::prelude::{as_struct, col, lit, DataFrame, Expr, IntoColumn, IntoLazy, LiteralValue};
+use polars::prelude::{as_struct, col, DataFrame, IntoColumn, IntoLazy, LiteralValue};
 use representation::multitype::{
-    all_multi_cols, multi_has_this_type_column, non_multi_type_string, MULTI_BLANK_DT,
-    MULTI_IRI_DT, MULTI_NONE_DT,
+    all_multi_cols, base_col_name, MULTI_BLANK_DT, MULTI_IRI_DT, MULTI_NONE_DT,
 };
 use representation::rdf_to_polars::{
     polars_literal_values_to_series, rdf_blank_node_to_polars_literal_value,
@@ -94,7 +93,7 @@ pub(crate) fn create_static_query_dataframe(
         let mut types = vec![];
         for (t, v) in m {
             let name = if mlen > 1 {
-                non_multi_type_string(&t)
+                base_col_name(&t)
             } else {
                 c.clone()
             };
@@ -105,13 +104,15 @@ pub(crate) fn create_static_query_dataframe(
                     ser.struct_()
                         .unwrap()
                         .field_by_name(LANG_STRING_VALUE_FIELD)
-                        .unwrap().into_column()
+                        .unwrap()
+                        .into_column(),
                 );
                 columns.push(
                     ser.struct_()
                         .unwrap()
                         .field_by_name(LANG_STRING_LANG_FIELD)
-                        .unwrap().into_column()
+                        .unwrap()
+                        .into_column(),
                 );
             } else if matches!(t, BaseRDFNodeType::None) {
                 columns.push(ser.cast(&t.polars_data_type()).unwrap().into_column());
@@ -129,33 +130,6 @@ pub(crate) fn create_static_query_dataframe(
             for c in all_multi_cols(&types) {
                 struct_exprs.push(col(&c));
             }
-            let mut is_exprs: Vec<Expr> = vec![];
-            let mut need_none = false;
-            for t in &types {
-                if &BaseRDFNodeType::None == t {
-                    need_none = true;
-                } else {
-                    is_exprs.push(
-                        col(non_multi_type_string(t))
-                            .is_null()
-                            .alias(multi_has_this_type_column(t)),
-                    );
-                }
-            }
-            if need_none {
-                let mut is_iter = is_exprs.iter();
-                let mut e = if let Some(e) = is_iter.next() {
-                    e.clone()
-                } else {
-                    lit(true)
-                };
-                for other_e in is_iter {
-                    e = e.and(other_e.clone().not())
-                }
-                e = e.alias(multi_has_this_type_column(&BaseRDFNodeType::None));
-                is_exprs.push(e);
-            }
-            struct_exprs.extend(is_exprs);
             lf = lf
                 .with_column(as_struct(struct_exprs).alias(&c))
                 .select([col(&c)]);

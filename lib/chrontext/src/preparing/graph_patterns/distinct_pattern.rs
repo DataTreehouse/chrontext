@@ -20,7 +20,7 @@ impl TimeseriesQueryPrepper {
             );
             return GPPrepReturn::fail_groupby_complex_query();
         }
-        
+
         self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,

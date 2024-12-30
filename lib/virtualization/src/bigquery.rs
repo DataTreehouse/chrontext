@@ -3,6 +3,7 @@ use crate::get_datatype_map;
 use crate::python::translate_sql;
 use bigquery_polars::{BigQueryExecutor, Client};
 use oxrdf::Variable;
+use polars::prelude::PlSmallStr;
 use pyo3::types::PyDict;
 use pyo3::Py;
 use representation::solution_mapping::EagerSolutionMappings;
@@ -10,7 +11,6 @@ use reqwest::Url;
 use spargebra::algebra::{AggregateExpression, Expression, OrderExpression};
 use spargebra::term::TermPattern;
 use std::collections::{HashMap, HashSet};
-use polars::prelude::PlSmallStr;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::{GroupedVirtualizedQuery, VirtualizedQuery};
 

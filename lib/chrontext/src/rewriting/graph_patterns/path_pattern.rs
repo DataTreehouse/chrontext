@@ -21,7 +21,6 @@ impl StaticQueryRewriter {
             variables_in_scope.insert(o.clone());
         }
 
-        
         GPReturn::new(
             GraphPattern::Path {
                 subject: subject.clone(),

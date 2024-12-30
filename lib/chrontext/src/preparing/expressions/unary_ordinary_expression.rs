@@ -22,7 +22,7 @@ impl TimeseriesQueryPrepper {
             UnaryOrdinaryOperator::UnaryPlus => PathEntry::UnaryPlus,
             UnaryOrdinaryOperator::UnaryMinus => PathEntry::UnaryMinus,
         };
-        
+
         self.prepare_expression(
             wrapped,
             try_groupby_complex_query,

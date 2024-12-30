@@ -18,7 +18,6 @@ impl TimeseriesQueryPrepper {
             debug!("Encountered graph inside groupby, not supported for complex groupby pushdown");
             GPPrepReturn::fail_groupby_complex_query()
         } else {
-            
             self.prepare_graph_pattern(
                 inner,
                 try_groupby_complex_query,

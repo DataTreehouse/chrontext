@@ -24,7 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::sync::Arc;
 use crate::errors::BigQueryExecutorError;
 use gcp_bigquery_client::error::BQError;
 use gcp_bigquery_client::job::JobApi;
@@ -34,12 +33,16 @@ use gcp_bigquery_client::model::get_query_results_response::GetQueryResultsRespo
 use gcp_bigquery_client::model::query_request::QueryRequest;
 use gcp_bigquery_client::model::table_cell::TableCell;
 use gcp_bigquery_client::Client;
-use polars::prelude::{concat, AnyValue, Column, DataFrame, DataType, IntoColumn, IntoLazy, LazyFrame, PlSmallStr, TimeUnit};
+use polars::prelude::{
+    concat, AnyValue, Column, DataFrame, DataType, IntoColumn, IntoLazy, LazyFrame, PlSmallStr,
+    TimeUnit,
+};
 use polars::series::Series;
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -139,7 +142,9 @@ impl BigQueryExecutor {
                     .into_par_iter()
                     .zip(names.par_iter())
                     .map(|(any_value_vec, name)| {
-                        Series::from_any_values(name.into(), any_value_vec.as_slice(), false).unwrap().into_column()
+                        Series::from_any_values(name.into(), any_value_vec.as_slice(), false)
+                            .unwrap()
+                            .into_column()
                     })
                     .collect();
                 all_lfs.push(DataFrame::new(columns_vec).unwrap().lazy())
@@ -181,8 +186,7 @@ impl BigQueryExecutor {
             start_index: None,
             timeout_ms: None,
         };
-        job
-            .get_query_results(self.project_id.as_str(), job_id, params.clone())
+        job.get_query_results(self.project_id.as_str(), job_id, params.clone())
             .await
             .map_err(map_bqerr)
     }
@@ -215,7 +219,9 @@ fn table_cell_to_any<'a>(
             AnyValue::Boolean(value_as_ref.as_str().unwrap().parse::<bool>().unwrap())
         }
         FieldType::Timestamp => {
-            let some_utc = some_utc.as_ref().map(|tz| Arc::new(PlSmallStr::from_str(tz)));
+            let some_utc = some_utc
+                .as_ref()
+                .map(|tz| Arc::new(PlSmallStr::from_str(tz)));
             let ts_str = value_as_ref.as_str().unwrap();
             let timestamp_ns = (ts_str.parse::<f64>().unwrap() * (1e9f64)) as i64;
             AnyValue::DatetimeOwned(timestamp_ns, TimeUnit::Nanoseconds, some_utc)

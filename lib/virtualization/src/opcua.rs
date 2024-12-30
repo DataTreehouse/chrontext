@@ -12,7 +12,10 @@ use opcua::sync::RwLock;
 use oxrdf::vocab::xsd;
 use oxrdf::{Literal, Variable};
 use polars::export::chrono::{DateTime as ChronoDateTime, Duration, TimeZone, Utc};
-use polars::prelude::{concat, AnyValue, Column, DataFrame, DataType, IntoColumn, IntoLazy, NamedFrom, Series, UnionArgs};
+use polars::prelude::{
+    concat, AnyValue, Column, DataFrame, DataType, IntoColumn, IntoLazy, NamedFrom, Series,
+    UnionArgs,
+};
 use query_processing::constants::DATETIME_AS_SECONDS;
 use representation::query_context::Context;
 use representation::solution_mapping::EagerSolutionMappings;
@@ -112,10 +115,15 @@ impl VirtualizedOPCUADatabase {
                 .get(0)
                 .unwrap()
                 .as_str();
-            let mut id_iter = mapping_df.column(identifier_var).unwrap().as_materialized_series().iter();
+            let mut id_iter = mapping_df
+                .column(identifier_var)
+                .unwrap()
+                .as_materialized_series()
+                .iter();
             let mut grouping_col_iter = mapping_df
                 .column(grouping_col_name.as_ref().unwrap())
-                .unwrap().as_materialized_series()
+                .unwrap()
+                .as_materialized_series()
                 .iter();
             for _ in 0..mapping_df.height() {
                 let id_value = match id_iter.next().unwrap() {
@@ -231,7 +239,11 @@ impl VirtualizedOPCUADatabase {
                     Column::new_empty((*grouping_col).into(), &DataType::Int64)
                 } else {
                     Column::new_empty(
-                        vq.get_identifier_variables().get(0).unwrap().as_str().into(),
+                        vq.get_identifier_variables()
+                            .get(0)
+                            .unwrap()
+                            .as_str()
+                            .into(),
                         &DataType::String,
                     )
                 };

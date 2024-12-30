@@ -12,7 +12,6 @@ impl TimeseriesQueryPrepper {
         solution_mappings: &mut SolutionMappings,
         context: &Context,
     ) -> EXPrepReturn {
-        
         self.prepare_expression(
             wrapped,
             try_groupby_complex_query,

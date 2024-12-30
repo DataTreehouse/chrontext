@@ -108,7 +108,6 @@ impl BasicVirtualizedQuery {
         let id_var = Variable::new_unchecked(ID_VARIABLE_NAME);
         let mut queue = vec![(&self.query_source_variable, &id_var)];
         while let Some((current_query_var, current_template_var)) = queue.pop() {
-            
             if !visited_query_vars.contains(&current_query_var) {
                 visited_query_vars.insert(current_query_var);
                 for p in patterns {
@@ -291,7 +290,11 @@ impl VirtualizedQuery {
 
     pub fn validate(&self, df: &DataFrame) -> Result<(), VirtualizedResultValidationError> {
         let expected_columns = self.expected_columns();
-        let df_columns: HashSet<&str> = df.get_column_names().into_iter().map(|x|x.as_str()).collect();
+        let df_columns: HashSet<&str> = df
+            .get_column_names()
+            .into_iter()
+            .map(|x| x.as_str())
+            .collect();
         if expected_columns != df_columns {
             let err = VirtualizedResultValidationError {
                 missing_columns: expected_columns

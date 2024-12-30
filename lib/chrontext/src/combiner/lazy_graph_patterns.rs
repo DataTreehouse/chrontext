@@ -9,6 +9,7 @@ mod order_by;
 mod project;
 mod slice;
 mod union;
+mod values;
 
 use super::Combiner;
 use crate::combiner::CombinerError;
@@ -195,9 +196,9 @@ impl Combiner {
                 .await
             }
             GraphPattern::Values {
-                variables: _,
-                bindings: _,
-            } => Ok(updated_solution_mappings.unwrap()),
+                variables,
+                bindings,
+            } => self.lazy_values(updated_solution_mappings, variables, bindings),
             GraphPattern::OrderBy { inner, expression } => {
                 self.lazy_order_by(
                     inner,

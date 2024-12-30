@@ -630,10 +630,8 @@ impl Combiner {
                 let mut output_solution_mappings = solution_mappings;
                 for i in 0..inner.len() {
                     let inner_context = inner_contexts.get(i).unwrap();
-                    let inner_prepared_virtualized_queries = split_virtualized_queries(
-                        &mut prepared_virtualized_queries,
-                        inner_context,
-                    );
+                    let inner_prepared_virtualized_queries =
+                        split_virtualized_queries(&mut prepared_virtualized_queries, inner_context);
                     let inner_static_query_map =
                         split_static_queries_opt(&mut static_query_map, inner_context);
                     output_solution_mappings = self
@@ -669,13 +667,7 @@ impl Combiner {
                         .await?;
                     args_contexts.insert(i, arg_context);
                 }
-                func_expression(
-                    output_solution_mappings,
-                    func,
-                    args,
-                    args_contexts,
-                    context,
-                )?
+                func_expression(output_solution_mappings, func, args, args_contexts, context)?
             }
         };
         Ok(output_solution_mappings)

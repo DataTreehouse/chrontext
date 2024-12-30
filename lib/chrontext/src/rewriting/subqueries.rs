@@ -12,10 +12,8 @@ impl StaticQueryRewriter {
             if is_gp {
                 self.add_subquery(context, gpreturn.graph_pattern.unwrap());
             } else {
-                let mut variables: Vec<Variable> = gpreturn
-                    .variables_in_scope
-                    .iter().cloned()
-                    .collect();
+                let mut variables: Vec<Variable> =
+                    gpreturn.variables_in_scope.iter().cloned().collect();
                 variables.sort_by_key(|x| x.as_str().to_string());
                 let projection =
                     self.create_projection_graph_pattern(&gpreturn, context, &variables);

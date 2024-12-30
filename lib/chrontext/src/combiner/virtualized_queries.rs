@@ -4,7 +4,10 @@ use crate::preparing::grouping_col_type;
 use log::debug;
 use oxrdf::vocab::xsd;
 use oxrdf::Term;
-use polars::prelude::{col, CategoricalOrdering, Column, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType, SortMultipleOptions};
+use polars::prelude::{
+    col, CategoricalOrdering, Column, DataFrame, DataType, Expr, IntoLazy, JoinArgs, JoinType,
+    SortMultipleOptions,
+};
 use representation::polars_to_rdf::polars_type_to_literal_type;
 use representation::query_context::Context;
 use representation::solution_mapping::{EagerSolutionMappings, SolutionMappings};

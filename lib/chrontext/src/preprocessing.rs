@@ -101,10 +101,12 @@ impl Preprocessor {
                     right,
                     &context.extension_with(PathEntry::LeftJoinRightSide),
                 );
-                let preprocessed_expression = expression.as_ref().map(|e| self.preprocess_expression(
+                let preprocessed_expression = expression.as_ref().map(|e| {
+                    self.preprocess_expression(
                         e,
                         &context.extension_with(PathEntry::LeftJoinExpression),
-                    ));
+                    )
+                });
                 GraphPattern::LeftJoin {
                     left: Box::new(left),
                     right: Box::new(right),
@@ -161,7 +163,9 @@ impl Preprocessor {
                 find_all_used_variables_in_expression(expression, &mut used_vars, true, true);
                 for v in used_vars.drain() {
                     if let Some(ctr) = self.variable_constraints.get_constraint(&v, context) {
-                        if (ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived) && !self.variable_constraints.contains(variable, context) {
+                        if (ctr == &Constraint::External || ctr == &Constraint::ExternallyDerived)
+                            && !self.variable_constraints.contains(variable, context)
+                        {
                             self.variable_constraints.insert(
                                 variable.clone(),
                                 context.clone(),

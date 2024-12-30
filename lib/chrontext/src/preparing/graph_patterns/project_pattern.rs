@@ -15,7 +15,7 @@ impl TimeseriesQueryPrepper {
         context: &Context,
     ) -> GPPrepReturn {
         let inner_context = context.extension_with(PathEntry::ProjectInner);
-        
+
         self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,

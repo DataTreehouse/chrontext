@@ -37,8 +37,7 @@ impl TimeseriesQueryPrepper {
                         }
                     }
                     if !found_noncompatible && vqs.len() == 1 {
-                        let vq =
-                            VirtualizedQuery::Sliced(Box::new(vqs.remove(0)), start, length);
+                        let vq = VirtualizedQuery::Sliced(Box::new(vqs.remove(0)), start, length);
                         *vqs = vec![vq];
                     }
                 }

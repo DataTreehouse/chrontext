@@ -88,14 +88,8 @@ impl TimeseriesQueryPrepper {
         context: &Context,
     ) -> EXPrepReturn {
         match expression {
-            Expression::NamedNode(..) => {
-                
-                EXPrepReturn::new(HashMap::new())
-            }
-            Expression::Literal(..) => {
-                
-                EXPrepReturn::new(HashMap::new())
-            }
+            Expression::NamedNode(..) => EXPrepReturn::new(HashMap::new()),
+            Expression::Literal(..) => EXPrepReturn::new(HashMap::new()),
             Expression::Variable(..) => EXPrepReturn::new(HashMap::new()),
             Expression::Or(left, right) => self.prepare_or_expression(
                 left,

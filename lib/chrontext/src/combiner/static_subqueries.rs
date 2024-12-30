@@ -42,8 +42,9 @@ impl Combiner {
             &mut self.prepper.basic_virtualized_queries,
         )?;
         let (df, datatypes) = create_static_query_dataframe(&use_query, solutions);
+        let df_height = df.height();
         debug!("Static query results:\n {}", df);
-        let mut out_solution_mappings = SolutionMappings::new(df.lazy(), datatypes);
+        let mut out_solution_mappings = SolutionMappings::new(df.lazy(), datatypes, df_height);
         if let Some(use_solution_mappings) = use_solution_mappings {
             out_solution_mappings = join(
                 out_solution_mappings,
@@ -77,7 +78,9 @@ pub(crate) fn split_static_queries_opt(
     static_queries: &mut Option<HashMap<Context, Query>>,
     context: &Context,
 ) -> Option<HashMap<Context, Query>> {
-    static_queries.as_mut().map(|static_queries| split_static_queries(static_queries, context))
+    static_queries
+        .as_mut()
+        .map(|static_queries| split_static_queries(static_queries, context))
 }
 
 fn constrain_query(
@@ -119,15 +122,15 @@ fn constrain_query(
             x.into_iter()
                 .map(|y: Option<Term>| {
                     y.map(|y| match y {
-                            Term::NamedNode(nn) => GroundTerm::NamedNode(nn),
-                            Term::BlankNode(_) => {
-                                panic!()
-                            }
-                            Term::Literal(l) => GroundTerm::Literal(l),
-                            Term::Triple(_) => {
-                                todo!()
-                            }
-                        })
+                        Term::NamedNode(nn) => GroundTerm::NamedNode(nn),
+                        Term::BlankNode(_) => {
+                            panic!()
+                        }
+                        Term::Literal(l) => GroundTerm::Literal(l),
+                        Term::Triple(_) => {
+                            todo!()
+                        }
+                    })
                 })
                 .collect()
         })
