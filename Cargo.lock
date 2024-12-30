@@ -148,9 +148,9 @@ checksum = "bf7d0a018de4f6aa429b9d33d69edf69072b1c5b1cb8d3e4a5f7ef898fc3eb76"
 
 [[package]]
 name = "arrow-array"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d39387ca628be747394890a6e47f138ceac1aa912eab64f02519fed24b637af8"
+checksum = "bd03279cea46569acf9295f6224fbc370c5df184b4d2ecfe97ccb131d5615a7f"
 dependencies = [
  "ahash",
  "arrow-buffer",
@@ -158,15 +158,15 @@ dependencies = [
  "arrow-schema",
  "chrono",
  "half",
- "hashbrown 0.14.5",
+ "hashbrown 0.15.2",
  "num",
 ]
 
 [[package]]
 name = "arrow-buffer"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e51e05228852ffe3eb391ce7178a0f97d2cf80cc6ef91d3c4a6b3cb688049ec"
+checksum = "9e4a9b9b1d6d7117f6138e13bc4dd5daa7f94e671b70e8c9c4dc37b4f5ecfc16"
 dependencies = [
  "bytes",
  "half",
@@ -175,9 +175,9 @@ dependencies = [
 
 [[package]]
 name = "arrow-cast"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d09aea56ec9fa267f3f3f6cdab67d8a9974cbba90b3aa38c8fe9d0bb071bd8c1"
+checksum = "bc70e39916e60c5b7af7a8e2719e3ae589326039e1e863675a008bee5ffe90fd"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -195,9 +195,9 @@ dependencies = [
 
 [[package]]
 name = "arrow-data"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b98ae0af50890b494cebd7d6b04b35e896205c1d1df7b29a6272c5d0d0249ef5"
+checksum = "e4e75edf21ffd53744a9b8e3ed11101f610e7ceb1a29860432824f1834a1f623"
 dependencies = [
  "arrow-buffer",
  "arrow-schema",
@@ -207,9 +207,9 @@ dependencies = [
 
 [[package]]
 name = "arrow-flight"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "703620bf755500804893dc4b42982b8a33ee20d7c20c9c3ab3490a1d0f7cf641"
+checksum = "4c09b331887a526f203f2123444792aee924632bd08b9940435070901075832e"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -228,9 +228,9 @@ dependencies = [
 
 [[package]]
 name = "arrow-ipc"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ed91bdeaff5a1c00d28d8f73466bcb64d32bbd7093b5a30156b4b9f4dba3eee"
+checksum = "d186a909dece9160bf8312f5124d797884f608ef5435a36d9d608e0b2a9bcbf8"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -242,15 +242,15 @@ dependencies = [
 
 [[package]]
 name = "arrow-schema"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "539ada65246b949bd99ffa0881a9a15a4a529448af1a07a9838dd78617dafab1"
+checksum = "b95513080e728e4cec37f1ff5af4f12c9688d47795d17cda80b6ec2cf74d4678"
 
 [[package]]
 name = "arrow-select"
-version = "53.2.0"
+version = "53.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6259e566b752da6dceab91766ed8b2e67bf6270eb9ad8a6e07a33c1bede2b125"
+checksum = "8e415279094ea70323c032c6e739c48ad8d80e78a09bef7117b8718ad5bf3722"
 dependencies = [
  "ahash",
  "arrow-array",
@@ -1092,9 +1092,9 @@ dependencies = [
 
 [[package]]
 name = "gcp-bigquery-client"
-version = "0.23.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51480b6aca9d7997b8575b7e8b68441a847235673cdd739ae576bbfc708dbd3d"
+checksum = "7642bdf60deda83c29b045188527fbc8b633636e0337a65c026436e7cdb26d3b"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1213,9 +1213,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.15.0"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e087f84d4f86bf4b218b927129862374b72199ae7d8657835f1e89000eea4fb"
+checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 dependencies = [
  "allocator-api2",
  "equivalent",
@@ -1581,7 +1581,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "707907fe3c25f5424cce2cb7e1cbcafee6bdbe735ca90ef77c29e84591e5b9da"
 dependencies = [
  "equivalent",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "serde",
 ]
 
@@ -2393,7 +2393,7 @@ dependencies = [
  "either",
  "ethnum",
  "getrandom",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "itoap",
  "lz4",
  "multiversion",
@@ -2457,7 +2457,7 @@ dependencies = [
  "comfy-table",
  "either",
  "hashbrown 0.14.5",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "indexmap 2.6.0",
  "itoa",
  "num-traits",
@@ -2498,7 +2498,7 @@ checksum = "ad56c5ea4d6e0546fbc3fa35918a537b76587600a5118770ed331136249d50d8"
 dependencies = [
  "ahash",
  "bitflags 2.6.0",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "num-traits",
  "once_cell",
  "polars-arrow",
@@ -2529,7 +2529,7 @@ dependencies = [
  "fast-float2",
  "futures",
  "glob",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "home",
  "itoa",
  "memchr",
@@ -2563,7 +2563,7 @@ dependencies = [
  "chrono",
  "chrono-tz 0.10.0",
  "fallible-streaming-iterator",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "indexmap 2.6.0",
  "itoa",
  "num-traits",
@@ -2633,7 +2633,7 @@ dependencies = [
  "chrono",
  "chrono-tz 0.10.0",
  "either",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "hex",
  "indexmap 2.6.0",
  "memchr",
@@ -2666,7 +2666,7 @@ dependencies = [
  "ethnum",
  "flate2",
  "futures",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "lz4",
  "num-traits",
  "polars-arrow",
@@ -2700,7 +2700,7 @@ dependencies = [
  "crossbeam-queue",
  "enum_dispatch",
  "futures",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "num-traits",
  "polars-arrow",
  "polars-compute",
@@ -2729,7 +2729,7 @@ dependencies = [
  "chrono",
  "chrono-tz 0.10.0",
  "either",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "memmap2",
  "num-traits",
  "once_cell",
@@ -2859,7 +2859,7 @@ dependencies = [
  "bytemuck",
  "bytes",
  "compact_str",
- "hashbrown 0.15.0",
+ "hashbrown 0.15.2",
  "indexmap 2.6.0",
  "libc",
  "memmap2",
