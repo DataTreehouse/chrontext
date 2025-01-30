@@ -1,5 +1,6 @@
 use super::TimeseriesQueryPrepper;
 use crate::change_types::ChangeType;
+use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::expression_rewrites::rewrite_filter_expression;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use log::debug;
@@ -17,13 +18,13 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         let expression_prepare = self.prepare_expression(
             expression,
             try_groupby_complex_query,
             solution_mappings,
             &context.extension_with(PathEntry::FilterExpression),
-        );
+        )?;
         debug!("Expression prepare: {:?}", expression_prepare);
         let inner_filter_context = context.extension_with(PathEntry::FilterInner);
         let inner_prepare = self.prepare_graph_pattern(
@@ -31,10 +32,10 @@ impl TimeseriesQueryPrepper {
             try_groupby_complex_query,
             solution_mappings,
             &inner_filter_context,
-        );
+        )?;
         if expression_prepare.fail_groupby_complex_query || inner_prepare.fail_groupby_complex_query
         {
-            return GPPrepReturn::fail_groupby_complex_query();
+            return Ok(GPPrepReturn::fail_groupby_complex_query());
         }
 
         let mut out_vqs = HashMap::new();
@@ -59,7 +60,7 @@ impl TimeseriesQueryPrepper {
                 );
                 lost_any = lost_value || lost_any;
                 if try_groupby_complex_query && (lost_value || virtualized_condition.is_none()) {
-                    return GPPrepReturn::fail_groupby_complex_query();
+                    return Ok(GPPrepReturn::fail_groupby_complex_query());
                 }
                 if let Some(expr) = virtualized_condition {
                     out_vq_vec.push(VirtualizedQuery::Filtered(Box::new(t), expr));
@@ -75,7 +76,7 @@ impl TimeseriesQueryPrepper {
                 }
             }
         }
-        GPPrepReturn::new(out_vqs)
+        Ok(GPPrepReturn::new(out_vqs))
     }
 }
 

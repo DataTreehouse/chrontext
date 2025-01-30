@@ -3,6 +3,7 @@ use representation::query_context::{Context, PathEntry};
 use std::collections::{HashMap, HashSet};
 
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::constants::GROUPING_COL;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::grouping_col_type;
@@ -25,17 +26,17 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         debug!(
             "Prepare group by graph pattern at context {}",
             context.as_str()
         );
         if try_groupby_complex_query {
-            return GPPrepReturn::fail_groupby_complex_query();
+            return Ok(GPPrepReturn::fail_groupby_complex_query());
         }
         let inner_context = &context.extension_with(PathEntry::GroupInner);
         let mut try_graph_pattern_prepare =
-            self.prepare_graph_pattern(graph_pattern, true, solution_mappings, inner_context);
+            self.prepare_graph_pattern(graph_pattern, true, solution_mappings, inner_context)?;
         if !try_graph_pattern_prepare.fail_groupby_complex_query
             && self.pushdown_settings.contains(&PushdownSetting::GroupBy)
             && try_graph_pattern_prepare.virtualized_queries.len() == 1
@@ -68,7 +69,10 @@ impl TimeseriesQueryPrepper {
                         by: keep_by,
                         aggregations: aggregations.clone(),
                     });
-                    return GPPrepReturn::new(HashMap::from([(context.clone(), vec![vq])]));
+                    return Ok(GPPrepReturn::new(HashMap::from([(
+                        context.clone(),
+                        vec![vq],
+                    )])));
                 }
             }
         }

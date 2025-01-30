@@ -1,4 +1,5 @@
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::expressions::EXPrepReturn;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
@@ -11,7 +12,7 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> EXPrepReturn {
+    ) -> Result<EXPrepReturn, CombinerError> {
         self.prepare_expression(
             wrapped,
             try_groupby_complex_query,

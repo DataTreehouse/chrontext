@@ -1,4 +1,5 @@
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::expressions::EXPrepReturn;
 use representation::query_context::{Context, PathEntry};
 use representation::solution_mapping::SolutionMappings;
@@ -12,8 +13,8 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> EXPrepReturn {
-        let mut prepared = wrapped
+    ) -> Result<EXPrepReturn, CombinerError> {
+        let prepared = wrapped
             .iter()
             .enumerate()
             .map(|(i, e)| {
@@ -24,18 +25,19 @@ impl TimeseriesQueryPrepper {
                     &context.extension_with(PathEntry::Coalesce(i as u16)),
                 )
             })
-            .collect::<Vec<EXPrepReturn>>();
+            .collect::<Result<Vec<EXPrepReturn>, CombinerError>>();
+        let mut prepared = prepared?;
         if prepared.iter().any(|x| x.fail_groupby_complex_query) {
-            return EXPrepReturn::fail_groupby_complex_query();
+            return Ok(EXPrepReturn::fail_groupby_complex_query());
         }
         if prepared.is_empty() {
-            EXPrepReturn::new(HashMap::new())
+            Ok(EXPrepReturn::new(HashMap::new()))
         } else {
             let mut first_prepared = prepared.remove(0);
             for p in prepared {
                 first_prepared.with_virtualized_queries_from(p);
             }
-            first_prepared
+            Ok(first_prepared)
         }
     }
 }

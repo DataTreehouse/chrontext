@@ -1,4 +1,5 @@
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use oxrdf::Variable;
 use query_processing::find_query_variables::find_all_used_variables_in_expression;
@@ -17,14 +18,14 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         let inner_context = context.extension_with(PathEntry::ExtendInner);
         let mut inner_prepare = self.prepare_graph_pattern(
             inner,
             try_groupby_complex_query,
             solution_mappings,
             &inner_context,
-        );
+        )?;
         if try_groupby_complex_query {
             let mut expression_vars = HashSet::new();
             find_all_used_variables_in_expression(expr, &mut expression_vars, true, true);
@@ -76,12 +77,12 @@ impl TimeseriesQueryPrepper {
                     .unwrap()
                     .push(new_vq);
 
-                inner_prepare
+                Ok(inner_prepare)
             } else {
-                GPPrepReturn::fail_groupby_complex_query()
+                Ok(GPPrepReturn::fail_groupby_complex_query())
             }
         } else {
-            inner_prepare
+            Ok(inner_prepare)
         }
     }
 }

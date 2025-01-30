@@ -2,6 +2,7 @@ mod expressions;
 pub(crate) mod graph_patterns;
 mod synchronization;
 
+use crate::combiner::CombinerError;
 use polars::prelude::DataType;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
@@ -42,11 +43,11 @@ impl TimeseriesQueryPrepper {
         &mut self,
         query: &Query,
         solution_mappings: &mut SolutionMappings,
-    ) -> HashMap<Context, Vec<VirtualizedQuery>> {
+    ) -> Result<HashMap<Context, Vec<VirtualizedQuery>>, CombinerError> {
         if let Query::Select { pattern, .. } = query {
             let pattern_prepared =
-                self.prepare_graph_pattern(pattern, false, solution_mappings, &Context::new());
-            pattern_prepared.virtualized_queries
+                self.prepare_graph_pattern(pattern, false, solution_mappings, &Context::new())?;
+            Ok(pattern_prepared.virtualized_queries)
         } else {
             panic!("Only support for Select");
         }

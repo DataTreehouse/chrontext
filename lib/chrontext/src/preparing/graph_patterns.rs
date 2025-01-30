@@ -18,6 +18,7 @@ mod union_pattern;
 mod values_pattern;
 
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use log::debug;
 use representation::query_context::Context;
 use representation::solution_mapping::SolutionMappings;
@@ -64,15 +65,15 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         debug!(
             "Preparing vq for graph pattern at context {}, try group by complex query: {}",
             context.as_str(),
             try_groupby_complex_query
         );
-        match graph_pattern {
+        let r = match graph_pattern {
             GraphPattern::Bgp { patterns } => {
-                self.prepare_bgp(try_groupby_complex_query, patterns, context)
+                self.prepare_bgp(try_groupby_complex_query, patterns, context)?
             }
             GraphPattern::Path {
                 subject,
@@ -85,7 +86,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::LeftJoin {
                 left,
                 right,
@@ -97,23 +98,23 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Filter { expr, inner } => self.prepare_filter(
                 expr,
                 inner,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Union { left, right } => self.prepare_union(
                 left,
                 right,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Graph { inner, .. } => {
-                self.prepare_graph(inner, try_groupby_complex_query, solution_mappings, context)
+                self.prepare_graph(inner, try_groupby_complex_query, solution_mappings, context)?
             }
             GraphPattern::Extend {
                 inner,
@@ -126,14 +127,14 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Minus { left, right } => self.prepare_minus(
                 left,
                 right,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Values {
                 variables,
                 bindings,
@@ -144,19 +145,19 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Project { inner, variables } => self.prepare_project(
                 inner,
                 variables,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Distinct { inner } => {
-                self.prepare_distinct(inner, try_groupby_complex_query, solution_mappings, context)
+                self.prepare_distinct(inner, try_groupby_complex_query, solution_mappings, context)?
             }
             GraphPattern::Reduced { inner } => {
-                self.prepare_reduced(inner, try_groupby_complex_query, solution_mappings, context)
+                self.prepare_reduced(inner, try_groupby_complex_query, solution_mappings, context)?
             }
             GraphPattern::Slice {
                 inner,
@@ -169,7 +170,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Group {
                 inner,
                 variables,
@@ -181,12 +182,13 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             GraphPattern::Service { .. } => self.prepare_service(),
             GraphPattern::DT { .. } => panic!("Should never happen"),
             GraphPattern::PValues { .. } => {
                 todo!("Not currently supported")
             }
-        }
+        };
+        Ok(r)
     }
 }

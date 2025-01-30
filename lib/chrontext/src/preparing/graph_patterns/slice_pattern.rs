@@ -1,4 +1,5 @@
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use log::debug;
 use representation::query_context::{Context, PathEntry};
@@ -15,18 +16,18 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         let inner_context = context.extension_with(PathEntry::SliceInner);
         if try_groupby_complex_query {
             debug!("Encountered graph inside slice, not supported for complex groupby pushdown");
-            GPPrepReturn::fail_groupby_complex_query()
+            Ok(GPPrepReturn::fail_groupby_complex_query())
         } else {
             let mut inner_prepare = self.prepare_graph_pattern(
                 inner,
                 try_groupby_complex_query,
                 solution_mappings,
                 &inner_context,
-            );
+            )?;
             if !inner_prepare.fail_groupby_complex_query {
                 for (c, vqs) in &mut inner_prepare.virtualized_queries {
                     let mut found_noncompatible = false;
@@ -42,7 +43,7 @@ impl TimeseriesQueryPrepper {
                     }
                 }
             }
-            inner_prepare
+            Ok(inner_prepare)
         }
     }
 }

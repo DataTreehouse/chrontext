@@ -1,4 +1,5 @@
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use oxrdf::Variable;
 use representation::query_context::{Context, PathEntry};
@@ -13,7 +14,7 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         let inner_context = context.extension_with(PathEntry::ProjectInner);
 
         self.prepare_graph_pattern(

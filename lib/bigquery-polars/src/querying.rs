@@ -70,7 +70,8 @@ impl BigQueryExecutor {
             )
             .await
             .map_err(map_bqerr)?;
-        let job_info = result_set.job_reference
+        let job_info = result_set
+            .job_reference
             .as_ref()
             .ok_or_else(|| BigQueryExecutorError::JobReferenceMissingError)?;
 

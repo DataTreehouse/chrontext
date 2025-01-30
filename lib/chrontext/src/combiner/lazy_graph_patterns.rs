@@ -67,7 +67,7 @@ impl Combiner {
                 false,
                 &mut new_solution_mappings,
                 context,
-            );
+            )?;
             debug!(
                 "Finshed preparing time series queries, {} were created",
                 virtualized_queries.len()

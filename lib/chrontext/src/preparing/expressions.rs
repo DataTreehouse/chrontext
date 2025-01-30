@@ -10,6 +10,7 @@ mod or_expression;
 mod unary_ordinary_expression;
 
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::expressions::binary_ordinary_expression::BinaryOrdinaryOperator;
 use crate::preparing::expressions::unary_ordinary_expression::UnaryOrdinaryOperator;
 use representation::query_context::Context;
@@ -57,7 +58,7 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> EXPrepReturn {
+    ) -> Result<EXPrepReturn, CombinerError> {
         let mut exprep_out: Option<EXPrepReturn> = None;
 
         for order_expression in order_expressions {
@@ -66,9 +67,9 @@ impl TimeseriesQueryPrepper {
                 OrderExpression::Desc(e) => e,
             };
             let exprep =
-                self.prepare_expression(e, try_groupby_complex_query, solution_mappings, context);
+                self.prepare_expression(e, try_groupby_complex_query, solution_mappings, context)?;
             if exprep.fail_groupby_complex_query {
-                return EXPrepReturn::fail_groupby_complex_query();
+                return Ok(EXPrepReturn::fail_groupby_complex_query());
             }
             exprep_out = if let Some(mut exprep_out) = exprep_out {
                 exprep_out.with_virtualized_queries_from(exprep);
@@ -77,7 +78,7 @@ impl TimeseriesQueryPrepper {
                 Some(exprep)
             };
         }
-        exprep_out.unwrap()
+        Ok(exprep_out.unwrap())
     }
 
     pub fn prepare_expression(
@@ -86,8 +87,8 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> EXPrepReturn {
-        match expression {
+    ) -> Result<EXPrepReturn, CombinerError> {
+        let r = match expression {
             Expression::NamedNode(..) => EXPrepReturn::new(HashMap::new()),
             Expression::Literal(..) => EXPrepReturn::new(HashMap::new()),
             Expression::Variable(..) => EXPrepReturn::new(HashMap::new()),
@@ -97,7 +98,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
 
             Expression::And(left, right) => self.prepare_and_expression(
                 left,
@@ -105,7 +106,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Equal(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -113,7 +114,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::SameTerm(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -121,7 +122,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Greater(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -129,7 +130,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::GreaterOrEqual(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -137,7 +138,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Less(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -145,7 +146,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::LessOrEqual(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -153,14 +154,14 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::In(left, expressions) => self.prepare_in_expression(
                 left,
                 expressions,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Add(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -168,7 +169,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Subtract(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -176,7 +177,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Multiply(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -184,7 +185,7 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Divide(left, right) => self.prepare_binary_ordinary_expression(
                 left,
                 right,
@@ -192,33 +193,33 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::UnaryPlus(wrapped) => self.prepare_unary_ordinary_expression(
                 wrapped,
                 &UnaryOrdinaryOperator::UnaryPlus,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::UnaryMinus(wrapped) => self.prepare_unary_ordinary_expression(
                 wrapped,
                 &UnaryOrdinaryOperator::UnaryMinus,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Not(wrapped) => self.prepare_not_expression(
                 wrapped,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Exists(wrapped) => self.prepare_exists_expression(
                 wrapped,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Bound(..) => EXPrepReturn::new(HashMap::new()),
             Expression::If(left, mid, right) => self.prepare_if_expression(
                 left,
@@ -227,20 +228,21 @@ impl TimeseriesQueryPrepper {
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::Coalesce(wrapped) => self.prepare_coalesce_expression(
                 wrapped,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
+            )?,
             Expression::FunctionCall(fun, args) => self.prepare_function_call_expression(
                 fun,
                 args,
                 try_groupby_complex_query,
                 solution_mappings,
                 context,
-            ),
-        }
+            )?,
+        };
+        Ok(r)
     }
 }

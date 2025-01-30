@@ -1,4 +1,5 @@
 use super::TimeseriesQueryPrepper;
+use crate::combiner::CombinerError;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use log::debug;
 use representation::query_context::{Context, PathEntry};
@@ -12,10 +13,10 @@ impl TimeseriesQueryPrepper {
         try_groupby_complex_query: bool,
         solution_mappings: &mut SolutionMappings,
         context: &Context,
-    ) -> GPPrepReturn {
+    ) -> Result<GPPrepReturn, CombinerError> {
         if try_groupby_complex_query {
             debug!("Encountered graph inside reduced, not supported for complex groupby pushdown");
-            GPPrepReturn::fail_groupby_complex_query()
+            Ok(GPPrepReturn::fail_groupby_complex_query())
         } else {
             self.prepare_graph_pattern(
                 inner,
