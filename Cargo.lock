@@ -1106,9 +1106,9 @@ dependencies = [
 
 [[package]]
 name = "gcp-bigquery-client"
-version = "0.24.1"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7642bdf60deda83c29b045188527fbc8b633636e0337a65c026436e7cdb26d3b"
+checksum = "8486e814c17f85f6cec0e555e85df7dacc87adcd917a2d2b240ce0f4bed5a4a8"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2197,11 +2197,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxrdfio"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b93593047ed994cae402ecdc50d8d0593ceb4da54f0ff00ffdd78cd75b03606a"
+dependencies = [
+ "oxrdf",
+ "oxrdfxml",
+ "oxttl",
+ "thiserror 2.0.11",
+]
+
+[[package]]
+name = "oxrdfxml"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "331a12ee89216c1a3f2034da23dd95ec5a58a9e310ab3f0a645b1205d9f09284"
+dependencies = [
+ "oxilangtag",
+ "oxiri",
+ "oxrdf",
+ "quick-xml",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "oxsdatatypes"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06fa874d87eae638daae9b4e3198864fe2cce68589f227c0b2cf5b62b1530516"
 dependencies = [
+ "thiserror 2.0.11",
+]
+
+[[package]]
+name = "oxttl"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e686eb089843c7bf1a8b491a3bcb2b7bc265997a61527ae8120a04f6ed239c9"
+dependencies = [
+ "memchr",
+ "oxilangtag",
+ "oxiri",
+ "oxrdf",
  "thiserror 2.0.11",
 ]
 
@@ -3009,7 +3047,7 @@ dependencies = [
 
 [[package]]
 name = "py_chrontext"
-version = "0.9.12"
+version = "0.9.13"
 dependencies = [
  "chrontext",
  "env_logger",
@@ -3018,6 +3056,7 @@ dependencies = [
  "log",
  "mimalloc",
  "oxrdf",
+ "oxrdfio",
  "postgres",
  "pydf_io",
  "pyo3",

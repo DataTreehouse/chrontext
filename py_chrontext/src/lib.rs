@@ -40,6 +40,7 @@ use chrontext::engine::{Engine, EngineConfig};
 use flight::client::ChrontextFlightClient;
 use flight::server::ChrontextFlightServer;
 use log::{debug, info};
+use oxrdfio::RdfFormat;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, fix_cats_and_multicolumns};
@@ -149,7 +150,7 @@ impl PyEngine {
     #[cfg(not(feature = "opcua"))]
     #[new]
     #[pyo3(signature = (resources, virtualized_python_database=None, virtualized_bigquery_database=None, sparql_endpoint=None, sparql_embedded_oxigraph=None))]
-    pub fn new(
+    pub fn new<'py>(
         resources: HashMap<String, PyTemplate>,
         virtualized_python_database: Option<VirtualizedPythonDatabase>,
         virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
@@ -187,14 +188,19 @@ impl PyEngine {
                 #[cfg(not(feature = "opcua"))]
                 panic!("Should never happen");
             };
-            let sparql_endpoint = self.sparql_endpoint.clone();
+            let sparql_endpoint = if let Some(endpoint) = &self.sparql_endpoint {
+                Some(endpoint.clone())
+            } else {
+                None
+            };
 
-            let sparql_oxigraph_config =
-                self.sparql_embedded_oxigraph
-                    .as_ref()
-                    .map(|store| EmbeddedOxigraph {
-                        store: store.clone(),
-                    });
+            let sparql_oxigraph_config = if let Some(store) = &self.sparql_embedded_oxigraph {
+                Some(EmbeddedOxigraph {
+                    store: store.clone(),
+                })
+            } else {
+                None
+            };
 
             let mut virtualization_map = HashMap::new();
             for (k, v) in &self.resources {
@@ -212,7 +218,7 @@ impl PyEngine {
             };
 
             self.engine =
-                Some(Engine::from_config(config).map_err(PyChrontextError::ChrontextError)?);
+                Some(Engine::from_config(config).map_err(|x| PyChrontextError::ChrontextError(x))?);
         }
         Ok(())
     }
@@ -236,7 +242,7 @@ impl PyEngine {
                 .build()
                 .unwrap()
                 .block_on(self.engine.as_mut().unwrap().query(sparql))
-                .map_err(PyChrontextError::ChrontextError)
+                .map_err(|err| PyChrontextError::ChrontextError(err))
         })?;
 
         (df, datatypes) =
@@ -283,7 +289,7 @@ impl PyEngine {
                 .build()
                 .unwrap()
                 .block_on(flight_server.serve(address))
-                .map_err(PyChrontextError::FlightServerError)?;
+                .map_err(|x| PyChrontextError::FlightServerError(x))?;
             Ok(())
         })
     }
@@ -333,7 +339,7 @@ impl PyFlightClient {
                 .build()
                 .unwrap()
                 .block_on(client.query(&sparql, &self.metadata))
-                .map_err(PyChrontextError::FlightClientError)?;
+                .map_err(|x| PyChrontextError::FlightClientError(x))?;
             Ok(sm)
         });
         match res {
@@ -358,6 +364,15 @@ impl PyFlightClient {
             }
             Err(e) => Err(e),
         }
+    }
+}
+
+fn resolve_format(format: &str) -> RdfFormat {
+    match format.to_lowercase().as_str() {
+        "ntriples" => RdfFormat::NTriples,
+        "turtle" => RdfFormat::Turtle,
+        "rdf/xml" | "xml" | "rdfxml" => RdfFormat::RdfXml,
+        _ => unimplemented!("Unknown format {}", format),
     }
 }
 
@@ -455,7 +470,7 @@ impl PyDataProduct {
             rdf_node_types,
         };
         rdp.init()
-            .map_err(PyChrontextError::DataProductQueryParseError)?;
+            .map_err(|x| PyChrontextError::DataProductQueryParseError(x))?;
         Ok(rdp)
     }
 }

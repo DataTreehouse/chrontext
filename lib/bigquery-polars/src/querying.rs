@@ -246,6 +246,9 @@ fn table_cell_to_any<'a>(
         FieldType::Json => {
             todo!()
         }
+        FieldType::Interval => {
+            todo!()
+        }
     }
 }
 

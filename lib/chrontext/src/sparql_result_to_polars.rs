@@ -44,7 +44,7 @@ pub(crate) fn create_static_query_dataframe(
                     Term::Literal(l) => (
                         l.datatype().as_str(),
                         rdf_literal_to_polars_literal_value(l),
-                    )
+                    ),
                 }
             } else {
                 (MULTI_NONE_DT, LiteralValue::Null)
