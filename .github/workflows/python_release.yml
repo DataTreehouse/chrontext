@@ -13,9 +13,10 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: nightly-2024-10-28
+  RUST_TOOLCHAIN: nightly-2024-11-28
   MATURIN_VERSION: '1.7.4'
   MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+  PYTHON_VERSION: '3.12'
 
 jobs:
   security_audit:
@@ -31,15 +32,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: release
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Fix README symlink
         run: |
@@ -53,7 +50,7 @@ jobs:
           RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx,+fma
         with:
           command: publish
-          args: -m py_chrontext/Cargo.toml --features=opcua --skip-existing -o wheels -i python${{ matrix.python-version }} -u magbak
+          args: -m py_chrontext/Cargo.toml --features=opcua --skip-existing -o wheels -u magbak
           container: quay.io/pypa/manylinux_2_28_x86_64:latest
           before-script-linux: yum -y install perl-IPC-Cmd clang
           maturin-version: ${{ env.MATURIN_VERSION }}
@@ -63,16 +60,12 @@ jobs:
     needs: security_audit
     runs-on: windows-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
     environment: release
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Fix README symlink
         run: |
@@ -86,7 +79,7 @@ jobs:
           RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+sse4.1,+sse4.2
         with:
           command: publish
-          args: -m py_chrontext/Cargo.toml --features=opcua --no-sdist --skip-existing -o wheels -i python${{ matrix.PYTHON_VERSION }} -u magbak
+          args: -m py_chrontext/Cargo.toml --features=opcua --no-sdist --skip-existing -o wheels -u magbak
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
@@ -94,16 +87,12 @@ jobs:
     needs: security_audit
     runs-on: macos-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
     environment: release
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Fix README symlink
         run: |
@@ -118,7 +107,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: 12.6
         with:
           command: publish
-          args: -m py_chrontext/Cargo.toml --features=opcua --no-sdist --skip-existing -o wheels -i python${{ matrix.PYTHON_VERSION }} -u magbak
+          args: -m py_chrontext/Cargo.toml --features=opcua --no-sdist --skip-existing -o wheels -u magbak
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
@@ -127,10 +116,6 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 60
     environment: release
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -150,6 +135,6 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: publish
-          args: -m py_chrontext/Cargo.toml --features=opcua --target aarch64-apple-darwin --no-sdist -o wheels -i python${{ matrix.python-version }} -u magbak
+          args: -m py_chrontext/Cargo.toml --features=opcua --target aarch64-apple-darwin --no-sdist -o wheels -u magbak
           maturin-version: ${{ env.MATURIN_VERSION }}
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
