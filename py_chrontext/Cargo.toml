@@ -57,3 +57,6 @@ jemallocator = { version = "0.5.4", features = ["disable_initial_exec_tls"] }
 
 [features]
 opcua = ["chrontext/opcua", "virtualization/opcua"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("gil-refs", "rdf-star"))'] }

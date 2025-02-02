@@ -8,9 +8,7 @@ use crate::constants::GROUPING_COL;
 use crate::preparing::graph_patterns::GPPrepReturn;
 use crate::preparing::grouping_col_type;
 use oxrdf::Variable;
-use polars::prelude::{
-    col, DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, PlSmallStr, Series, UniqueKeepStrategy,
-};
+use polars::prelude::{col, DataFrameJoinOps, IntoLazy, JoinArgs, JoinType, PlSmallStr, Series, UniqueKeepStrategy};
 use query_processing::find_query_variables::find_all_used_variables_in_aggregate_expression;
 use representation::solution_mapping::SolutionMappings;
 use spargebra::algebra::{AggregateExpression, GraphPattern};
@@ -114,6 +112,7 @@ impl TimeseriesQueryPrepper {
                 by_names.as_slice(),
                 by_names.as_slice(),
                 JoinArgs::new(JoinType::Inner),
+                None
             )
             .unwrap()
             .lazy();

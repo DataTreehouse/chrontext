@@ -16,15 +16,15 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="0b0c67e767cc1c67156bde273a1a717b93c30a42", features = ["rdf-star"]}
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="0b0c67e767cc1c67156bde273a1a717b93c30a42" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="0b0c67e767cc1c67156bde273a1a717b93c30a42" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="0b0c67e767cc1c67156bde273a1a717b93c30a42", features = ["rdf-star"] }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="0b0c67e767cc1c67156bde273a1a717b93c30a42" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="14f10616cdb49cdc7853af047efba85afe7367a0" }
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="14f10616cdb49cdc7853af047efba85afe7367a0" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="14f10616cdb49cdc7853af047efba85afe7367a0" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="14f10616cdb49cdc7853af047efba85afe7367a0" }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="14f10616cdb49cdc7853af047efba85afe7367a0" }
 
 
-sparesults = { version = "0.2.3", features = ["rdf-star"] }
-oxrdf = { version = "0.2.2", features = ["rdf-star"] }
+sparesults = { version = "0.2.3" }
+oxrdf = { version = "0.2.2" }
 
 polars = "0.45.1"
 tonic = "0.12.3"
@@ -53,3 +53,9 @@ uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 rustls = "0.23.18"
 #Fixing dependabot issues
 hashbrown = "0.15.2"
+
+
+
+[patch.crates-io]
+polars = { git = 'https://github.com/pola-rs/polars', rev="841c387d99d7024037556c4ef79d96bf2caac397" }
+polars-core = { git = 'https://github.com/pola-rs/polars', rev="841c387d99d7024037556c4ef79d96bf2caac397" }

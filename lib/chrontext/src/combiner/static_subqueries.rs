@@ -127,9 +127,6 @@ fn constrain_query(
                             panic!()
                         }
                         Term::Literal(l) => GroundTerm::Literal(l),
-                        Term::Triple(_) => {
-                            todo!()
-                        }
                     })
                 })
                 .collect()
