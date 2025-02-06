@@ -40,7 +40,6 @@ use chrontext::engine::{Engine, EngineConfig};
 use flight::client::ChrontextFlightClient;
 use flight::server::ChrontextFlightServer;
 use log::{debug, info};
-use oxrdfio::RdfFormat;
 use postgres::catalog::{Catalog, DataProduct};
 use postgres::server::{start_server, Config};
 use pydf_io::to_python::{df_to_py_df, fix_cats_and_multicolumns};
@@ -364,15 +363,6 @@ impl PyFlightClient {
             }
             Err(e) => Err(e),
         }
-    }
-}
-
-fn resolve_format(format: &str) -> RdfFormat {
-    match format.to_lowercase().as_str() {
-        "ntriples" => RdfFormat::NTriples,
-        "turtle" => RdfFormat::Turtle,
-        "rdf/xml" | "xml" | "rdfxml" => RdfFormat::RdfXml,
-        _ => unimplemented!("Unknown format {}", format),
     }
 }
 

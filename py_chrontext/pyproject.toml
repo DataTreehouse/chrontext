@@ -6,6 +6,7 @@ dependencies = ["polars>=0.20.2",
                 "pandas",
                 "sqlalchemy>=2.0.31",
                 "sqlalchemy_bigquery==1.11.0",
+                "databricks-sqlalchemy==2.0.4",
                 "databricks-sql-connector>=3.3.0",
                 "pyoxigraph>=0.4.2"]
 readme = "README.md"
