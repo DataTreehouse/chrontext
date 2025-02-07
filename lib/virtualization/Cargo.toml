@@ -30,3 +30,4 @@ serde_json.workspace = true
 pyo3.workspace = true
 url.workspace = true
 log.workspace = true
+rustls.workspace = true

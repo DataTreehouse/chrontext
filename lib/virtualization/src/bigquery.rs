@@ -37,6 +37,7 @@ impl VirtualizedBigQueryDatabase {
         &self,
         vq: &VirtualizedQuery,
     ) -> Result<EagerSolutionMappings, ChrontextError> {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let mut rename_map = HashMap::new();
         let new_vq = rename_non_alpha_vars(vq.clone(), &mut rename_map);
         let query_string = translate_sql(&new_vq, &self.resource_sql_map, "bigquery")?;

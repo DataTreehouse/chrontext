@@ -50,7 +50,7 @@ rayon = "1.10.0"
 opcua = {version="0.12.0", features = ["vendored-openssl"]}
 url = "2.5.2"
 uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
-rustls = "0.23.18"
+rustls = {version = "0.23.18", features = ["ring"] }
 
 [patch.crates-io]
 polars = { git = 'https://github.com/pola-rs/polars', rev="841c387d99d7024037556c4ef79d96bf2caac397" }
