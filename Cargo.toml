@@ -16,11 +16,11 @@ members = [
 #pydf_io = { path = "../maplib/lib/pydf_io"}
 #representation = { path = "../maplib/lib/representation", features = ["rdf-star"]}
 #templates = { path = "../maplib/lib/templates"}
-spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="f693f30dd3644fd8533b9f582dd344309239ab30" }
-query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="f693f30dd3644fd8533b9f582dd344309239ab30" }
-pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="f693f30dd3644fd8533b9f582dd344309239ab30" }
-representation = { git = "https://github.com/DataTreehouse/maplib", rev="f693f30dd3644fd8533b9f582dd344309239ab30" }
-templates = { git = "https://github.com/DataTreehouse/maplib", rev="f693f30dd3644fd8533b9f582dd344309239ab30" }
+spargebra = { git = "https://github.com/DataTreehouse/maplib", rev="02df7b582260fa728807fc3cef50ce8c8af690b6" }
+query_processing = { git = "https://github.com/DataTreehouse/maplib", rev="02df7b582260fa728807fc3cef50ce8c8af690b6" }
+pydf_io = { git = "https://github.com/DataTreehouse/maplib", rev="02df7b582260fa728807fc3cef50ce8c8af690b6" }
+representation = { git = "https://github.com/DataTreehouse/maplib", rev="02df7b582260fa728807fc3cef50ce8c8af690b6" }
+templates = { git = "https://github.com/DataTreehouse/maplib", rev="02df7b582260fa728807fc3cef50ce8c8af690b6" }
 
 
 sparesults = { version = "0.2.3" }
