@@ -249,7 +249,7 @@ def test_pushdown_group_by_second_having_hybrid_query(engine):
     df = sm.mappings.cast({"sum_v": pl.Int64}).sort(by)
     expected = pl.read_csv(TESTDATA_PATH / "expected_pushdown_group_by_second_having_hybrid.csv", try_parse_dates=True).sort(by)
     assert_frame_equal(df, expected)
-    assert sm.pushdown_paths == [['ProjectInner', 'FilterInner', 'ExtendInner', 'ExtendInner']]
+    assert sm.pushdown_paths == [['ProjectInner', 'ExtendInner', 'ExtendInner', 'FilterInner']]
 
 
 def test_union_of_two_groupby_queries(engine):
@@ -300,8 +300,8 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
     assert sm.pushdown_paths == [['ProjectInner',
                                   'UnionLeftSide',
                                   'ProjectInner',
-                                  'FilterInner',
                                   'ExtendInner',
+                                  'FilterInner',
                                   'GroupInner',
                                   'FilterInner',
                                   'ExtendInner',
@@ -310,8 +310,8 @@ SELECT ?w ?second_5 ?kind ?sum_v WHERE {
                                  ['ProjectInner',
                                   'UnionRightSide',
                                   'ProjectInner',
-                                  'FilterInner',
                                   'ExtendInner',
+                                  'FilterInner',
                                   'GroupInner',
                                   'FilterInner',
                                   'ExtendInner',

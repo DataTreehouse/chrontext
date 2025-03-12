@@ -1,4 +1,4 @@
-mod bgp_pattern;
+mod bg_pattern;
 mod distinct_pattern;
 mod extend_pattern;
 mod filter_pattern;

@@ -209,10 +209,14 @@ impl BasicVirtualizedQuery {
     fn expected_columns(&self) -> HashSet<&str> {
         let mut s = HashSet::new();
         for tp in self.column_mapping.values() {
-            if let TermPattern::Variable(v) = tp {
-                s.insert(v.as_str());
-            } else {
-                todo!()
+            match tp {
+                TermPattern::BlankNode(b) => todo!("For the time being, replace {} with a variable", b),
+                TermPattern::Literal(_) | TermPattern::NamedNode(_) => {
+                    //No action required
+                }
+                TermPattern::Variable(v) => {
+                    s.insert(v.as_str());
+                }
             }
         }
         if let Some(grouping_var) = &self.grouping_col {

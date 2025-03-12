@@ -3158,7 +3158,7 @@ dependencies = [
 
 [[package]]
 name = "py_chrontext"
-version = "0.9.14"
+version = "0.9.15"
 dependencies = [
  "chrontext",
  "env_logger",
@@ -3185,7 +3185,7 @@ dependencies = [
 [[package]]
 name = "pydf_io"
 version = "0.7.6"
-source = "git+https://github.com/DataTreehouse/maplib?rev=02df7b582260fa728807fc3cef50ce8c8af690b6#02df7b582260fa728807fc3cef50ce8c8af690b6"
+source = "git+https://github.com/DataTreehouse/maplib?rev=ec762caed6894a63f06943cac5c64cc8d8153a10#ec762caed6894a63f06943cac5c64cc8d8153a10"
 dependencies = [
  "polars",
  "polars-core",
@@ -3262,11 +3262,12 @@ dependencies = [
 [[package]]
 name = "query_processing"
 version = "0.3.12"
-source = "git+https://github.com/DataTreehouse/maplib?rev=02df7b582260fa728807fc3cef50ce8c8af690b6#02df7b582260fa728807fc3cef50ce8c8af690b6"
+source = "git+https://github.com/DataTreehouse/maplib?rev=ec762caed6894a63f06943cac5c64cc8d8153a10#ec762caed6894a63f06943cac5c64cc8d8153a10"
 dependencies = [
  "log",
  "oxrdf",
  "polars",
+ "rayon",
  "representation",
  "spargebra",
  "thiserror 2.0.11",
@@ -3493,7 +3494,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "representation"
 version = "0.6.10"
-source = "git+https://github.com/DataTreehouse/maplib?rev=02df7b582260fa728807fc3cef50ce8c8af690b6#02df7b582260fa728807fc3cef50ce8c8af690b6"
+source = "git+https://github.com/DataTreehouse/maplib?rev=ec762caed6894a63f06943cac5c64cc8d8153a10#ec762caed6894a63f06943cac5c64cc8d8153a10"
 dependencies = [
  "chrono",
  "chrono-tz 0.10.1",
@@ -3923,7 +3924,7 @@ dependencies = [
 [[package]]
 name = "spargebra"
 version = "0.3.0-alpha.5-parparse"
-source = "git+https://github.com/DataTreehouse/maplib?rev=02df7b582260fa728807fc3cef50ce8c8af690b6#02df7b582260fa728807fc3cef50ce8c8af690b6"
+source = "git+https://github.com/DataTreehouse/maplib?rev=ec762caed6894a63f06943cac5c64cc8d8153a10#ec762caed6894a63f06943cac5c64cc8d8153a10"
 dependencies = [
  "chrono",
  "fundu",
@@ -4139,7 +4140,7 @@ dependencies = [
 [[package]]
 name = "templates"
 version = "0.1.0"
-source = "git+https://github.com/DataTreehouse/maplib?rev=02df7b582260fa728807fc3cef50ce8c8af690b6#02df7b582260fa728807fc3cef50ce8c8af690b6"
+source = "git+https://github.com/DataTreehouse/maplib?rev=ec762caed6894a63f06943cac5c64cc8d8153a10#ec762caed6894a63f06943cac5c64cc8d8153a10"
 dependencies = [
  "log",
  "nom",
