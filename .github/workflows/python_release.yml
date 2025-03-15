@@ -19,16 +19,7 @@ env:
   PYTHON_VERSION: '3.12'
 
 jobs:
-  security_audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   manylinux-x64_64:
-    needs: security_audit
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: release
@@ -57,7 +48,6 @@ jobs:
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
   win:
-    needs: security_audit
     runs-on: windows-latest
     timeout-minutes: 60
     environment: release
@@ -84,7 +74,6 @@ jobs:
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
   macos:
-    needs: security_audit
     runs-on: macos-latest
     timeout-minutes: 60
     environment: release
@@ -103,7 +92,6 @@ jobs:
       - name: Publish wheel
         uses: PyO3/maturin-action@v1
         env:
-          RUSTFLAGS: -C target-feature=+fxsr,+sse,+sse2,+sse3,+sse4.1,+sse4.2
           MACOSX_DEPLOYMENT_TARGET: 12.6
         with:
           command: publish
@@ -112,7 +100,6 @@ jobs:
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
 
   macos-aarch64:
-    needs: security_audit
     runs-on: macos-latest
     timeout-minutes: 60
     environment: release

@@ -4,11 +4,19 @@ on:
     paths:
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: nightly-2024-11-28
+
 jobs:
   security_audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/audit-check@v1
+      - name: Checkout chrontext
+        uses: actions/checkout@v4
+
+      - name: Audit
+        uses: rustsec/audit-check@v1.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
