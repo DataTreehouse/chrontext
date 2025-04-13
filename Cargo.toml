@@ -27,7 +27,7 @@ sparesults = { version = "0.2.3" }
 oxrdf = { version = "0.2.2" }
 polars = "0.46.0"
 tonic = "0.13.0"
-tokio = "1.32.1"
+tokio = "1.44.2"
 arrow-flight = "55.0.0"
 futures = "0.3.31"
 bincode = "2.0.1"
