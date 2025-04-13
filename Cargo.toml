@@ -26,11 +26,11 @@ templates = { git = "https://github.com/DataTreehouse/maplib", rev="3619397240b6
 sparesults = { version = "0.2.3" }
 oxrdf = { version = "0.2.2" }
 polars = "0.46.0"
-tonic = "0.13.0"
+tonic = "0.12.3"
 tokio = "1.44.2"
-arrow-flight = "55.0.0"
+arrow-flight = "54.3.1"
 futures = "0.3.31"
-bincode = "2.0.1"
+bincode = { version="2.0.1", features = ["serde"] }
 log = "0.4.21"
 pyo3 = { version= "0.24.1", features = ["abi3-py39"] }
 reqwest = "0.12.5"
