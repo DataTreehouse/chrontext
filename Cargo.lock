@@ -648,15 +648,12 @@ name = "chrontext"
 version = "0.4.0"
 dependencies = [
  "async-recursion",
- "async-trait",
- "filesize",
  "log",
  "oxrdf",
  "polars",
  "query_processing",
  "rayon",
  "representation",
- "reqwest",
  "sparesults",
  "spargebra",
  "sparql_database",
@@ -1007,15 +1004,6 @@ name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
-
-[[package]]
-name = "filesize"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12d741e2415d4e2e5bd1c1d00409d1a8865a57892c2d689b504365655d237d43"
-dependencies = [
- "winapi",
-]
 
 [[package]]
 name = "fixedbitset"
@@ -4673,15 +4661,12 @@ name = "virtualization"
 version = "0.1.0"
 dependencies = [
  "bigquery-polars",
- "chrono",
  "gcp-bigquery-client",
- "log",
  "opcua",
  "oxrdf",
  "polars",
  "pydf_io",
  "pyo3",
- "query_processing",
  "representation",
  "reqwest",
  "rustls",

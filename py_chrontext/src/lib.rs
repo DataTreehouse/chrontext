@@ -55,8 +55,6 @@ use std::sync::Arc;
 use templates::python::{a, py_triple, PyArgument, PyInstance, PyParameter, PyTemplate, PyXSD};
 use tokio::runtime::Builder;
 use virtualization::bigquery::VirtualizedBigQueryDatabase;
-#[cfg(feature = "opcua")]
-use virtualization::opcua::VirtualizedOPCUADatabase;
 use virtualization::python::VirtualizedPythonDatabase;
 use virtualization::{Virtualization, VirtualizedDatabase};
 use virtualized_query::python::{
@@ -70,8 +68,6 @@ pub struct PyEngine {
     sparql_embedded_oxigraph: Option<Py<PyAny>>,
     virtualized_python_database: Option<VirtualizedPythonDatabase>,
     virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
-    #[cfg(feature = "opcua")]
-    virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
     resources: HashMap<String, PyTemplate>,
 }
 
@@ -80,7 +76,6 @@ impl PyEngine {
         resources: HashMap<String, PyTemplate>,
         virtualized_python_database: Option<VirtualizedPythonDatabase>,
         virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
-        #[cfg(feature = "opcua")] virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
         sparql_endpoint: Option<String>,
         sparql_embedded_oxigraph: Option<Py<PyAny>>,
     ) -> PyResult<PyEngine> {
@@ -94,12 +89,6 @@ impl PyEngine {
             return Err(PyChrontextError::MultipleSPARQLDatabasesError.into());
         }
 
-        #[cfg(feature = "opcua")]
-        let num_virtualized = virtualized_bigquery_database.is_some() as usize
-            + virtualized_opcua_database.is_some() as usize
-            + virtualized_python_database.is_some() as usize;
-
-        #[cfg(not(feature = "opcua"))]
         let num_virtualized = virtualized_bigquery_database.is_some() as usize
             + virtualized_python_database.is_some() as usize;
 
@@ -116,8 +105,6 @@ impl PyEngine {
             sparql_embedded_oxigraph,
             virtualized_python_database,
             virtualized_bigquery_database,
-            #[cfg(feature = "opcua")]
-            virtualized_opcua_database,
             resources,
         };
         Ok(engine)
@@ -126,27 +113,6 @@ impl PyEngine {
 
 #[pymethods]
 impl PyEngine {
-    #[cfg(feature = "opcua")]
-    #[new]
-    pub fn new<'py>(
-        resources: HashMap<String, PyTemplate>,
-        virtualized_python_database: Option<VirtualizedPythonDatabase>,
-        virtualized_bigquery_database: Option<PyVirtualizedBigQueryDatabase>,
-        virtualized_opcua_database: Option<PyVirtualizedOPCUADatabase>,
-        sparql_endpoint: Option<String>,
-        sparql_embedded_oxigraph: Option<Py<PyAny>>,
-    ) -> PyResult<PyEngine> {
-        Self::new_impl(
-            resources,
-            virtualized_python_database,
-            virtualized_bigquery_database,
-            virtualized_opcua_database,
-            sparql_endpoint,
-            sparql_embedded_oxigraph,
-        )
-    }
-
-    #[cfg(not(feature = "opcua"))]
     #[new]
     #[pyo3(signature = (resources, virtualized_python_database=None, virtualized_bigquery_database=None, sparql_endpoint=None, sparql_embedded_oxigraph=None))]
     pub fn new<'py>(
@@ -175,16 +141,6 @@ impl PyEngine {
             } else if let Some(db) = &self.virtualized_python_database {
                 VirtualizedDatabase::VirtualizedPythonDatabase(db.clone())
             } else {
-                #[cfg(feature = "opcua")]
-                if let Some(db) = &self.virtualized_opcua_database {
-                    VirtualizedDatabase::VirtualizedOPCUADatabase(VirtualizedOPCUADatabase::new(
-                        &db.endpoint,
-                        db.namespace,
-                    ))
-                } else {
-                    panic!("Should never happen");
-                }
-                #[cfg(not(feature = "opcua"))]
                 panic!("Should never happen");
             };
             let sparql_endpoint = if let Some(endpoint) = &self.sparql_endpoint {
@@ -386,25 +342,6 @@ impl PyVirtualizedBigQueryDatabase {
         }
     }
 }
-#[cfg(feature = "opcua")]
-#[pyclass(name = "VirtualizedOPCUADatabase")]
-#[derive(Clone)]
-pub struct PyVirtualizedOPCUADatabase {
-    namespace: u16,
-    endpoint: String,
-}
-
-#[cfg(feature = "opcua")]
-#[pymethods]
-impl PyVirtualizedOPCUADatabase {
-    #[new]
-    pub fn new(endpoint: String, namespace: u16) -> PyVirtualizedOPCUADatabase {
-        Self {
-            namespace,
-            endpoint,
-        }
-    }
-}
 
 #[pyclass(name = "Catalog")]
 #[derive(Clone)]
@@ -479,8 +416,6 @@ fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyEngine>()?;
     m.add_class::<VirtualizedPythonDatabase>()?;
     m.add_class::<PyVirtualizedBigQueryDatabase>()?;
-    #[cfg(feature = "opcua")]
-    m.add_class::<PyVirtualizedOPCUADatabase>()?;
     m.add_class::<PyDataProduct>()?;
     m.add_class::<PyCatalog>()?;
     m.add_class::<PyRDFType>()?;

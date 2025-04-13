@@ -2,10 +2,6 @@ pub mod errors;
 pub mod python;
 
 pub mod bigquery;
-
-#[cfg(feature = "opcua")]
-pub mod opcua;
-
 use crate::bigquery::VirtualizedBigQueryDatabase;
 use crate::errors::ChrontextError;
 #[cfg(feature = "opcua")]
@@ -74,8 +70,6 @@ impl Virtualization {
 pub enum VirtualizedDatabase {
     VirtualizedPythonDatabase(VirtualizedPythonDatabase),
     VirtualizedBigQueryDatabase(VirtualizedBigQueryDatabase),
-    #[cfg(feature = "opcua")]
-    VirtualizedOPCUADatabase(VirtualizedOPCUADatabase),
 }
 
 impl VirtualizedDatabase {
@@ -84,10 +78,6 @@ impl VirtualizedDatabase {
             VirtualizedDatabase::VirtualizedPythonDatabase(pydb) => pydb.pushdown_settings(),
             VirtualizedDatabase::VirtualizedBigQueryDatabase(_) => {
                 VirtualizedBigQueryDatabase::pushdown_settings()
-            }
-            #[cfg(feature = "opcua")]
-            VirtualizedDatabase::VirtualizedOPCUADatabase(_) => {
-                VirtualizedOPCUADatabase::pushdown_settings()
             }
         }
     }
@@ -103,8 +93,6 @@ impl VirtualizedDatabase {
                 Ok(EagerSolutionMappings::new(df, rdf_node_types))
             }
             VirtualizedDatabase::VirtualizedBigQueryDatabase(q) => q.query(vq).await,
-            #[cfg(feature = "opcua")]
-            VirtualizedDatabase::VirtualizedOPCUADatabase(uadb) => uadb.query(vq).await,
         }
     }
 }

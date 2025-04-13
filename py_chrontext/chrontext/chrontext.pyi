@@ -270,22 +270,6 @@ class VirtualizedBigQueryDatabase:
         :param key_json_path: Path to JSON containing Key to connect to BigQuery.
         """
 
-class VirtualizedOPCUADatabase:
-    """
-    A virtualized OPC UA Server (History Access), which should be provided to the Engine constructor.
-    """
-    def __init__(self,
-                 namespace: int,
-                 endpoint: str):
-        """
-        Construct new virtualized OPC UA Database.
-        See test_opcua.py for an example of use.
-        This API is subject to change - will move to URI defined namespaces.
-
-        :param namespace:
-        :param endpoint:
-        """
-
 class Engine:
     """
     The hybrid query engine of chrontext.

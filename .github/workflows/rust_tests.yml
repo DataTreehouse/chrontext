@@ -28,6 +28,6 @@ jobs:
         docker pull oxigraph/oxigraph:v0.3.8
 
     - name: Build
-      run: cargo build --features=opcua --verbose --all
+      run: cargo build --verbose --all
     - name: Run rust tests
-      run: cargo test --features=opcua --verbose --all
+      run: cargo test --verbose --all

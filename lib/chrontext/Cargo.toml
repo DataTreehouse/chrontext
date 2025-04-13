@@ -8,7 +8,6 @@ virtualization = {path = "../virtualization"}
 virtualized_query = { path = "../virtualized_query" }
 sparql_database = { path = "../sparql_database" }
 
-
 polars = { workspace = true, features = [
     "lazy",
     "concat_str",
@@ -28,13 +27,8 @@ representation.workspace=true
 query_processing.workspace = true
 sparesults.workspace = true
 oxrdf.workspace = true
-reqwest = { workspace = true, features = ["stream"] }
 thiserror.workspace = true
 async-recursion.workspace = true
-async-trait.workspace = true
-filesize.workspace = true
 uuid.workspace = true
 rayon.workspace = true
 
-[features]
-opcua = ["virtualization/opcua"]

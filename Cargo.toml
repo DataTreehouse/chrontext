@@ -46,9 +46,9 @@ secrecy = "=0.10.3"
 gcp-bigquery-client = "0.25.1"
 rayon = "1.10.0"
 opcua = {version="0.12.0", features = ["vendored-openssl"]}
-url = "2.5.2"
 uuid = {version = "1.10.0", features = ["fast-rng", "v4"]}
 rustls = {version = "0.23.18"}
+url = {version = "2.5.4"}
 
 [patch.crates-io]
 polars = { git = 'https://github.com/pola-rs/polars', rev="319a9a84ab573886b2a13548a8e462fee353acef" }
