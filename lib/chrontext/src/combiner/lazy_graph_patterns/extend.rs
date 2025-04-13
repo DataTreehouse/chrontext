@@ -74,7 +74,7 @@ impl Combiner {
             )?)
         } else {
             output_solution_mappings.mappings = output_solution_mappings.mappings.with_column(
-                lit(LiteralValue::Null)
+                lit(LiteralValue::untyped_null())
                     .cast(BaseRDFNodeType::None.polars_data_type())
                     .alias(variable.as_str()),
             );

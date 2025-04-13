@@ -20,7 +20,7 @@ impl SparqlQueryable for EmbeddedOxigraph {
     async fn execute(&self, query: &Query) -> Result<Vec<QuerySolution>, SparqlQueryError> {
         Python::with_gil(|py| {
             let json_format = py
-                .import_bound("pyoxigraph")
+                .import("pyoxigraph")
                 .unwrap()
                 .getattr("QueryResultsFormat")
                 .unwrap()

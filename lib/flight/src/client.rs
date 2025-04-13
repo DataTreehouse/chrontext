@@ -13,8 +13,6 @@ pub enum ChrontextFlightClientError {
     #[error(transparent)]
     QueryExecutionError(Status),
     #[error(transparent)]
-    TypesDeserializationError(bincode::Error),
-    #[error(transparent)]
     PolarsDeserializationError(PolarsError),
     #[error(transparent)]
     UnionError(QueryProcessingError),

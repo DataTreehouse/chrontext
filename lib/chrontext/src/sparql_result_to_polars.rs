@@ -47,13 +47,13 @@ pub(crate) fn create_static_query_dataframe(
                     ),
                 }
             } else {
-                (MULTI_NONE_DT, LiteralValue::Null)
+                (MULTI_NONE_DT, LiteralValue::untyped_null())
             };
 
             if let Some(v) = col_map.get_mut(k) {
                 v.push(litval)
             } else if k != MULTI_NONE_DT {
-                let mut v: Vec<_> = (0..i).map(|_| LiteralValue::Null).collect();
+                let mut v: Vec<_> = (0..i).map(|_| LiteralValue::untyped_null()).collect();
                 v.push(litval);
                 col_map.insert(k.to_string(), v);
             }
@@ -63,7 +63,7 @@ pub(crate) fn create_static_query_dataframe(
         if col_map.is_empty() {
             col_map.insert(
                 MULTI_NONE_DT.to_string(),
-                (0..i).map(|_| LiteralValue::Null).collect(),
+                (0..i).map(|_| LiteralValue::untyped_null()).collect(),
             );
         }
         let mut new_col_map = HashMap::new();
@@ -165,7 +165,7 @@ fn get_projected_variables(g: &GraphPattern) -> Vec<Variable> {
 fn push_none_all_others(k_not: &str, map: &mut HashMap<String, Vec<LiteralValue>>) {
     for (k, v) in map.iter_mut() {
         if k != k_not {
-            v.push(LiteralValue::Null);
+            v.push(LiteralValue::untyped_null());
         }
     }
 }

@@ -346,7 +346,7 @@ impl PyFlightClient {
                 let EagerSolutionMappings {
                     mut mappings,
                     mut rdf_node_types,
-                } = sm.as_eager();
+                } = sm.as_eager(false);
                 (mappings, rdf_node_types) = fix_cats_and_multicolumns(
                     mappings,
                     rdf_node_types,
@@ -498,7 +498,7 @@ fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyFlightClient>()?;
 
-    let child = PyModule::new_bound(m.py(), "vq")?;
+    let child = PyModule::new(m.py(), "vq")?;
     child.add_class::<PyVirtualizedQuery>()?;
     child.add_class::<PyExpression>()?;
     child.add_class::<PyOrderExpression>()?;
@@ -506,7 +506,7 @@ fn _chrontext(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     child.add_class::<PyXSDDuration>()?;
     m.add_submodule(&child)?;
 
-    _py.import_bound("sys")?
+    _py.import("sys")?
         .getattr("modules")?
         .set_item("chrontext.vq", child)?;
     Ok(())

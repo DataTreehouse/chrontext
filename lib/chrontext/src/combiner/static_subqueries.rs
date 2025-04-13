@@ -4,7 +4,7 @@ use crate::combiner::CombinerError;
 use crate::sparql_result_to_polars::create_static_query_dataframe;
 use log::debug;
 use oxrdf::{Term, Variable};
-use polars::export::rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use polars::prelude::{col, Expr, IntoLazy, JoinType, UniqueKeepStrategy};
 use query_processing::graph_patterns::join;
 use representation::polars_to_rdf::{df_as_result, QuerySolutions};

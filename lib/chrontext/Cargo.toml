@@ -34,6 +34,7 @@ async-recursion.workspace = true
 async-trait.workspace = true
 filesize.workspace = true
 uuid.workspace = true
+rayon.workspace = true
 
 [features]
 opcua = ["virtualization/opcua"]

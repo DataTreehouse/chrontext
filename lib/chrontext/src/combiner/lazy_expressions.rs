@@ -4,7 +4,7 @@ use crate::combiner::virtualized_queries::split_virtualized_queries;
 use crate::combiner::CombinerError;
 use async_recursion::async_recursion;
 use oxrdf::vocab::xsd;
-use polars::prelude::{col, Expr, LiteralValue};
+use polars::prelude::{col, lit, LiteralValue, Scalar};
 use query_processing::exists_helper::rewrite_exists_graph_pattern;
 use query_processing::expressions::{
     binary_expression, bound, coalesce_expression, exists, func_expression, if_expression,
@@ -298,7 +298,7 @@ impl Combiner {
                 )?
             }
             Expression::In(left, right) => {
-                let solution_mappings = solution_mappings.as_eager();
+                let solution_mappings = solution_mappings.as_eager(false);
                 let solution_mappings = solution_mappings.as_lazy();
 
                 let left_context = context.extension_with(PathEntry::InLeft);
@@ -538,7 +538,7 @@ impl Combiner {
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
-                        Expr::Literal(LiteralValue::Int64(1)).alias(exists_context.as_str()),
+                        lit(LiteralValue::Scalar(Scalar::from(1i64))).alias(exists_context.as_str()),
                     )
                     .with_column(
                         col(exists_context.as_str())
