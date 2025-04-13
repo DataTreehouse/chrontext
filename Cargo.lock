@@ -3185,7 +3185,7 @@ dependencies = [
 [[package]]
 name = "pydf_io"
 version = "0.7.6"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3619397240b6745d6bce4018a1d5e54ed9ca46e7#3619397240b6745d6bce4018a1d5e54ed9ca46e7"
+source = "git+https://github.com/DataTreehouse/maplib?rev=c3f59a6210de3f003e455c63bace8b03579d2657#c3f59a6210de3f003e455c63bace8b03579d2657"
 dependencies = [
  "polars",
  "polars-core",
@@ -3262,7 +3262,7 @@ dependencies = [
 [[package]]
 name = "query_processing"
 version = "0.3.12"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3619397240b6745d6bce4018a1d5e54ed9ca46e7#3619397240b6745d6bce4018a1d5e54ed9ca46e7"
+source = "git+https://github.com/DataTreehouse/maplib?rev=c3f59a6210de3f003e455c63bace8b03579d2657#c3f59a6210de3f003e455c63bace8b03579d2657"
 dependencies = [
  "log",
  "oxrdf",
@@ -3532,7 +3532,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 [[package]]
 name = "representation"
 version = "0.6.10"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3619397240b6745d6bce4018a1d5e54ed9ca46e7#3619397240b6745d6bce4018a1d5e54ed9ca46e7"
+source = "git+https://github.com/DataTreehouse/maplib?rev=c3f59a6210de3f003e455c63bace8b03579d2657#c3f59a6210de3f003e455c63bace8b03579d2657"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -3984,7 +3984,7 @@ dependencies = [
 [[package]]
 name = "spargebra"
 version = "0.3.0-alpha.5-parparse"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3619397240b6745d6bce4018a1d5e54ed9ca46e7#3619397240b6745d6bce4018a1d5e54ed9ca46e7"
+source = "git+https://github.com/DataTreehouse/maplib?rev=c3f59a6210de3f003e455c63bace8b03579d2657#c3f59a6210de3f003e455c63bace8b03579d2657"
 dependencies = [
  "chrono",
  "fundu",
@@ -4181,7 +4181,7 @@ dependencies = [
 [[package]]
 name = "templates"
 version = "0.1.0"
-source = "git+https://github.com/DataTreehouse/maplib?rev=3619397240b6745d6bce4018a1d5e54ed9ca46e7#3619397240b6745d6bce4018a1d5e54ed9ca46e7"
+source = "git+https://github.com/DataTreehouse/maplib?rev=c3f59a6210de3f003e455c63bace8b03579d2657#c3f59a6210de3f003e455c63bace8b03579d2657"
 dependencies = [
  "log",
  "nom",
