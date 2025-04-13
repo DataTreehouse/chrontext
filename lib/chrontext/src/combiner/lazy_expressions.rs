@@ -538,7 +538,8 @@ impl Combiner {
                 output_solution_mappings.mappings = output_solution_mappings
                     .mappings
                     .with_column(
-                        lit(LiteralValue::Scalar(Scalar::from(1i64))).alias(exists_context.as_str()),
+                        lit(LiteralValue::Scalar(Scalar::from(1i64)))
+                            .alias(exists_context.as_str()),
                     )
                     .with_column(
                         col(exists_context.as_str())

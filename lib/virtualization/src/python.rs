@@ -2,12 +2,12 @@ mod sql_translation;
 
 use polars::prelude::DataFrame;
 use pydf_io::to_rust::polars_df_to_rust_df;
+use pyo3::ffi::c_str;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use sql_translation::PYTHON_CODE;
 use std::collections::HashSet;
 use std::ffi::CString;
-use pyo3::ffi::c_str;
 use virtualized_query::pushdown_setting::{all_pushdowns, PushdownSetting};
 use virtualized_query::python::PyVirtualizedQuery;
 use virtualized_query::VirtualizedQuery;
@@ -69,7 +69,12 @@ pub fn translate_sql(
 ) -> PyResult<String> {
     Python::with_gil(|py| {
         let pyvq = PyVirtualizedQuery::new(vq.clone(), py)?;
-        let db_mod = PyModule::from_code(py, CString::new(PYTHON_CODE).unwrap().as_c_str(), c_str!("my_translator"), c_str!("my_translator"))?;
+        let db_mod = PyModule::from_code(
+            py,
+            CString::new(PYTHON_CODE).unwrap().as_c_str(),
+            c_str!("my_translator"),
+            c_str!("my_translator"),
+        )?;
         let translate_sql_func = db_mod.getattr("translate_sql")?;
         let query_string = translate_sql_func.call((pyvq, dialect, resource_sql_map), None)?;
         query_string.extract::<String>()
