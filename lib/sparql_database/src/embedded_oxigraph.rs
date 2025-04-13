@@ -1,6 +1,6 @@
 use super::{parse_json_text, SparqlQueryError, SparqlQueryable};
 use async_trait::async_trait;
-use pyo3::types::PyAnyMethods;
+use pyo3::types::{PyAnyMethods, PyNone};
 use pyo3::{Py, PyAny, Python};
 use sparesults::QuerySolution;
 use spargebra::Query;
@@ -30,7 +30,7 @@ impl SparqlQueryable for EmbeddedOxigraph {
                 .store
                 .call_method1(py, "query", (query.to_string(),))
                 .unwrap()
-                .call_method1(py, "serialize", ((), json_format))
+                .call_method1(py, "serialize", (PyNone::get(py), json_format))
                 .unwrap();
             let json_bytes: Vec<u8> = json.extract(py).unwrap();
             let json_string = String::from_utf8(json_bytes).unwrap();

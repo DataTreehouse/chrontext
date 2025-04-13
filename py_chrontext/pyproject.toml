@@ -1,14 +1,14 @@
 [project]
 name = "chrontext"
 description = "Hybrid SPARQL query engine for timeseries data"
-dependencies = ["polars>=0.20.2",
+dependencies = ["polars>=1.27.1",
                 "pyarrow>=7.0.0",
                 "pandas",
                 "sqlalchemy>=2.0.31",
                 "sqlalchemy-bigquery>=1.11.0",
                 "databricks-sqlalchemy>=2.0.4",
                 "databricks-sql-connector>=3.3.0",
-                "pyoxigraph>=0.4.2"]
+                "pyoxigraph>=0.4.9"]
 readme = "README.md"
 authors = [{ name = "Magnus Bakken", email = "magnus@data-treehouse.com" }]
 license = { file = "LICENSE" }
