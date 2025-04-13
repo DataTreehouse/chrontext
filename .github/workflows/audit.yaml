@@ -7,7 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN: nightly-2024-11-28
+  RUST_TOOLCHAIN: nightly-2025-03-07
 
 jobs:
   security_audit:
